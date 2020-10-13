@@ -206,8 +206,8 @@ class exporter(object):
         """
         Convert Odoo float time to ISO 8601 duration.
         """
-		d = timedelta(days=float_time)
-            return "P%dDT%dH%dM%dS" % (
+        d = timedelta(days=float_time)
+        return "P%dDT%dH%dM%dS" % (
             d.days,  # duration: days
             int(d.seconds / 3600),  # duration: hours
             int((d.seconds % 3600) / 60),  # duration: minutes
