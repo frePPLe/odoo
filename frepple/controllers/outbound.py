@@ -333,6 +333,7 @@ class exporter(object):
             yield "<locations>\n"
             fields = [
                 "name",
+                "lot_stock_id",
                 "wh_input_stock_loc_id",
                 "wh_output_stock_loc_id",
                 "wh_pack_stock_loc_id",
@@ -345,11 +346,15 @@ class exporter(object):
                     i["id"],
                     quoteattr(self.calendar),
                 )
+                childlocs[i["lot_stock_id"][0]] = i["name"]
                 childlocs[i["wh_input_stock_loc_id"][0]] = i["name"]
                 childlocs[i["wh_output_stock_loc_id"][0]] = i["name"]
                 childlocs[i["wh_pack_stock_loc_id"][0]] = i["name"]
                 childlocs[i["wh_qc_stock_loc_id"][0]] = i["name"]
                 childlocs[i["view_location_id"][0]] = i["name"]
+                # also add warehouse id for future lookups
+                childlocs[i["id"]] = i["name"]
+
                 self.warehouses.add(i["name"])
             yield "</locations>\n"
 
@@ -375,9 +380,9 @@ class exporter(object):
                 return -1
 
             for loc_id in recs:
-                parent = fnd_parent(loc_id)
+                parent = fnd_parent(loc_id["id"])
                 if parent > 0:
-                    self.map_locations[loc_id] = parent
+                    self.map_locations[loc_id["id"]] = parent
 
     def export_customers(self):
         """
