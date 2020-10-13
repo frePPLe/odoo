@@ -515,10 +515,12 @@ class exporter(object):
                             sup["delay"],
                             sup["min_qty"],
                             sup["price"],
-                            ' effective_end="%s"' % sup["date_end"]
+                            ' effective_end="%sT00:00:00"'
+                            % sup["date_end"].strftime("%Y-%m-%d")
                             if sup["date_end"]
                             else "",
-                            ' effective_start="%s"' % sup["date_start"]
+                            ' effective_start="%sT00:00:00"'
+                            % sup["date_start"].strftime("%Y-%m-%d")
                             if sup["date_start"]
                             else "",
                             quoteattr(name),
