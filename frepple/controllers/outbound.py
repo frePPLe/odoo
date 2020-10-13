@@ -206,10 +206,12 @@ class exporter(object):
         """
         Convert Odoo float time to ISO 8601 duration.
         """
-        return "PT%dH%dM%dS" % (
-            int(float_time),  # duration: hours
-            int((float_time * 60) % 60),  # duration: minutes
-            int((float_time * 3600) % 60 % 60),  # duration: seconds
+        d = timedelta(days=float_time)
+        return "P%dDT%dH%dM%dS" % (
+            d.days,  # duration: days
+            int(d.seconds / 3600),  # duration: hours
+            int((d.seconds % 3600) / 60),  # duration: minutes
+            int(d.seconds % 60),  # duration: seconds
         )
 
     def export_calendar(self):
