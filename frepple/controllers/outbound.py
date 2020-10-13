@@ -478,72 +478,91 @@ class exporter(object):
         # Read the product templates
         self.product_product = {}
         self.product_template_product = {}
+        self.category_parent = {}
+
+        m = self.env["product.category"]
+        fields = ["name", "parent_id"]
+        recs = m.search([])
+        for i in recs.read(fields):
+            if i["parent_id"]:
+                self.category_parent[i["name"]] = i["parent_id"]
+
         m = self.env["product.template"]
         fields = [
             "purchase_ok",
-            "route_ids",
-            "bom_ids",
+            "name",
             "produce_delay",
             "list_price",
             "uom_id",
-            "seller_ids",
-            "standard_price",
+            "categ_id",
         ]
         recs = m.search([])
         self.product_templates = {}
         for i in recs.read(fields):
             self.product_templates[i["id"]] = i
 
-        # Read the stock location routes
-        rts = self.env["stock.location.route"]
-        fields = ["name"]
-        recs = rts.search([])
-        stock_location_routes = {}
-        buy_route = None
-        for i in recs.read(fields):
-            stock_location_routes[i["id"]] = i
-            if i["name"] and i["name"].lower().startswith("buy"):
-                # Recognize items that can be purchased
-                buy_route = i["id"]
-
         # Read the products
         m = self.env["product.product"]
         recs = m.search([])
         s = self.env["product.supplierinfo"]
-        s_fields = ["name", "delay", "min_qty", "date_end", "date_start", "price"]
+        s_fields = [
+            "name",
+            "delay",
+            "min_qty",
+            "date_end",
+            "date_start",
+            "price",
+            "product_tmpl_id",
+            "priority",
+        ]
         if recs:
             yield "<!-- products -->\n"
             yield "<items>\n"
-            fields = ["id", "name", "code", "product_tmpl_id", "seller_ids"]
+            fields = ["id", "default_code", "product_tmpl_id", "seller_ids"]
             for i in recs.read(fields):
+                if not i["product_tmpl_id"][0] in self.product_templates:
+                    continue
                 tmpl = self.product_templates[i["product_tmpl_id"][0]]
-                if i["code"]:
-                    name = u"[%s] %s" % (i["code"], i["name"])
+                if i["default_code"]:
+                    name = u"[%s] %s" % (i["default_code"], tmpl["name"])
                 else:
-                    name = i["name"]
-                prod_obj = {"name": name, "template": i["product_tmpl_id"][0]}
+                    name = tmpl["name"]
+                prod_obj = {
+                    "name": name,
+                    "template": i["product_tmpl_id"][0],
+                    "product_id": i["id"],
+                }
                 self.product_product[i["id"]] = prod_obj
                 self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
-                yield '<item name=%s cost="%f" subcategory="%s,%s">\n' % (
+                yield '<item name=%s cost="%f" category=%s subcategory="%s,%s">\n' % (
                     quoteattr(name),
                     (tmpl["list_price"] or 0)
                     / self.convert_qty_uom(1.0, tmpl["uom_id"][0], i["id"]),
+                    quoteattr(
+                        "%s%s"
+                        % (
+                            ("%s/" % self.category_parent(tmpl["categ_id"][1]))
+                            if tmpl["categ_id"][1] in self.category_parent
+                            else "",
+                            tmpl["categ_id"][1],
+                        )
+                    ),
                     self.uom_categories[self.uom[tmpl["uom_id"][0]]["category"]],
                     i["id"],
                 )
                 # Export suppliers for the item, if the item is allowed to be purchased
-                if (
-                    tmpl["purchase_ok"]
-                    and buy_route in tmpl["route_ids"]
-                    and tmpl["seller_ids"]
-                ):
+                if tmpl["purchase_ok"]:
                     yield "<itemsuppliers>\n"
-                    for sup in s.browse(tmpl["seller_ids"]).read(s_fields):
-                        name = "%d %s" % (sup["name"][0], sup["name"][1])
-                        yield '<itemsupplier leadtime="P%dD" priority="1" size_minimum="%f" cost="%f"%s%s><supplier name=%s/></itemsupplier>\n' % (
+                    for sup in s.search(
+                        [("product_tmpl_id", "=", i["product_tmpl_id"][0])]
+                    ):
+                        name = "%d %s" % (sup.name.id, sup.name.name)
+
+                        yield '<itemsupplier leadtime="P%dD" priority="%s" size_minimum="%f" cost="%f"%s%s><supplier name=%s/></itemsupplier>\n' % (
                             sup["delay"],
+                            sup["priority"] or 10,
                             sup["min_qty"],
-                            sup["price"],
+                            sup["price"] if sup["price"] and sup["price"] > 0 else 0,
                             ' effective_end="%sT00:00:00"'
                             % sup["date_end"].strftime("%Y-%m-%d")
                             if sup["date_end"]
