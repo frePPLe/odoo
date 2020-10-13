@@ -1071,7 +1071,9 @@ class exporter(object):
                 continue
             item = self.product_product.get(i["product_id"][0], None)
             j = po[i["order_id"][0]]
-            #
+            # if PO status is done, we should ignore this PO line
+            if j["state"] == "done":
+                continue
             location = self.mfg_location
             if location and item and i["product_qty"] > i["qty_received"]:
                 start = j["date_order"].replace(" ", "T")
@@ -1082,7 +1084,7 @@ class exporter(object):
                     i["product_id"][0],
                 )
                 yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/>" % (
-                    quoteattr(j["name"]),
+                    quoteattr("%s - %s" % (j["name"], i["id"])),
                     start,
                     end,
                     qty,
