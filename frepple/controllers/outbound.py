@@ -547,8 +547,14 @@ class exporter(object):
                                     sup[1],
                                     sup[2],
                                     sup[5],
-                                    ' effective_end="%s"' % sup[3] if sup[3] else "",
-                                    ' effective_start="%s"' % sup[4] if sup[4] else "",
+                                    ' effective_end="%sT00:00:00"'
+		                            % sup[3].strftime("%Y-%m-%d")
+		                            if sup[3]
+		                            else "",
+		                            ' effective_start="%sT00:00:00"'
+		                            % sup[4].strftime("%Y-%m-%d")
+		                            if sup[4]
+		                            else "",
                                     quoteattr(name),
                                 )
                             except Exception as e:
