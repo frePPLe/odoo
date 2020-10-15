@@ -1002,7 +1002,11 @@ class exporter(object):
         recs = m.search(
             [
                 "|",
-                ("order_id.state", "not in", ("draft", "sent", "bid", "confirmed")),
+                (
+                    "order_id.state",
+                    "not in",
+                    ("draft", "sent", "bid", "confirmed", "cancel"),
+                ),
                 ("order_id.state", "=", False),
             ]
         )
@@ -1014,6 +1018,7 @@ class exporter(object):
             "qty_received",
             "product_uom",
             "order_id",
+            "state",
         ]
         po_line = [i for i in recs.read(fields)]
 
@@ -1029,7 +1034,7 @@ class exporter(object):
         yield "<!-- open purchase orders -->\n"
         yield "<operationplans>\n"
         for i in po_line:
-            if not i["product_id"]:
+            if not i["product_id"] or i["state"] == "cancel":
                 continue
             item = self.product_product.get(i["product_id"][0], None)
             j = po[i["order_id"][0]]
