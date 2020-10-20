@@ -373,14 +373,14 @@ class exporter(object):
                         return childlocs[loc_id]
                     if parent_loc.get(loc_id):
                         parent = fnd_parent(parent_loc[loc_id])
-                        if parent > 0:
+                        if parent:
                             return parent
                 marked[loc_id] = True
                 return -1
 
             for loc_id in recs:
                 parent = fnd_parent(loc_id["id"])
-                if parent > 0:
+                if parent:
                     self.map_locations[loc_id["id"]] = parent
 
     def export_customers(self):
@@ -1074,7 +1074,7 @@ class exporter(object):
         convert mrp.production.product_qty and mrp.production.product_uom -> operationplan.quantity
         mrp.production.date_planned -> operationplan.end
         mrp.production.date_planned -> operationplan.start
-        '1' -> operationplan.locked
+        '1' -> operationplan.status = "confirmed"
         """
         yield "<!-- manufacturing orders in progress -->\n"
         yield "<operationplans>\n"
@@ -1104,10 +1104,10 @@ class exporter(object):
                 qty = self.convert_qty_uom(
                     i["product_qty"], i["product_uom_id"][0], i["product_id"][0]
                 )
-                yield '<operationplan reference=%s start="%s" end="%s" quantity="%s" locked="true"><operation name=%s/></operationplan>\n' % (
+                yield '<operationplan reference=%s start="%s" end="%s" quantity="%s" status="confirmed"><operation name=%s/></operationplan>\n' % (
                     quoteattr(i["name"]),
-                    startdate,
-                    startdate,
+                    startdate.strftime("%Y-%m-%dT%H:%M:%S"),
+                    startdate.strftime("%Y-%m-%dT%H:%M:%S"),
                     qty,
                     quoteattr(operation),
                 )
