@@ -170,35 +170,30 @@ class exporter(object):
                 "name": i["name"],
             }
 
-    def convert_qty_uom(self, qty, uom_id, product_id=None):
+    def convert_qty_uom(self, qty, uom_id, product_template_id=None):
         """
-        Convert a quantity to the reference uom of the product.        
+        Convert a quantity to the reference uom of the product template.
         """
+
         if not uom_id:
             return qty
-        if not product_id:
+        if not product_template_id:
             return qty * self.uom[uom_id]["factor"]
         try:
-            product_uom = self.product_templates[
-                self.product_product[product_id]["template"]
-            ]["uom_id"][0]
-        except Exception as e:
-            # try with template_id rather than product_id
-            try:
-                product_uom = self.product_templates[product_id]["uom_id"][0]
-            except:
-                return qty * self.uom[uom_id]["factor"]
+            product_uom = self.product_templates[product_template_id]["uom_id"][0]
+        except Exception:
+            return qty * self.uom[uom_id]["factor"]
         # check if default product uom is the one we received
         if product_uom == uom_id:
             return qty
-        # check if different uoms welong to the same category
+        # check if different uoms belong to the same category
         if self.uom[product_uom]["category"] == self.uom[uom_id]["category"]:
             return qty * self.uom[uom_id]["factor"] / self.uom[product_uom]["factor"]
         else:
             # UOM is from a different category as the reference uom of the product.
             logger.warning(
-                "Can't convert from %s for product %s"
-                % (self.uom[uom_id]["name"], product_id)
+                "Can't convert from %s for product template %s"
+                % (self.uom[uom_id]["name"], product_template_id)
             )
             return qty * self.uom[uom_id]["factor"]
 
@@ -558,7 +553,9 @@ class exporter(object):
                     yield '<item name=%s cost="%f" subcategory="%s,%s">\n' % (
                         quoteattr(name),
                         (tmpl["list_price"] or 0)
-                        / self.convert_qty_uom(1.0, tmpl["uom_id"][0], i["id"]),
+                        / self.convert_qty_uom(
+                            1.0, tmpl["uom_id"][0], i["product_tmpl_id"][0]
+                        ),
                         self.uom_categories[self.uom[tmpl["uom_id"][0]]["category"]],
                         i["id"],
                     )
@@ -749,7 +746,9 @@ class exporter(object):
                     product = self.product_product[j]
                     qty = sum(
                         self.convert_qty_uom(
-                            k["product_qty"], k["product_uom_id"][0], k["product_id"][0]
+                            k["product_qty"],
+                            k["product_uom_id"][0],
+                            self.product_product[k["product_id"][0]]["template"],
                         )
                         for k in fl[j]
                     )
@@ -842,7 +841,9 @@ class exporter(object):
                                     self.convert_qty_uom(
                                         j["product_qty"],
                                         j["product_uom"][0],
-                                        j["product_id"][0],
+                                        self.product_product[j["product_id"][0]][
+                                            "template"
+                                        ],
                                     ),
                                     quoteattr(product["name"]),
                                 )
@@ -870,7 +871,9 @@ class exporter(object):
                                 self.convert_qty_uom(
                                     k["product_qty"],
                                     k["product_uom_id"][0],
-                                    k["product_id"][0],
+                                    self.product_product[k["product_id"][0]][
+                                        "template"
+                                    ],
                                 )
                                 for k in fl[j]
                             )
@@ -961,29 +964,39 @@ class exporter(object):
             if state == "draft":
                 status = "quote"
                 qty = self.convert_qty_uom(
-                    i["product_uom_qty"], i["product_uom"][0], i["product_id"][0]
+                    i["product_uom_qty"],
+                    i["product_uom"][0],
+                    self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "sale":
                 qty = i["product_uom_qty"] - i["qty_delivered"]
                 if qty <= 0:
                     status = "closed"
                     qty = self.convert_qty_uom(
-                        i["product_uom_qty"], i["product_uom"][0], i["product_id"][0]
+                        i["product_uom_qty"],
+                        i["product_uom"][0],
+                        self.product_product[i["product_id"][0]]["template"],
                     )
                 else:
                     status = "open"
                     qty = self.convert_qty_uom(
-                        qty, i["product_uom"][0], i["product_id"][0]
+                        qty,
+                        i["product_uom"][0],
+                        self.product_product[i["product_id"][0]]["template"],
                     )
             elif state in ("done", "sent"):
                 status = "closed"
                 qty = self.convert_qty_uom(
-                    i["product_uom_qty"], i["product_uom"][0], i["product_id"][0]
+                    i["product_uom_qty"],
+                    i["product_uom"][0],
+                    self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "cancel":
                 status = "canceled"
                 qty = self.convert_qty_uom(
-                    i["product_uom_qty"], i["product_uom"][0], i["product_id"][0]
+                    i["product_uom_qty"],
+                    i["product_uom"][0],
+                    self.product_product[i["product_id"][0]]["template"],
                 )
 
             #           pick = self.req.session.model('stock.picking')
@@ -1105,7 +1118,7 @@ class exporter(object):
                 qty = self.convert_qty_uom(
                     i["product_qty"] - i["qty_received"],
                     i["product_uom"][0],
-                    i["product_id"][0],
+                    self.product_product[i["product_id"][0]]["template"],
                 )
                 yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/>" % (
                     quoteattr("%s - %s" % (j["name"], i["id"])),
@@ -1159,7 +1172,9 @@ class exporter(object):
                 if not location or operation not in self.operations:
                     continue
                 qty = self.convert_qty_uom(
-                    i["product_qty"], i["product_uom_id"][0], i["product_id"][0]
+                    i["product_qty"],
+                    i["product_uom_id"][0],
+                    self.product_product[i["product_id"][0]]["template"],
                 )
 
                 yield '<operationplan reference=%s start="%s" end="%s" quantity="%s" status="%s"><operation name=%s/></operationplan>\n' % (
@@ -1207,7 +1222,9 @@ class exporter(object):
                 if not item:
                     continue
                 uom_factor = self.convert_qty_uom(
-                    1.0, i["product_uom"][0], i["product_id"][0]
+                    1.0,
+                    i["product_uom"][0],
+                    self.product_product[i["product_id"][0]]["template"],
                 )
                 name = u"%s @ %s" % (item["name"], i["warehouse_id"][1])
                 yield "<buffer name=%s><item name=%s/><location name=%s/>\n" '%s%s%s<booleanproperty name="ip_flag" value="true"/>\n' '<stringproperty name="roq_type" value="quantity"/>\n<stringproperty name="ss_type" value="quantity"/>\n' "</buffer>\n" % (
