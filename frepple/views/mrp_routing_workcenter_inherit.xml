@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mrp_routing_workcenter_inherit_tree" model="ir.ui.view">
+        <field name="name">mrp.routing.workcenter.inherit</field>
+        <field name="model">mrp.routing.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_routing_workcenter_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="workcenter_id" position="after">
+                <field name="skill"/>
+                <field name="search_mode"/>
+                <field name="priority"/>
+            </field>
+        </field>
+    </record>
+    <record id="mrp_routing_workcenter_inherit_form" model="ir.ui.view">
+        <field name="name">mrp.routing.workcenter.inherit</field>
+        <field name="model">mrp.routing.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_routing_workcenter_form_view"/>
+        <field name="arch" type="xml">
+            <field name="workcenter_id" position="after">
+                <field name="skill"/>
+                <field name="search_mode"/>
+                <field name="priority"/>
+            </field>
+        </field>
+    </record>
+</odoo>

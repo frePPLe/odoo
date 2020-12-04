@@ -13,7 +13,12 @@
     "data": [
         "views/frepple_data.xml",
         "views/res_config_settings_views.xml",
+        "views/mrp_skill.xml",
+        "views/mrp_workcenter_inherit.xml",
+        "views/mrp_workcenter_skill.xml",
+        "views/mrp_routing_workcenter_inherit.xml",
         "security/frepple_security.xml",
+        "security/ir.model.access.csv",
     ],
     "demo": ["data/demo.xml"],
     "test": [],
