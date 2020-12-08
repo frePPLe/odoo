@@ -423,7 +423,6 @@ class exporter(object):
                 )
             yield "</suppliers>\n"
 
-    
     def export_skills(self):
         m = self.env["mrp.skill"]
         recs = m.search([])
@@ -433,11 +432,9 @@ class exporter(object):
             yield "<skills>\n"
             for i in recs.read(fields):
                 name = i["name"]
-                yield '<skill name=%s/>\n' % (
-                    quoteattr(name),
-                )
+                yield "<skill name=%s/>\n" % (quoteattr(name),)
             yield "</skills>\n"
-            
+
     def export_workcenterskills(self):
         m = self.env["mrp.workcenter.skill"]
         recs = m.search([])
@@ -445,14 +442,17 @@ class exporter(object):
         if recs:
             yield "<!-- resourceskills -->\n"
             yield "<skills>\n"
-            for i in recs.read(fields):                
-                yield '<skill name=%s>\n' % quoteattr(i["skill"][1])
-                yield '<resourceskills>'
-                yield '<resourceskill priority="%d"><resource name=%s/></resourceskill>' % (i["priority"], quoteattr(i["workcenter"][1]))
-                yield '</resourceskills>'
-                yield '</skill>'
-            yield '</skills>'
-    
+            for i in recs.read(fields):
+                yield "<skill name=%s>\n" % quoteattr(i["skill"][1])
+                yield "<resourceskills>"
+                yield '<resourceskill priority="%d"><resource name=%s/></resourceskill>' % (
+                    i["priority"],
+                    quoteattr(i["workcenter"][1]),
+                )
+                yield "</resourceskills>"
+                yield "</skill>"
+            yield "</skills>"
+
     def export_workcenters(self):
         """
         Send the workcenter list to frePPLe, based one the mrp.workcenter model.
@@ -468,7 +468,7 @@ class exporter(object):
         self.map_workcenters = {}
         m = self.env["mrp.workcenter"]
         recs = m.search([])
-        fields = ["name","owner"]
+        fields = ["name", "owner"]
         if recs:
             yield "<!-- workcenters -->\n"
             yield "<resources>\n"
@@ -481,7 +481,7 @@ class exporter(object):
                     quoteattr(name),
                     1,
                     quoteattr(self.mfg_location),
-                    ("<owner name=%s/>" % quoteattr(owner[1])) if owner else ""
+                    ("<owner name=%s/>" % quoteattr(owner[1])) if owner else "",
                 )
             yield "</resources>\n"
 
@@ -624,7 +624,15 @@ class exporter(object):
         mrp_routing_workcenters = {}
         m = self.env["mrp.routing.workcenter"]
         recs = m.search([], order="routing_id, sequence asc")
-        fields = ["name", "routing_id", "workcenter_id", "sequence", "time_cycle", "skill", "search_mode"]
+        fields = [
+            "name",
+            "routing_id",
+            "workcenter_id",
+            "sequence",
+            "time_cycle",
+            "skill",
+            "search_mode",
+        ]
         for i in recs.read(fields):
             if i["routing_id"][0] in mrp_routing_workcenters:
                 # If the same workcenter is used multiple times in a routing,
@@ -644,17 +652,19 @@ class exporter(object):
                             i["sequence"],
                             i["name"],
                             i["skill"][1] if i["skill"] else None,
-                            i["search_mode"]
+                            i["search_mode"],
                         ]
                     )
             else:
                 mrp_routing_workcenters[i["routing_id"][0]] = [
-                    [i["workcenter_id"][1], 
-                     i["time_cycle"], 
-                     i["sequence"], 
-                     i["name"],
-                     i["skill"][1] if i["skill"] else None,
-                     i["search_mode"]]
+                    [
+                        i["workcenter_id"][1],
+                        i["time_cycle"],
+                        i["sequence"],
+                        i["name"],
+                        i["skill"][1] if i["skill"] else None,
+                        i["search_mode"],
+                    ]
                 ]
 
         # Models used in the bom-loop below
@@ -827,7 +837,7 @@ class exporter(object):
                         1,
                         quoteattr(step[5]),
                         quoteattr(step[0]),
-                        ('<skill name=%s/>' % quoteattr(step[4])) if step[4] else "",
+                        ("<skill name=%s/>" % quoteattr(step[4])) if step[4] else "",
                     )
                     if step[2] == steplist[-1][2]:
                         # Add producing flows on the last routing step
@@ -924,7 +934,7 @@ class exporter(object):
         fields = [
             "state",
             "partner_id",
-            "commitment_date",
+            "requested_date",
             "date_order",
             "picking_policy",
             "warehouse_id",
