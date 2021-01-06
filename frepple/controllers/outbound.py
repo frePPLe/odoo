@@ -1123,14 +1123,13 @@ class exporter(object):
         Mapping:
         mrp.production.bom_id mrp.production.bom_id.name @ mrp.production.location_dest_id -> operationplan.operation
         convert mrp.production.product_qty and mrp.production.product_uom -> operationplan.quantity
-        mrp.production.date_planned -> operationplan.end
         mrp.production.date_planned -> operationplan.start
         '1' -> operationplan.status = "confirmed"
         """
         yield "<!-- manufacturing orders in progress -->\n"
         yield "<operationplans>\n"
         m = self.env["mrp.production"]
-        recs = m.search([("state", "in", ["in_production", "ready", "confirmed"])])
+        recs = m.search([("state", "in", ["in_production", "confirmed", "ready"])])
         fields = [
             "bom_id",
             "date_start",
@@ -1143,12 +1142,26 @@ class exporter(object):
             "product_id",
         ]
         for i in recs.read(fields):
-            if i["state"] in ("in_production", "confirmed", "ready") and i["bom_id"]:
+            if i["bom_id"]:
                 # Open orders
                 location = self.map_locations.get(i["location_dest_id"][0], None)
-                operation = u"%d %s @ %s" % (i["bom_id"][0], i["bom_id"][1], location)
-                startdate = i["date_start"] or i["date_planned_start"] or None
-                if not startdate:
+                item = (
+                    self.product_product[i["product_id"][0]]
+                    if i["product_id"][0] in self.product_product
+                    else None
+                )
+                if not item:
+                    continue
+                operation = u"%d %s @ %s" % (
+                    i["bom_id"][0],
+                    item["name"],
+                    i["location_dest_id"][1],
+                )
+                try:
+                    startdate = datetime.strptime(
+                        i["date_start"] or i["date_planned_start"], "%Y-%m-%d %H:%M:%S"
+                    )
+                except Exception:
                     continue
                 if not location or operation not in self.operations:
                     continue
@@ -1157,14 +1170,14 @@ class exporter(object):
                     i["product_uom_id"][0],
                     self.product_product[i["product_id"][0]]["template"],
                 )
-                yield '<operationplan reference=%s start="%s" end="%s" quantity="%s" status="confirmed"><operation name=%s/></operationplan>\n' % (
+                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="confirmed"><operation name=%s/></operationplan>\n' % (
                     quoteattr(i["name"]),
-                    startdate.strftime("%Y-%m-%dT%H:%M:%S"),
-                    startdate.strftime("%Y-%m-%dT%H:%M:%S"),
+                    startdate,
                     qty,
                     quoteattr(operation),
                 )
         yield "</operationplans>\n"
+
 
     def export_orderpoints(self):
         """
