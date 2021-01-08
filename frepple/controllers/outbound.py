@@ -1158,8 +1158,8 @@ class exporter(object):
                     i["location_dest_id"][1],
                 )
                 try:
-                    startdate = datetime.strptime(
-                        i["date_start"] or i["date_planned_start"], "%Y-%m-%d %H:%M:%S"
+                    startdate = (i["date_start"] or i["date_planned_start"]).replace(
+                        " ", "T"
                     )
                 except Exception:
                     continue
