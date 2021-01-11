@@ -586,6 +586,11 @@ class exporter(object):
         yield "<operations>\n"
         self.operations = set()
 
+        # dictionary used to divide the confirmed MO quantities
+        # key is tuple (operation name, produced item)
+        # value is quantity in Operation Materials.
+        self.bom_producedQty = {}
+
         # Read all active manufacturing routings
         m = self.env["mrp.routing"]
         recs = m.search([])
@@ -690,14 +695,14 @@ class exporter(object):
                     quoteattr(product_buf["name"]),
                     quoteattr(location),
                 )
+                convertedQty = self.convert_qty_uom(
+                    i["product_qty"], i["product_uom_id"][0], i["product_tmpl_id"][0]
+                )
                 yield '<flows>\n<flow xsi:type="flow_end" quantity="%f"><item name=%s/></flow>\n' % (
-                    self.convert_qty_uom(
-                        i["product_qty"],
-                        i["product_uom_id"][0],
-                        i["product_tmpl_id"][0],
-                    ),
+                    convertedQty,
                     quoteattr(product_buf["name"]),
                 )
+                self.bom_producedQty[(operation, product_buf["name"])] = convertedQty
 
                 # Build consuming flows.
                 # If the same component is consumed multiple times in the same BOM
@@ -798,6 +803,9 @@ class exporter(object):
                             or "",
                             quoteattr(product_buf["name"]),
                         )
+                        self.bom_producedQty[
+                            ("%s - %s" % (operation, step[2]), product_buf["name"])
+                        ] = (i["product_qty"] * i["product_efficiency"] * uom_factor)
                         # Add byproduct flows
                         if i.get("sub_products", None):
                             for j in subproduct_model.browse(i["sub_products"]).read(
@@ -1165,10 +1173,18 @@ class exporter(object):
                     continue
                 if not location or operation not in self.operations:
                     continue
-                qty = self.convert_qty_uom(
-                    i["product_qty"],
-                    i["product_uom_id"][0],
-                    self.product_product[i["product_id"][0]]["template"],
+                factor = (
+                    self.bom_producedQty[(operation, item["name"])]
+                    if (operation, i["name"]) in self.bom_producedQty
+                    else 1
+                )
+                qty = (
+                    self.convert_qty_uom(
+                        i["product_qty"],
+                        i["product_uom_id"][0],
+                        self.product_product[i["product_id"][0]]["template"],
+                    )
+                    / factor
                 )
                 yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="confirmed"><operation name=%s/></operationplan>\n' % (
                     quoteattr(i["name"]),
