@@ -612,6 +612,11 @@ class exporter(object):
         yield "<operations>\n"
         self.operations = set()
 
+        # dictionary used to divide the confirmed MO quantities
+        # key is tuple (operation name, produced item)
+        # value is quantity in Operation Materials.
+        self.bom_producedQty = {}
+
         # Read all active manufacturing routings
         mrp_routings = {}
         # m = self.env["mrp.routing"]
@@ -718,14 +723,14 @@ class exporter(object):
                     quoteattr(product_buf["name"]),
                     quoteattr(location),
                 )
+                convertedQty = self.convert_qty_uom(
+                    i["product_qty"], i["product_uom_id"][0], i["product_tmpl_id"][0]
+                )
                 yield '<flows>\n<flow xsi:type="flow_end" quantity="%f"><item name=%s/></flow>\n' % (
-                    self.convert_qty_uom(
-                        i["product_qty"],
-                        i["product_uom_id"][0],
-                        i["product_tmpl_id"][0],
-                    ),
+                    convertedQty,
                     quoteattr(product_buf["name"]),
                 )
+                self.bom_producedQty[(operation, product_buf["name"])] = convertedQty
 
                 # Build consuming flows.
                 # If the same component is consumed multiple times in the same BOM
@@ -830,6 +835,17 @@ class exporter(object):
                         )
 
                         yield "</flows>\n"
+                        self.bom_producedQty[
+                            (
+                                "%s - %s - %s"
+                                % (operation, suboperation, (counter * 100)),
+                                product_buf["name"],
+                            )
+                        ] = (
+                            i["product_qty"]
+                            * getattr(i, "product_efficiency", 1.0)
+                            * uom_factor
+                        )
                     if step[2] == steplist[0][2]:
                         # All consuming flows on the first routing step.
                         # If the same component is consumed multiple times in the same BOM
@@ -1165,10 +1181,18 @@ class exporter(object):
                     continue
                 if not location or operation not in self.operations:
                     continue
-                qty = self.convert_qty_uom(
-                    i["product_qty"],
-                    i["product_uom_id"][0],
-                    self.product_product[i["product_id"][0]]["template"],
+                factor = (
+                    self.bom_producedQty[(operation, item["name"])]
+                    if (operation, i["name"]) in self.bom_producedQty
+                    else 1
+                )
+                qty = (
+                    self.convert_qty_uom(
+                        i["product_qty"],
+                        i["product_uom_id"][0],
+                        self.product_product[i["product_id"][0]]["template"],
+                    )
+                    / factor
                 )
                 yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="confirmed"><operation name=%s/></operationplan>\n' % (
                     quoteattr(i["name"]),
@@ -1177,7 +1201,6 @@ class exporter(object):
                     quoteattr(operation),
                 )
         yield "</operationplans>\n"
-
 
     def export_orderpoints(self):
         """
