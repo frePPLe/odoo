@@ -473,6 +473,14 @@ class exporter(object):
         # Read the product templates
         self.product_product = {}
         self.product_template_product = {}
+        self.category_parent = {}
+
+        m = self.env["product.category"]
+        fields = ["name", "parent_id"]
+        recs = m.search([])
+        for i in recs.read(fields):
+            if i["parent_id"]:
+                self.category_parent[i["name"]] = i["parent_id"]
         m = self.env["product.template"]
         fields = [
             "purchase_ok",
@@ -483,6 +491,7 @@ class exporter(object):
             "uom_id",
             "seller_ids",
             "standard_price",
+            "categ_id",
         ]
         recs = m.search([])
         self.product_templates = {}
@@ -550,12 +559,21 @@ class exporter(object):
                     prod_obj = {"name": name, "template": i["product_tmpl_id"][0]}
                     self.product_product[i["id"]] = prod_obj
                     self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
-                    yield '<item name=%s cost="%f" subcategory="%s,%s">\n' % (
+                    yield '<item name=%s cost="%f" category=%s subcategory="%s,%s">\n' % (
                         quoteattr(name),
                         (tmpl["list_price"] or 0)
                         / self.convert_qty_uom(
                             1.0, tmpl["uom_id"][0], i["product_tmpl_id"][0]
                         ),
+                        quoteattr(
+                        "%s%s"
+                        % (
+                            ("%s/" % self.category_parent(tmpl["categ_id"][1]))
+                            if tmpl["categ_id"][1] in self.category_parent
+                            else "",
+                            tmpl["categ_id"][1],
+                        )
+                    ),
                         self.uom_categories[self.uom[tmpl["uom_id"][0]]["category"]],
                         i["id"],
                     )
