@@ -10,14 +10,13 @@ odoo.define('frepple', function (require) {
       this._super.apply(this, arguments);
 
       var el = this.$el;
-      el.height("calc(100% - 34px)");
       this._rpc({
         model: 'res.company',
         method: 'getFreppleURL',
         args: [false, '/forecast/editor/'],
         })
         .then(function(result) {
-          el.append('<iframe src="' + result
+          el.html('<iframe src="' + result
             + '" width="100%" height="100%" marginwidth="0" marginheight="0" frameborder="no" '
             + ' scrolling="yes" style="border-width:0px;"/>');
           });
@@ -34,14 +33,13 @@ odoo.define('frepple', function (require) {
       this._super.apply(this, arguments);
 
       var el = this.$el;
-      el.height("calc(100% - 34px)");
       this._rpc({
         model: 'res.company',
         method: 'getFreppleURL',
         args: [false, '/inventoryplanning/drp/'],
         })
         .then(function(result) {
-          el.append('<iframe src="' + result
+          el.html('<iframe src="' + result
             + '" width="100%" height="100%" marginwidth="0" marginheight="0" frameborder="no" '
             + ' scrolling="yes" style="border-width:0px;"/>');
           });
@@ -58,14 +56,13 @@ odoo.define('frepple', function (require) {
       this._super.apply(this, arguments);
 
       var el = this.$el;
-      el.height("calc(100% - 34px)");
       this._rpc({
         model: 'res.company',
         method: 'getFreppleURL',
         args: [false, '/planningboard/'],
         })
         .then(function(result) {
-          el.append('<iframe src="' + result
+          el.html('<iframe src="' + result
             + '" width="100%" height="100%" marginwidth="0" marginheight="0" frameborder="no" '
             + ' scrolling="yes" style="border-width:0px;"/>');
           });
@@ -82,14 +79,13 @@ odoo.define('frepple', function (require) {
       this._super.apply(this, arguments);
 
       var el = this.$el;
-      el.height("calc(100% - 34px)");
       this._rpc({
         model: 'res.company',
         method: 'getFreppleURL',
         args: [true, '/'],
         })
         .then(function(result) {
-          el.append('<iframe src="' + result
+          el.html('<iframe src="' + result
             + '" width="100%" height="100%" marginwidth="0" marginheight="0" frameborder="no" '
             + ' scrolling="yes" style="border-width:0px;"/>');
           });
