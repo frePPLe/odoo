@@ -39,7 +39,7 @@ class ResCompany(models.Model):
     )
     calendar = fields.Many2one("resource.calendar", "Calendar", ondelete="set null")
     webtoken_key = fields.Char("Webtoken key", size=128)
-    frepple_server = fields.Char("frePPLe web server", size=128)
+    frepple_server = fields.Char("FrePPLe web server", size=128)
 
     @api.model
     def getFreppleURL(self, navbar=True, _url="/"):
@@ -57,6 +57,6 @@ class ResCompany(models.Model):
         ).decode("ascii")
         server = self.env.user.company_id.frepple_server
         if not server:
-            raise exceptions.UserError("FrePPLe server utl not configured")
+            raise exceptions.UserError("FrePPLe server URL is not configured.")
         url = "%s%s?webtoken=%s" % (server, _url, webtoken)
         return url
