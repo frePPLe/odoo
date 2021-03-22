@@ -54,7 +54,7 @@ class ResCompany(models.Model):
         )
         webtoken = jwt.encode(
             encode_params, user_company_webtoken, algorithm="HS256"
-        ).decode("ascii")
+        )
         server = self.env.user.company_id.frepple_server
         if not server:
             raise exceptions.UserError("FrePPLe server utl not configured")
