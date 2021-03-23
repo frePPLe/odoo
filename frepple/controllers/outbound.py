@@ -493,7 +493,7 @@ class exporter(object):
             "standard_price",
             "categ_id",
         ]
-        recs = m.search([])
+        recs = m.search([("type", "!=", "service")])
         self.product_templates = {}
         for i in recs.read(fields):
             self.product_templates[i["id"]] = i
@@ -942,7 +942,7 @@ class exporter(object):
         """
         # Get all sales order lines
         m = self.env["sale.order.line"]
-        recs = m.search([])
+        recs = m.search([("product_id", "!=", False)])
         fields = [
             "qty_delivered",
             "state",
