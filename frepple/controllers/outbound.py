@@ -849,7 +849,7 @@ class exporter(object):
                         )
                         self.bom_producedQty[
                             ("%s - %s" % (operation, step[2]), product_buf["name"])
-                        ] = (i["product_qty"] * i["product_efficiency"] * uom_factor)
+                        ] = (i["product_qty"] * getattr(i, "product_efficiency", 1.0) * uom_factor)
                         # Add byproduct flows
                         if i.get("sub_products", None):
                             for j in subproduct_model.browse(i["sub_products"]).read(
