@@ -57,6 +57,6 @@ class ResCompany(models.Model):
         )
         server = self.env.user.company_id.frepple_server
         if not server:
-            raise exceptions.UserError("FrePPLe server utl not configured")
+            raise exceptions.UserError("FrePPLe server URL not configured")
         url = "%s%s?webtoken=%s" % (server, _url, webtoken)
         return url
