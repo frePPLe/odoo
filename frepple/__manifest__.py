@@ -20,7 +20,6 @@
         "security/frepple_security.xml",
         "security/ir.model.access.csv",
     ],
-    "demo": ["data/demo.xml"],
     "test": [],
     "installable": True,
     "auto_install": True,
