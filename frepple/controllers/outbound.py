@@ -711,7 +711,7 @@ class exporter(object):
                 i["product_tmpl_id"][0], None
             )  # TODO avoid multiple bom on single template
             if not product_buf:
-                logger.warn(
+                logger.warning(
                     "skipping %s %s" % (i["product_tmpl_id"][0], i["routing_id"])
                 )
                 continue
