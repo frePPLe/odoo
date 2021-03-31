@@ -26,6 +26,6 @@ class AutoLoginHome(main.Home):
             return http.redirect_with_hash(self._login_redirect(uid, redirect=redirect))
         except Exception:
             # Autologin failed
-            logger.warn("Autologin failed")
+            logger.warning("Autologin failed")
             # Use the standard login page
             return super().web_login(redirect=redirect, **kw)
