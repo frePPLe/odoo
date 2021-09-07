@@ -5,3 +5,4 @@ from . import stock_move_line
 from . import mrp_workcenter_inherit
 from . import mrp_routing_workcenter_inherit
 from . import mrp_workcenter_skill
+from . import product_supplierinfo_inherit

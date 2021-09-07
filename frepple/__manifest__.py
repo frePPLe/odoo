@@ -17,6 +17,7 @@
         "views/mrp_workcenter_inherit.xml",
         "views/mrp_workcenter_skill.xml",
         "views/mrp_routing_workcenter_inherit.xml",
+        "views/product_supplierinfo_inherit.xml",
         "security/frepple_security.xml",
         "security/ir.model.access.csv",
     ],
