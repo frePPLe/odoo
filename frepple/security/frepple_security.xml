@@ -1,9 +1,16 @@
-<?xml version="1.0"?>
 <odoo>
-    <data>
-        <record id="frepple_admin" model="res.groups">
-            <field name="name">frePPLe administrator</field>
-            <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]" />
-        </record>
-    </data>
+
+    <record id="frepple_admin" model="res.groups">
+        <field name="name">FrePPLe administrator</field>
+        <field name="users"
+               eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+
+    <!-- FrePPLe user -->
+    <record id="user_frepple" model="res.users">
+        <field name="name">FrePPLe</field>
+        <field name="login">frepple</field>
+        <field name="group_ids" eval="[(6, 0, [ref('frepple.frepple_admin'), ref('purchase.group_purchase_manager'), ref('sales_team.group_sale_manager'), ref('mrp.group_mrp_manager')])]"/>
+    </record>
+
 </odoo>
