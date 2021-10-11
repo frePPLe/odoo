@@ -535,10 +535,13 @@ class exporter(object):
         for i in recs.read(fields):
             self.product_templates[i["id"]] = i
 
-        # Read the stock location routes
-        # rts = self.env["stock.location.route"]
-        # fields = ["name"]
-        # recs = rts.search([])
+        # Read the mto products
+        mto_template_products = set()
+        m = self.env.cr.execute(
+            "select product_id from stock_route_product where route_id = 1"
+        )
+        for i in self.env.cr.fetchall():
+            mto_template_products.add(i[0])
 
         # Read the suppliers
         m = self.env["res.partner"]
@@ -572,7 +575,7 @@ class exporter(object):
                 prod_obj = {"name": name, "template": i["product_tmpl_id"][0]}
                 self.product_product[i["id"]] = prod_obj
                 self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
-                yield '<item name=%s cost="%f" category=%s subcategory="%s,%s">\n' % (
+                yield '<item name=%s cost="%f" category=%s subcategory="%s,%s"%s>\n' % (
                     quoteattr(name),
                     (tmpl["list_price"] or 0)
                     / self.convert_qty_uom(
@@ -589,6 +592,9 @@ class exporter(object):
                     ),
                     self.uom_categories[self.uom[tmpl["uom_id"][0]]["category"]],
                     i["id"],
+                    ' type="item_mto"'
+                    if i["product_tmpl_id"][0] in mto_template_products
+                    else "",
                 )
                 # Export suppliers for the item, if the item is allowed to be purchased
                 if (
@@ -733,10 +739,11 @@ class exporter(object):
                 # CASE 1: A single operation used for the BOM
                 # All routing steps are collapsed in a single operation.
                 #
-                yield '<operation name=%s size_multiple="1" duration="%s" posttime="P%dD" xsi:type="operation_fixed_time">\n' "<item name=%s/><location name=%s/>\n" % (
+                yield '<operation name=%s size_multiple="1" duration_per="%s" posttime="P%dD" xsi:type="operation_time_per">\n' "<item name=%s/><location name=%s/>\n" % (
                     quoteattr(operation),
                     self.convert_float_time(
                         self.product_templates[i["product_tmpl_id"][0]]["produce_delay"]
+                        / 1440.0
                     ),
                     self.manufacturing_lead,
                     quoteattr(product_buf["name"]),
@@ -832,12 +839,12 @@ class exporter(object):
                 for step in steplist:
                     counter = counter + 1
                     suboperation = step[3]
-                    yield "<suboperation>" '<operation name=%s priority="%s" duration="%s" xsi:type="operation_fixed_time">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load></loads>\n' % (
+                    yield "<suboperation>" '<operation name=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load></loads>\n' % (
                         quoteattr(
                             "%s - %s - %s" % (operation, suboperation, (counter * 100))
                         ),
                         counter * 10,
-                        self.convert_float_time(step[1]),
+                        self.convert_float_time(step[1] / 1440.0),
                         quoteattr(location),
                         1,
                         quoteattr(step[5]),
@@ -950,7 +957,7 @@ class exporter(object):
         fields = [
             "state",
             "partner_id",
-            "requested_date",
+            "commitment_date",
             "date_order",
             "picking_policy",
             "warehouse_id",
@@ -965,6 +972,7 @@ class exporter(object):
 
         for i in so_line:
             name = u"%s %d" % (i["order_id"][1], i["id"])
+            batch = i["order_id"][1]
             product = self.product_product.get(i["product_id"][0], None)
             j = so[i["order_id"][0]]
             location = j["warehouse_id"][1]
@@ -972,7 +980,7 @@ class exporter(object):
             if not customer or not location or not product:
                 # Not interested in this sales order...
                 continue
-            due = j.get("requested_date", False) or j["date_order"]
+            due = j.get("commitment_date", False) or j["date_order"]
             priority = 1  # We give all customer orders the same default priority
 
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
@@ -1052,8 +1060,9 @@ class exporter(object):
             #                             priority, minship,status, quoteattr(product['name']),
             #                             quoteattr(customer), quoteattr(location)
             #                         )
-            yield '<demand name=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/></demand>\n' % (
+            yield '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/></demand>\n' % (
                 quoteattr(name),
+                quoteattr(batch),
                 qty,
                 due.strftime("%Y-%m-%dT%H:%M:%S"),
                 priority,
