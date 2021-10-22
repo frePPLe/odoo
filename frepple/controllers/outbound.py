@@ -567,6 +567,8 @@ class exporter(object):
             yield "<items>\n"
             fields = ["id", "name", "code", "product_tmpl_id"]  # , "seller_ids"]
             for i in recs.read(fields):
+            	if i["product_tmpl_id"][0] not in self.product_templates:
+                    continue
                 tmpl = self.product_templates[i["product_tmpl_id"][0]]
                 if i["code"]:
                     name = u"[%s] %s" % (i["code"], i["name"])
