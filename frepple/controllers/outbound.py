@@ -674,6 +674,9 @@ class exporter(object):
             "search_mode",
         ]
         for i in recs.read(fields):
+            if not i["bom_id"]:
+                continue
+
             if i["bom_id"][0] in mrp_routing_workcenters:
                 # If the same workcenter is used multiple times in a routing,
                 # we add the times together.
