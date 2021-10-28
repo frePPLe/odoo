@@ -475,7 +475,6 @@ class exporter(object):
             for i in recs.read(fields):
                 name = i["name"]
                 owner = i["owner"]
-                logger.info(owner)
                 self.map_workcenters[i["id"]] = name
                 yield '<resource name=%s maximum="%s"><location name=%s/>%s</resource>\n' % (
                     quoteattr(name),
@@ -569,6 +568,7 @@ class exporter(object):
             "date_start",
             "price",
             "batching_window",
+            "sequence",
         ]
         if recs:
             yield "<!-- products -->\n"
@@ -617,8 +617,9 @@ class exporter(object):
                         s_fields
                     ):
                         name = "%d %s" % (sup["name"][0], sup["name"][1])
-                        yield '<itemsupplier leadtime="P%dD" priority="1" batchwindow="P%dD" size_minimum="%f" cost="%f"%s%s><supplier name=%s/></itemsupplier>\n' % (
+                        yield '<itemsupplier leadtime="P%dD" priority="%s" batchwindow="P%dD" size_minimum="%f" cost="%f"%s%s><supplier name=%s/></itemsupplier>\n' % (
                             sup["delay"],
+                            sup["sequence"] or 1,
                             sup["batching_window"] or 0,
                             sup["min_qty"],
                             sup["price"],
