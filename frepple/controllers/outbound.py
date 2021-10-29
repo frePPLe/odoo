@@ -573,7 +573,7 @@ class exporter(object):
         if recs:
             yield "<!-- products -->\n"
             yield "<items>\n"
-            fields = ["id", "name", "code", "product_tmpl_id"]  # , "seller_ids"]
+            fields = ["id", "name", "code", "product_tmpl_id", "volume", "weight"]  # , "seller_ids"]
             for i in recs.read(fields):
                 if i["product_tmpl_id"][0] not in self.product_templates:
                     continue
@@ -585,8 +585,11 @@ class exporter(object):
                 prod_obj = {"name": name, "template": i["product_tmpl_id"][0]}
                 self.product_product[i["id"]] = prod_obj
                 self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
-                yield '<item name=%s cost="%f" category=%s subcategory="%s,%s"%s>\n' % (
+                yield '<item name=%s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s"%s>\n' % (
                     quoteattr(name),
+                    quoteattr(tmpl["uom_id"][1]) if tmpl["uom_id"] else "",
+                    i["volume"] or 0,
+                    i["weight"] or 0,
                     (tmpl["list_price"] or 0)
                     / self.convert_qty_uom(
                         1.0, tmpl["uom_id"][0], i["product_tmpl_id"][0]
