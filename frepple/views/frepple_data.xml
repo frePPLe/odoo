@@ -11,7 +11,7 @@
     <!-- Extra configuration fields on the company form -->
     <record id="company_form_frepple" model="ir.ui.view">
       <field name="name">res.company.view.form</field>
-      <field name="model">res.company</field>    
+      <field name="model">res.company</field>
       <field name="inherit_id" ref="base.view_company_form"/>
       <field name="priority">55</field>
       <field name="arch" type="xml">
@@ -77,7 +77,7 @@
       />
 
     <!-- Plan information tab on a sales order. -->
-    <!-- 
+    <!--
     <record id="frepple.sales_order_form_frepple" model="ir.ui.view">
       <field name="name">sale.order.form.frepple.inherit</field>
       <field name="model">sale.order</field>
