@@ -16,9 +16,12 @@
 # License along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import logging
+import pytz
+
 from xml.sax.saxutils import quoteattr
 from datetime import datetime, timedelta
 from operator import itemgetter
+from pytz import timezone
 
 import odoo
 
@@ -26,9 +29,15 @@ logger = logging.getLogger(__name__)
 
 
 class exporter(object):
-    def __init__(self, req, uid, database=None, company=None, mode=1):
+    def __init__(self, req, uid, database=None, company=None, mode=1, timezone="UTC"):
         self.database = database
         self.company = company
+        if timezone not in pytz.all_timezones:
+            logger.warning("Invalid timezone: %s. Using UTC" % (timezone,))
+            self.timezone = "UTC"
+        else:
+            self.timezone = timezone
+        self.timeformat = "%Y-%m-%dT%H:%M:%S"
 
         # The mode argument defines different types of runs:
         #  - Mode 1:
@@ -1066,7 +1075,12 @@ class exporter(object):
             if not customer or not location or not product:
                 # Not interested in this sales order...
                 continue
-            due = j.get("commitment_date", False) or j["date_order"]
+            due = (
+                (j.get("commitment_date", False) or j["date_order"])
+                .astimezone(timezone(self.timezone))
+                .strftime(self.timeformat)
+            )
+
             priority = 1  # We give all customer orders the same default priority
 
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
@@ -1150,7 +1164,7 @@ class exporter(object):
                 quoteattr(name),
                 quoteattr(batch),
                 qty,
-                due.strftime("%Y-%m-%dT%H:%M:%S"),
+                due,
                 priority,
                 j["picking_policy"] == "one" and qty or 1.0,
                 status,
@@ -1224,8 +1238,16 @@ class exporter(object):
                 continue
             location = self.mfg_location
             if location and item and i["product_qty"] > i["qty_received"]:
-                start = j["date_order"].strftime("%Y-%m-%dT%H:%M:%S")
-                end = i["date_planned"].strftime("%Y-%m-%dT%H:%M:%S")
+                start = (
+                    j["date_order"]
+                    .astimezone(timezone(self.timezone))
+                    .strftime(self.timeformat)
+                )
+                end = (
+                    i["date_planned"]
+                    .astimezone(timezone(self.timezone))
+                    .strftime(self.timeformat)
+                )
                 qty = self.convert_qty_uom(
                     i["product_qty"] - i["qty_received"],
                     i["product_uom"][0],
@@ -1288,9 +1310,20 @@ class exporter(object):
                     i["location_dest_id"][1],
                 )
                 try:
-                    startdate = str(i["date_start"] or i["date_planned_start"]).replace(
-                        " ", "T"
+                    startdate = (
+                        (
+                            i["date_start"]
+                            .astimezone(timezone(self.timezone))
+                            .strftime(self.timeformat)
+                        )
+                        if i["date_start"]
+                        else (
+                            i["date_planned_start"]
+                            .astimezone(timezone(self.timezone))
+                            .strftime(self.timeformat)
+                        )
                     )
+
                 except Exception:
                     continue
                 if not location or operation not in self.operations:
