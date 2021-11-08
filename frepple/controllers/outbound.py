@@ -574,8 +574,14 @@ class exporter(object):
             "price",
             "batching_window",
             "sequence",
-            "is_subcontractor",
         ]
+        withSubcontracting = self.env["ir.module.module"].search(
+            [("name", "=", "mrp_subcontracting")]
+        )
+        if withSubcontracting and withSubcontracting.state == "installed":
+            s_fields += [
+                "is_subcontractor",
+            ]
         if recs:
             yield "<!-- products -->\n"
             yield "<items>\n"
@@ -632,7 +638,7 @@ class exporter(object):
                             exists = True
                             yield "<itemsuppliers>\n"
                         name = "%d %s" % (sup["name"][0], sup["name"][1])
-                        if sup["is_subcontractor"]:
+                        if sup.get("is_subcontractor", False):
                             if not hasattr(tmpl, "subcontractors"):
                                 tmpl["subcontractors"] = []
                             tmpl["subcontractors"].append(
