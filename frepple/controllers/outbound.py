@@ -574,14 +574,9 @@ class exporter(object):
             "price",
             "batching_window",
             "sequence",
+            "is_subcontractor",
         ]
-        withSubcontracting = self.env["ir.module.module"].search(
-            [("name", "=", "mrp_subcontracting")]
-        )
-        if withSubcontracting and withSubcontracting.state == "installed":
-            s_fields += [
-                "is_subcontractor",
-            ]
+
         if recs:
             yield "<!-- products -->\n"
             yield "<items>\n"
@@ -631,9 +626,17 @@ class exporter(object):
                 # Export suppliers for the item, if the item is allowed to be purchased
                 if tmpl["purchase_ok"]:
                     exists = False
-                    for sup in s.search([("product_tmpl_id", "=", tmpl["id"])]).read(
-                        s_fields
-                    ):
+                    try:
+                        results = s.search([("product_tmpl_id", "=", tmpl["id"])]).read(
+                            s_fields
+                        )
+                    except:
+                        # subcontracting module not installed
+                        s_fields.remove("is_subcontractor")
+                        results = s.search([("product_tmpl_id", "=", tmpl["id"])]).read(
+                            s_fields
+                        )
+                    for sup in results:
                         if not exists:
                             exists = True
                             yield "<itemsuppliers>\n"
