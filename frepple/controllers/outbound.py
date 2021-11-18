@@ -401,7 +401,7 @@ class exporter(object):
         """
         self.map_customers = {}
         m = self.env["res.partner"]
-        recs = m.search([("is_company", "=", True), ("customer_rank", ">", 0)])
+        recs = m.search([("is_company", "=", True)])
         if recs:
             yield "<!-- customers -->\n"
             yield "<customers>\n"
@@ -421,7 +421,7 @@ class exporter(object):
         res.partner.id res.partner.name -> supplier.name
         """
         m = self.env["res.partner"]
-        recs = m.search([("is_company", "=", True), ("supplier_rank", ">", 0)])
+        recs = m.search([("is_company", "=", True)])
         if recs:
             yield "<!-- suppliers -->\n"
             yield "<suppliers>\n"
@@ -552,7 +552,6 @@ class exporter(object):
         recs = m.search(
             [
                 ("is_company", "=", True),
-                ("supplier_rank", ">", 0),
                 ("active", "=", True),
             ]
         )
