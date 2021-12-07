@@ -224,92 +224,118 @@ class exporter(object):
 
     def export_calendar(self):
         """
-        Build a calendar with a) holidays and b) working hours.
+        Reads all calendars from resource.calendar model and creates a calendar in frePPLe.
+        Attendance times are read from resource.calendar.attendance
+        Leave times are read from resource.calendar.leaves
 
-        The holidays are obtained from the hr.holidays.public.line model.
-        If the hr module isn't installed, no public holidays will be defined.
+        resource.calendar.name -> calendar.name (default value is 0)
+        resource.calendar.attendance.date_from -> calendar bucket start date (or 2020-01-01 if unspecified)
+        resource.calendar.attendance.date_to -> calendar bucket end date (or 2030-01-01 if unspecified)
+        resource.calendar.attendance.hour_from -> calendar bucket start time
+        resource.calendar.attendance.hour_to -> calendar bucket end time
+        resource.calendar.attendance.dayofweek -> calendar bucket day
 
-        The working hours are extracted from a resource.calendar model.
-        The calendar to use is configured with the company parameter "calendar".
-        If left unspecified we assume 24*7 working hours.
+        resource.calendar.leaves.date_from -> calendar bucket start date
+        resource.calendar.leaves.date_to -> calendar bucket end date
 
-        The odoo model is not ideal and nice for frePPLe, and the current mapping
-        is an as-good-as-it-gets workaround.
-
-        Mapping:
-        res.company.calendar  -> calendar.name
-        (if no working hours are defined then 1 else 0) -> calendar.default_value
-
-        resource.calendar.attendance.date_from -> calendar_bucket.start
-        '1' -> calendar_bucket.value
-        resource.calendar.attendance.dayofweek -> calendar_bucket.days
-        resource.calendar.attendance.hour_from -> calendar_bucket.startime
-        resource.calendar.attendance.hour_to -> calendar_bucket.endtime
-        computed -> calendar_bucket.priority
-
-        hr.holidays.public.line.start -> calendar_bucket.start
-        hr.holidays.public.line.start + 1 day -> calendar_bucket.end
-        '0' -> calendar_bucket.value
-        '1' -> calendar_bucket.priority
         """
         yield "<!-- calendar -->\n"
         yield "<calendars>\n"
+
+        calendars = {}
+        cal_tz = {}
         try:
+
+            # Read the timezone
             m = self.env["resource.calendar"]
-            recs = m.search([("name", "=", self.calendar)])
-            rec = recs.read(["attendance_ids"], limit=1)
-            fields = ["dayofweek", "date_from", "hour_from", "hour_to"]
-            buckets = []
-            for i in rec["attendance_ids"].read(fields):
-                strt = datetime.strptime(i["date_from"] or "2000-01-01", "%Y-%m-%d")
-                buckets.append(
-                    (
-                        strt,
-                        '<bucket start="%sT00:00:00" value="1" days="%s" priority="%%s" starttime="%s" endtime="%s"/>\n'
-                        % (
-                            strt.strftime("%Y-%m-%d"),
-                            2 ** ((int(i["dayofweek"]) + 1) % 7),
-                            # In odoo, monday = 0. In frePPLe, sunday = 0.
-                            "PT%dM" % round(i["hour_from"] * 60),
-                            "PT%dM" % round(i["hour_to"] * 60),
-                        ),
-                    )
-                )
-            if len(buckets) > 0:
-                # Sort by start date.
-                # Required to assure that records with a later start date get a
-                # lower priority in frePPLe.
-                buckets.sort(key=itemgetter(0))
-                priority = 1000
-                yield '<calendar name=%s default="0"><buckets>\n' % quoteattr(
-                    self.calendar
-                )
-                for i in buckets:
-                    yield i[1] % priority
-                    priority -= 1
-            else:
-                # No entries. We'll assume 24*7 availability.
-                yield '<calendar name=%s default="1"><buckets>\n' % quoteattr(
-                    self.calendar
-                )
-        except Exception:
-            # Exception happens if the resource module isn't installed.
-            yield "<!-- Working hours are assumed to be 24*7. -->\n"
-            yield '<calendar name=%s default="1"><buckets>\n' % quoteattr(self.calendar)
-        try:
-            m = self.env["hr.holidays.public.line"]
             recs = m.search([])
-            fields = ["date"]
+            fields = [
+                "name",
+                "tz",
+            ]
             for i in recs.read(fields):
-                nd = datetime.strptime(i["date"], "%Y-%m-%d") + timedelta(days=1)
-                yield '<bucket start="%sT00:00:00" end="%sT00:00:00" value="0" priority="1"/>\n' % (
-                    i["date"],
-                    nd.strftime("%Y-%m-%d"),
-                )
-        except Exception:
-            # Exception happens if the hr module is not installed
-            yield "<!-- No holidays since the HR module is not installed -->\n"
-        yield "</buckets></calendar></calendars>\n"
+                cal_tz[i["name"]] = i["tz"]
+
+            # Read the attendance for all calendars
+            m = self.env["resource.calendar.attendance"]
+            recs = m.search([])
+            fields = [
+                "dayofweek",
+                "date_from",
+                "date_to",
+                "hour_from",
+                "hour_to",
+                "calendar_id",
+            ]
+            for i in recs.read(fields):
+                if i["calendar_id"][1] not in calendars:
+                    calendars[i["calendar_id"][1]] = []
+                i["attendance"] = True
+                calendars[i["calendar_id"][1]].append(i)
+
+            # Read the leaves for all calendars
+            m = self.env["resource.calendar.leaves"]
+            recs = m.search([("time_type", "=", "leave")])
+            fields = [
+                "date_from",
+                "date_to",
+                "calendar_id",
+            ]
+            for i in recs.read(fields):
+                if i["calendar_id"][1] not in calendars:
+                    calendars[i["calendar_id"][1]] = []
+                i["attendance"] = False
+                calendars[i["calendar_id"][1]].append(i)
+
+            # Iterate over the results:
+            for i in calendars:
+                priority_attendance = 1000
+                priority_leave = 10
+                yield '<calendar name=%s default="0"><buckets>\n' % quoteattr(i)
+                for j in calendars[i]:
+                    yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
+                        j["date_from"]
+                        .astimezone(timezone(cal_tz[i]))
+                        .strftime("%Y-%m-%dT%H:%M:%S")
+                        if not j["attendance"]
+                        else (
+                            j["date_from"].strftime("%Y-%m-%dT00:00:00")
+                            if j["date_from"]
+                            else "2020-01-01T00:00:00"
+                        ),
+                        j["date_to"]
+                        .astimezone(timezone(cal_tz[i]))
+                        .strftime("%Y-%m-%dT%H:%M:%S")
+                        if not j["attendance"]
+                        else (
+                            j["date_to"].strftime("%Y-%m-%dT00:00:00")
+                            if j["date_to"]
+                            else "2030-01-01T00:00:00"
+                        ),
+                        "1" if j["attendance"] else "0",
+                        (2 ** ((int(j["dayofweek"]) + 1) % 7))
+                        if "dayofweek" in j
+                        else (2 ** 7) - 1,
+                        priority_attendance if j["attendance"] else priority_leave,
+                        # In odoo, monday = 0. In frePPLe, sunday = 0.
+                        ("PT%dM" % round(j["hour_from"] * 60))
+                        if "hour_from" in j
+                        else "PT0M",
+                        ("PT%dM" % round(j["hour_to"] * 60))
+                        if "hour_to" in j
+                        else "PT1440M",
+                    )
+                    if j["attendance"]:
+                        priority_attendance += 1
+                    else:
+                        priority_leave += 1
+                yield "</buckets></calendar>\n"
+                logger.info("leaving")
+
+            yield "</calendars>\n"
+        except Exception as e:
+            logger.info(e)
+            yield "</calendars>\n"
 
     def export_locations(self):
         """
@@ -470,26 +496,31 @@ class exporter(object):
 
         Mapping:
         mrp.workcenter.name -> resource.name
-        mrp.workcenter.costs_hour -> resource.cost
-        mrp.workcenter.capacity_per_cycle / mrp.workcenter.time_cycle -> resource.maximum
+        mrp.workcenter.owner -> resource.owner
+        mrp.workcenter.resource_calendar_id -> resource.available
+
         company.mfg_location -> resource.location
         """
         self.map_workcenters = {}
         m = self.env["mrp.workcenter"]
         recs = m.search([])
-        fields = ["name", "owner"]
+        fields = ["name", "owner", "resource_calendar_id"]
         if recs:
             yield "<!-- workcenters -->\n"
             yield "<resources>\n"
             for i in recs.read(fields):
                 name = i["name"]
                 owner = i["owner"]
+                available = i["resource_calendar_id"]
                 self.map_workcenters[i["id"]] = name
-                yield '<resource name=%s maximum="%s"><location name=%s/>%s</resource>\n' % (
+                yield '<resource name=%s maximum="%s"><location name=%s/>%s%s</resource>\n' % (
                     quoteattr(name),
                     1,
                     quoteattr(self.mfg_location),
                     ("<owner name=%s/>" % quoteattr(owner[1])) if owner else "",
+                    ("<available name=%s/>" % quoteattr(available[1]))
+                    if available
+                    else "",
                 )
             yield "</resources>\n"
 
