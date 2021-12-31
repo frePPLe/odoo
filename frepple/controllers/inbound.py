@@ -37,7 +37,7 @@ class importer(object):
         #  - Mode 2:
         #    Incremental export of some proposed transactions from frePPLe.
         #    In this mode mode we are not erasing any previous proposals.
-        self.mode = mode
+        self.mode = int(mode)
 
     def run(self):
         msg = []
@@ -45,7 +45,7 @@ class importer(object):
         proc_order = self.env["purchase.order"]
         proc_orderline = self.env["purchase.order.line"]
         mfg_order = self.env["mrp.production"]
-        if self.mode == "1":
+        if self.mode == 1:
             # Cancel previous draft purchase quotations
             m = self.env["purchase.order"]
             recs = m.search([("state", "=", "draft"), ("origin", "=", "frePPLe")])
