@@ -433,7 +433,7 @@ class exporter(object):
             yield "<customers>\n"
             fields = ["name"]
             for i in recs.read(fields):
-                name = "%d %s" % (i["id"], i["name"])
+                name = "%s %s" % (i["name"], i["id"])
                 yield "<customer name=%s/>\n" % quoteattr(name)
                 self.map_customers[i["id"]] = name
             yield "</customers>\n"
@@ -830,10 +830,10 @@ class exporter(object):
             for subcontractor in subcontractors:
                 # Build operation. The operation can either be a summary operation or a detailed
                 # routing.
-                operation = u"%d %s @ %s" % (
-                    i["id"],
+                operation = u"%s @ %s %d" % (
                     product_buf["name"],
                     subcontractor.get("name", location),
+                    i["id"],
                 )
                 self.operations.add(operation)
                 if (
@@ -1343,10 +1343,10 @@ class exporter(object):
                 )
                 if not item:
                     continue
-                operation = u"%d %s @ %s" % (
-                    i["bom_id"][0],
+                operation = u"%s @ %s %d" % (
                     item["name"],
                     i["location_dest_id"][1],
+                    i["bom_id"][0],
                 )
                 try:
                     startdate = (
