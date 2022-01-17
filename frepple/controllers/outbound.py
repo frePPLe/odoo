@@ -634,7 +634,7 @@ class exporter(object):
                     quoteattr(tmpl["uom_id"][1]) if tmpl["uom_id"] else "",
                     i["volume"] or 0,
                     i["weight"] or 0,
-                    (tmpl["list_price"] or 0)
+                    max(0, tmpl["list_price"] or 0)
                     / self.convert_qty_uom(
                         1.0, tmpl["uom_id"][0], i["product_tmpl_id"][0]
                     ),
@@ -688,7 +688,7 @@ class exporter(object):
                                 sup["sequence"] or 1,
                                 sup["batching_window"] or 0,
                                 sup["min_qty"],
-                                sup["price"],
+                                max(0, sup["price"]),
                                 ' effective_end="%sT00:00:00"'
                                 % sup["date_end"].strftime("%Y-%m-%d")
                                 if sup["date_end"]
