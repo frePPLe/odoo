@@ -984,6 +984,9 @@ class exporter(object):
                             self.product_product[j["product_id"][0]]["template"],
                         )
                         if j["product_id"][0] in fl:
+                            # If the same component is consumed multiple times in the same BOM
+                            # we sum up all quantities in a single flow. We assume all of them
+                            # have the same effectivity.
                             fl[j["product_id"][0]]["qty"] += qty
                         else:
                             j["qty"] = qty
@@ -1035,10 +1038,6 @@ class exporter(object):
                                 (j["operation_id"] and j["operation_id"][0] == step[6])
                                 or (not j["operation_id"] and step == steplist[0])
                             ):
-                                # All consuming flows on the first routing step.
-                                # If the same component is consumed multiple times in the same BOM
-                                # we sum up all quantities in a single flow. We assume all of them
-                                # have the same effectivity.
                                 if first_flow:
                                     first_flow = False
                                     yield "<flows>\n"
