@@ -915,10 +915,11 @@ class exporter(object):
                             )
                             for k in fl[j]
                         )
-                        yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
-                            qty,
-                            quoteattr(product["name"]),
-                        )
+                        if qty > 0:
+                            yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
+                                qty,
+                                quoteattr(product["name"]),
+                            )
 
                     # Build byproduct flows
                     if i.get("sub_products", None) and subproduct_model:
@@ -1030,9 +1031,10 @@ class exporter(object):
                                 * uom_factor
                             )
                         for j in fl.values():
-                            if (
-                                j["operation_id"] and j["operation_id"][0] == step[6]
-                            ) or (not j["operation_id"] and step == steplist[0]):
+                            if j["qty"] > 0 and (
+                                (j["operation_id"] and j["operation_id"][0] == step[6])
+                                or (not j["operation_id"] and step == steplist[0])
+                            ):
                                 # All consuming flows on the first routing step.
                                 # If the same component is consumed multiple times in the same BOM
                                 # we sum up all quantities in a single flow. We assume all of them
