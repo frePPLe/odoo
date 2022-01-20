@@ -731,7 +731,7 @@ class exporter(object):
         # Read all workcenters of all routings
         mrp_routing_workcenters = {}
         m = self.env["mrp.routing.workcenter"]
-        recs = m.search([], order="bom_id, sequence asc")
+        recs = m.search([], order="bom_id, sequence, id asc")
         fields = [
             "name",
             "bom_id",
@@ -764,6 +764,7 @@ class exporter(object):
                             i["name"],
                             i["skill"][1] if i["skill"] else None,
                             i["search_mode"],
+                            i["id"],
                         ]
                     )
             else:
@@ -775,12 +776,18 @@ class exporter(object):
                         i["name"],
                         i["skill"][1] if i["skill"] else None,
                         i["search_mode"],
+                        i["id"],
                     ]
                 ]
 
         # Models used in the bom-loop below
         bom_lines_model = self.env["mrp.bom.line"]
-        bom_lines_fields = ["product_qty", "product_uom_id", "product_id"]
+        bom_lines_fields = [
+            "product_qty",
+            "product_uom_id",
+            "product_id",
+            "operation_id",
+        ]
         try:
             subproduct_model = self.env["mrp.subproduct"]
             subproduct_fields = [
@@ -962,8 +969,26 @@ class exporter(object):
                     )
 
                     yield "<suboperations>"
+
+                    fl = {}
+                    for j in bom_lines_model.browse(i["bom_line_ids"]).read(
+                        bom_lines_fields
+                    ):
+                        product = self.product_product.get(j["product_id"][0], None)
+                        if not product:
+                            continue
+                        qty = self.convert_qty_uom(
+                            j["product_qty"],
+                            j["product_uom_id"][0],
+                            self.product_product[j["product_id"][0]]["template"],
+                        )
+                        if j["product_id"][0] in fl:
+                            fl[j["product_id"][0]]["qty"] += qty
+                        else:
+                            j["qty"] = qty
+                            fl[j["product_id"][0]] = j
+
                     steplist = mrp_routing_workcenters[i["id"]]
-                    # sequence cannot be trusted in odoo12
                     counter = 0
                     for step in steplist:
                         counter = counter + 1
@@ -983,16 +1008,16 @@ class exporter(object):
                             if step[4]
                             else "",
                         )
-                        if step[2] == steplist[-1][2]:
+                        first_flow = True
+                        if step == steplist[-1]:
                             # Add producing flows on the last routing step
+                            first_flow = False
                             yield '<flows>\n<flow xsi:type="flow_end" quantity="%f"><item name=%s/></flow>\n' % (
                                 i["product_qty"]
                                 * getattr(i, "product_efficiency", 1.0)
                                 * uom_factor,
                                 quoteattr(product_buf["name"]),
                             )
-
-                            yield "</flows>\n"
                             self.bom_producedQty[
                                 (
                                     "%s - %s - %s"
@@ -1004,41 +1029,22 @@ class exporter(object):
                                 * getattr(i, "product_efficiency", 1.0)
                                 * uom_factor
                             )
-                        if step[2] == steplist[0][2]:
-                            # All consuming flows on the first routing step.
-                            # If the same component is consumed multiple times in the same BOM
-                            # we sum up all quantities in a single flow. We assume all of them
-                            # have the same effectivity.
-                            fl = {}
-                            for j in bom_lines_model.browse(i["bom_line_ids"]).read(
-                                bom_lines_fields
-                            ):
-                                product = self.product_product.get(
-                                    j["product_id"][0], None
-                                )
-                                if not product:
-                                    continue
-                                if j["product_id"][0] in fl:
-                                    fl[j["product_id"][0]].append(j)
-                                else:
-                                    fl[j["product_id"][0]] = [j]
-                            yield "<flows>\n"
-                            for j in fl:
-                                product = self.product_product[j]
-                                qty = sum(
-                                    self.convert_qty_uom(
-                                        k["product_qty"],
-                                        k["product_uom_id"][0],
-                                        self.product_product[k["product_id"][0]][
-                                            "template"
-                                        ],
-                                    )
-                                    for k in fl[j]
-                                )
+                        for j in fl.values():
+                            if (
+                                j["operation_id"] and j["operation_id"][0] == step[6]
+                            ) or (not j["operation_id"] and step == steplist[0]):
+                                # All consuming flows on the first routing step.
+                                # If the same component is consumed multiple times in the same BOM
+                                # we sum up all quantities in a single flow. We assume all of them
+                                # have the same effectivity.
+                                if first_flow:
+                                    first_flow = False
+                                    yield "<flows>\n"
                                 yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
-                                    qty,
+                                    j["qty"],
                                     quoteattr(product["name"]),
                                 )
+                        if not first_flow:
                             yield "</flows>\n"
                         yield "</operation></suboperation>\n"
                     yield "</suboperations>\n"
