@@ -1043,7 +1043,7 @@ class exporter(object):
                                     yield "<flows>\n"
                                 yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
                                     j["qty"],
-                                    quoteattr(product["name"]),
+                                    quoteattr(self.product_product[j["product_id"][0]]["name"]),
                                 )
                         if not first_flow:
                             yield "</flows>\n"
