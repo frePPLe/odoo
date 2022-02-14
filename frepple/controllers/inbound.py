@@ -132,7 +132,7 @@ class importer(object):
                     # elif ????:
                     else:
                         # Create manufacturing order
-                        mfg_order.create(
+                        mo = mfg_order.create(
                             {
                                 "product_qty": elem.get("quantity"),
                                 "date_planned_start": elem.get("start"),
@@ -141,12 +141,17 @@ class importer(object):
                                 "company_id": self.company.id,
                                 "product_uom_id": int(uom_id),
                                 "location_src_id": int(elem.get("location_id")),
-                                "bom_id": int(elem.get("operation").split(" ", 1)[0]),
+                                "location_dest_id": int(elem.get("location_id")),
+                                "bom_id": int(elem.get("operation").rsplit(" ", 1)[1]),
+                                "qty_producing": 0.00,
                                 # TODO no place to store the criticality
                                 # elem.get('criticality'),
                                 "origin": "frePPLe",
                             }
                         )
+                        mo._onchange_workorder_ids()
+                        mo._onchange_move_raw()
+                        mo._create_update_move_finished()
                         countmfg += 1
                 except Exception as e:
                     logger.error("Exception %s" % e)
