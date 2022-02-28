@@ -19,7 +19,6 @@ import odoo
 import logging
 from xml.etree.cElementTree import iterparse
 from datetime import datetime
-from pytz import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -106,18 +105,7 @@ class importer(object):
                             supplier_reference[supplier_id] = po.id
 
                         quantity = elem.get("quantity")
-
-                        date_planned = datetime.strptime(
-                            elem.get("end")[:19], "%Y-%m-%d %H:%M:%S"
-                        )
-                        date_planned = (
-                            timezone(
-                                "Europe/Brussels"
-                            )  # put here timezone defined in file djangosettings.py
-                            .localize(date_planned)
-                            .astimezone(timezone("UTC"))
-                        ).strftime("%Y-%m-%d %H:%M:%S")
-
+                        date_planned = elem.get("end")
                         if (item_id, supplier_id) not in product_supplier_dict:
                             po_line = proc_orderline.create(
                                 {
@@ -144,34 +132,11 @@ class importer(object):
                     # elif ????:
                     else:
                         # Create manufacturing order
-
-                        startdate = datetime.strptime(
-                            elem.get("start")[:19], "%Y-%m-%d %H:%M:%S"
-                        )
-                        startdate = (
-                            timezone(
-                                "Europe/Brussels"
-                            )  # put here timezone defined in file djangosettings.py
-                            .localize(startdate)
-                            .astimezone(timezone("UTC"))
-                        ).strftime("%Y-%m-%d %H:%M:%S")
-
-                        enddate = datetime.strptime(
-                            elem.get("end")[:19], "%Y-%m-%d %H:%M:%S"
-                        )
-                        enddate = (
-                            timezone(
-                                "Europe/Brussels"
-                            )  # put here timezone defined in file djangosettings.py
-                            .localize(enddate)
-                            .astimezone(timezone("UTC"))
-                        ).strftime("%Y-%m-%d %H:%M:%S")
-
                         mo = mfg_order.create(
                             {
                                 "product_qty": elem.get("quantity"),
-                                "date_planned_start": startdate,
-                                "date_planned_finished": enddate,
+                                "date_planned_start": elem.get("start"),
+                                "date_planned_finished": elem.get("end"),
                                 "product_id": int(item_id),
                                 "company_id": self.company.id,
                                 "product_uom_id": int(uom_id),
