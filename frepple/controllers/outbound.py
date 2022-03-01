@@ -342,7 +342,6 @@ class exporter(object):
                     else:
                         priority_leave += 1
                 yield "</buckets></calendar>\n"
-                logger.info("leaving")
 
             yield "</calendars>\n"
         except Exception as e:
@@ -1501,8 +1500,6 @@ class exporter(object):
                 inventory[(item["name"], location)] = i[2] + inventory.get(
                     (item["name"], location), 0
                 )
-        for i in self.map_locations:
-            logger.info("%s %s" % (i, self.map_locations[i]))
         for key, val in inventory.items():
             buf = "%s @ %s" % (key[0], key[1])
             yield '<buffer name=%s onhand="%f"><item name=%s/><location name=%s/></buffer>\n' % (
