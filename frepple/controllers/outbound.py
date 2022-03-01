@@ -29,14 +29,21 @@ logger = logging.getLogger(__name__)
 
 
 class exporter(object):
-    def __init__(self, req, uid, database=None, company=None, mode=1, timezone="UTC"):
+    def __init__(self, req, uid, database=None, company=None, mode=1, timezone=None):
         self.database = database
         self.company = company
-        if timezone not in pytz.all_timezones:
-            logger.warning("Invalid timezone: %s. Using UTC" % (timezone,))
-            self.timezone = "UTC"
-        else:
-            self.timezone = timezone
+        self.timezone = timezone
+        if timezone:
+            if timezone not in pytz.all_timezones:
+                logger.warning("Invalid timezone URL argument: %s." % (timezone,))
+                self.timezone = None
+            else:
+                # Valid timezone override in the url
+                self.timezone = timezone
+        if not self.timezone:
+            # Default timezone: use the timezone of the connector user (or UTC if not set)
+            user = req.env["res.users"].browse(uid)
+            self.timezone = user.tz or "UTC"
         self.timeformat = "%Y-%m-%dT%H:%M:%S"
 
         # The mode argument defines different types of runs:
@@ -291,6 +298,11 @@ class exporter(object):
             for i in calendars:
                 priority_attendance = 1000
                 priority_leave = 10
+                if cal_tz[i] != self.timezone:
+                    logger.warning(
+                        "timezone is different on workcenter %s and connector user. Working hours will not be synced correctly to frepple."
+                        % i
+                    )
                 yield '<calendar name=%s default="0"><buckets>\n' % quoteattr(i)
                 for j in calendars[i]:
                     yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
@@ -1043,7 +1055,9 @@ class exporter(object):
                                     yield "<flows>\n"
                                 yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
                                     j["qty"],
-                                    quoteattr(self.product_product[j["product_id"][0]]["name"]),
+                                    quoteattr(
+                                        self.product_product[j["product_id"][0]]["name"]
+                                    ),
                                 )
                         if not first_flow:
                             yield "</flows>\n"
