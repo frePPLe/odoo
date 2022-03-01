@@ -95,7 +95,7 @@ class XMLController(odoo.http.Controller):
                     database=database,
                     company=kwargs.get("company", None),
                     mode=int(kwargs.get("mode", 1)),
-                    timezone=kwargs.get("timezone", "UTC"),
+                    timezone=kwargs.get("timezone", None),
                 )
                 # TODO Returning an iterator to stream the response back to the client and
                 # to save memory on the server side
