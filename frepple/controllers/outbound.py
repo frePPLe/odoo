@@ -144,7 +144,7 @@ class exporter(object):
             )  # TODO NOT USED RIGHT NOW - add parameter in frepple for this
             self.po_lead = i["po_lead"]
             self.manufacturing_lead = i["manufacturing_lead"]
-            self.calendar = i["calendar"] and i["calendar"][1] or "Working hours"
+            self.calendar = i["calendar"] and i["calendar"][1] or None
             self.mfg_location = (
                 i["manufacturing_warehouse"]
                 and i["manufacturing_warehouse"][1]
@@ -156,7 +156,7 @@ class exporter(object):
             self.security_lead = 0
             self.po_lead = 0
             self.manufacturing_lead = 0
-            self.calendar = "Working hours"
+            self.calendar = None
             self.mfg_location = self.company
 
     def load_uom(self):
@@ -386,11 +386,17 @@ class exporter(object):
                 "view_location_id",
             ]
             for i in recs.read(fields):
-                yield '<location name=%s subcategory="%s"><available name=%s/></location>\n' % (
-                    quoteattr(i["name"]),
-                    i["id"],
-                    quoteattr(self.calendar),
-                )
+                if self.calendar:
+                    yield '<location name=%s subcategory="%s"><available name=%s/></location>\n' % (
+                        quoteattr(i["name"]),
+                        i["id"],
+                        quoteattr(self.calendar),
+                    )
+                else:
+                    yield '<location name=%s subcategory="%s"></location>\n' % (
+                        quoteattr(i["name"]),
+                        i["id"],
+                    )
                 childlocs[i["lot_stock_id"][0]] = i["name"]
                 childlocs[i["wh_input_stock_loc_id"][0]] = i["name"]
                 childlocs[i["wh_output_stock_loc_id"][0]] = i["name"]
