@@ -171,6 +171,9 @@ class importer(object):
                         mo._onchange_workorder_ids()
                         mo._onchange_move_raw()
                         mo._create_update_move_finished()
+                        # mo.action_confirm()  # confirm MO
+                        # mo._plan_workorders() # plan MO
+                        # mo.action_assign() # reserve material
                         countmfg += 1
                 except Exception as e:
                     logger.error("Exception %s" % e)
