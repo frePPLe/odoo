@@ -145,7 +145,6 @@ class XMLController(odoo.http.Controller):
                 decoded = jwt.decode(
                     webtoken, company.webtoken_key, algorithms=["HS256"]
                 )
-                logger.warning(str(decoded))
                 if self.user != decoded.get("user", None):
                     return Response("Incorrect or missing webtoken", 401)
             except Exception as e:
