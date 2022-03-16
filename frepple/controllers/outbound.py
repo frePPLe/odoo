@@ -515,13 +515,21 @@ class exporter(object):
         mrp.workcenter.name -> resource.name
         mrp.workcenter.owner -> resource.owner
         mrp.workcenter.resource_calendar_id -> resource.available
+        mrp.workcenter.capacity -> resource.maximum
+        mrp.workcenter.time_efficiency -> resource.efficiency
 
         company.mfg_location -> resource.location
         """
         self.map_workcenters = {}
         m = self.env["mrp.workcenter"]
         recs = m.search([])
-        fields = ["name", "owner", "resource_calendar_id"]
+        fields = [
+            "name",
+            "owner",
+            "resource_calendar_id",
+            "time_efficiency",
+            "capacity",
+        ]
         if recs:
             yield "<!-- workcenters -->\n"
             yield "<resources>\n"
@@ -530,9 +538,10 @@ class exporter(object):
                 owner = i["owner"]
                 available = i["resource_calendar_id"]
                 self.map_workcenters[i["id"]] = name
-                yield '<resource name=%s maximum="%s"><location name=%s/>%s%s</resource>\n' % (
+                yield '<resource name=%s maximum="%s" efficiency="%s"><location name=%s/>%s%s</resource>\n' % (
                     quoteattr(name),
-                    1,
+                    i["capacity"],
+                    i["time_efficiency"],
                     quoteattr(self.mfg_location),
                     ("<owner name=%s/>" % quoteattr(owner[1])) if owner else "",
                     ("<available name=%s/>" % quoteattr(available[1]))
