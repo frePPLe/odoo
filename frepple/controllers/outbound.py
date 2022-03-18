@@ -890,14 +890,17 @@ class exporter(object):
                             quoteattr(location),
                         )
                     else:
+                        duration_per = (
+                            self.product_templates[i["product_tmpl_id"][0]][
+                                "produce_delay"
+                            ]
+                            / 1440.0
+                        )
                         yield '<operation name=%s size_multiple="1" duration_per="%s" posttime="P%dD" xsi:type="operation_time_per">\n' "<item name=%s/><location name=%s/>\n" % (
                             quoteattr(operation),
-                            self.convert_float_time(
-                                self.product_templates[i["product_tmpl_id"][0]][
-                                    "produce_delay"
-                                ]
-                                / 1440.0
-                            ),
+                            self.convert_float_time(duration_per)
+                            if duration_per and duration_per > 0
+                            else "P0D",
                             self.manufacturing_lead,
                             quoteattr(product_buf["name"]),
                             quoteattr(location),
@@ -1029,7 +1032,9 @@ class exporter(object):
                                 % (operation, suboperation, (counter * 100))
                             ),
                             counter * 10,
-                            self.convert_float_time(step[1] / 1440.0),
+                            self.convert_float_time(step[1] / 1440.0)
+                            if step[1] and step[1] > 0
+                            else "P0D",
                             quoteattr(location),
                             1,
                             quoteattr(step[5]),
