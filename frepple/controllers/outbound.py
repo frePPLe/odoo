@@ -74,32 +74,44 @@ class exporter(object):
         # If multiple types of an entity exists (eg operation_time_per,
         # operation_alternate, operation_alternate, etc) the reference would
         # automatically create an object, potentially of the wrong type.
+        logger.debug("Exporting calendars.")
         if self.mode == 1:
             for i in self.export_calendar():
                 yield i
+        logger.debug("Exporting locations.")
         for i in self.export_locations():
             yield i
+        logger.debug("Exporting customers.")
         for i in self.export_customers():
             yield i
         if self.mode == 1:
+            logger.debug("Exporting suppliers.")
             for i in self.export_suppliers():
                 yield i
+            logger.debug("Exporting workcenters.")
             for i in self.export_workcenters():
                 yield i
+        logger.debug("Exporting products.")
         for i in self.export_items():
             yield i
+        logger.debug("Exporting BOMs.")
         if self.mode == 1:
             for i in self.export_boms():
                 yield i
+        logger.debug("Exporting sales orders.")
         for i in self.export_salesorders():
             yield i
         if self.mode == 1:
+            logger.debug("Exporting purchase orders.")
             for i in self.export_purchaseorders():
                 yield i
+            logger.debug("Exporting manufacturing orders.")
             for i in self.export_manufacturingorders():
                 yield i
+            logger.debug("Exporting reordering rules.")
             for i in self.export_orderpoints():
                 yield i
+            logger.debug("Exporting quantities on-hand.")
             for i in self.export_onhand():
                 yield i
 
