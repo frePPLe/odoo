@@ -379,8 +379,7 @@ class exporter(object):
         stock.warehouse.id -> location.subcategory
         """
         self.map_locations = {}
-        self.warehouses = set()
-        childlocs = {}
+        self.warehouses = {}
         m = self.env["stock.warehouse"]
         recs = m.search([])
         if recs:
@@ -388,12 +387,6 @@ class exporter(object):
             yield "<locations>\n"
             fields = [
                 "name",
-                "lot_stock_id",
-                "wh_input_stock_loc_id",
-                "wh_output_stock_loc_id",
-                "wh_pack_stock_loc_id",
-                "wh_qc_stock_loc_id",
-                "view_location_id",
             ]
             for i in recs.read(fields):
                 if self.calendar:
@@ -407,43 +400,18 @@ class exporter(object):
                         quoteattr(i["name"]),
                         i["id"],
                     )
-                childlocs[i["lot_stock_id"][0]] = i["name"]
-                childlocs[i["wh_input_stock_loc_id"][0]] = i["name"]
-                childlocs[i["wh_output_stock_loc_id"][0]] = i["name"]
-                childlocs[i["wh_pack_stock_loc_id"][0]] = i["name"]
-                childlocs[i["wh_qc_stock_loc_id"][0]] = i["name"]
-                childlocs[i["view_location_id"][0]] = i["name"]
-                # also add warehouse id for future lookups
-                childlocs[i["id"]] = i["name"]
-
-                self.warehouses.add(i["name"])
+                self.warehouses[i["id"]] = i["name"]
             yield "</locations>\n"
 
             # Populate a mapping location-to-warehouse name for later lookups
-            parent_loc = {}
-            m = self.env["stock.location"]
-            recs = m.search([])
-            for i in recs.read(["location_id"]):
-                if i["location_id"]:
-                    parent_loc[i["id"]] = i["location_id"][0]
-
-            marked = {}
-
-            def fnd_parent(loc_id):  # go up the parent chain to find the warehouse
-                if not marked.get(loc_id):  # ensures O(N) iterations instead of O(N^2)
-                    if childlocs.get(loc_id):
-                        return childlocs[loc_id]
-                    if parent_loc.get(loc_id):
-                        parent = fnd_parent(parent_loc[loc_id])
-                        if parent:
-                            return parent
-                marked[loc_id] = True
-                return -1
-
-            for loc_id in recs:
-                parent = fnd_parent(loc_id["id"])
-                if parent and parent != -1:
-                    self.map_locations[loc_id["id"]] = parent
+            for loc in self.env["stock.location"].search(
+                [
+                    ("usage", "=", "internal"),
+                ]
+            ):
+                wh = loc.get_warehouse()
+                if wh and wh.id in self.warehouses:
+                    self.map_locations[loc["id"]] = self.warehouses[wh.id]
 
     def export_customers(self):
         """
