@@ -39,6 +39,13 @@
       sequence="100"
       action="action_frepple_web"/>
 
+    <!-- Complete frePPLe UI in purchasing menu. -->
+    <menuitem id="menu_frepple_web_procurement"
+      name="Advanced planning - frePPLe"
+      parent="purchase.menu_purchase_root"
+      sequence="110"
+      action="action_frepple_web"/>
+
     <!-- frePPle plan editor in manufacturing menu. -->
     <record id="action_frepple_planeditor" model="ir.actions.client">
       <field name="name">Plan editor - frePPLe</field>
@@ -61,6 +68,19 @@
       parent="sale.sale_order_menu"
       sequence="100"
       action="action_frepple_forecast_editor"
+      groups="sales_team.group_sale_manager,sales_team.group_sale_salesman"
+      />
+
+    <!-- frepple quotes screen in sales menu. -->
+    <record id="action_frepple_quotes" model="ir.actions.client">
+      <field name="name">Quotes - frePPLe</field>
+       <field name="tag">frepple.quotes</field>
+    </record>
+    <menuitem id="menu_frepple_quotes"
+      name="Quotes - frePPLe"
+      parent="sale.sale_order_menu"
+      sequence="110"
+      action="action_frepple_quotes"
       groups="sales_team.group_sale_manager,sales_team.group_sale_salesman"
       />
 
