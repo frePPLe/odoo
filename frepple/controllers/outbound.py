@@ -1258,7 +1258,11 @@ class exporter(object):
                 (
                     "order_id.state",
                     "not in",
+                    # Comment out on of the following alternative approaches:
+                    # Alternative I: don't send RFQs to frepple because that supply isn't certain to be available yet.
                     ("draft", "sent", "bid", "confirmed", "cancel"),
+                    # Alternative II: send RFQs to frepple to avoid that the same purchasing proposal is generated again by frepple.
+                    # ("bid", "confirmed", "cancel"),
                 ),
                 ("order_id.state", "=", False),
             ]
@@ -1364,7 +1368,7 @@ class exporter(object):
                     continue
                 operation = u"%s @ %s %d" % (
                     item["name"],
-                    i["location_dest_id"][1],
+                    location,
                     i["bom_id"][0],
                 )
                 try:
