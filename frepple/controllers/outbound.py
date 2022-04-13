@@ -628,9 +628,9 @@ class exporter(object):
                     continue
                 tmpl = self.product_templates[i["product_tmpl_id"][0]]
                 if i["code"]:
-                    name = u"[%s] %s" % (i["code"], i["name"])
+                    name = (u"[%s] %s" % (i["code"], i["name"]))[:300]
                 else:
-                    name = i["name"]
+                    name = i["name"][:300]
                 prod_obj = {"name": name, "template": i["product_tmpl_id"][0]}
                 self.product_product[i["id"]] = prod_obj
                 self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
@@ -726,7 +726,7 @@ class exporter(object):
         self.bom_producedQty = {}
 
         # Read all active manufacturing routings
-        mrp_routings = {}
+        # mrp_routings = {}
         # m = self.env["mrp.routing"]
         # recs = m.search([])
         # fields = ["location_id"]
@@ -845,6 +845,15 @@ class exporter(object):
                     subcontractor.get("name", location),
                     i["id"],
                 )
+                if len(operation) > 300:
+                    suffix = u" @ %s %d" % (
+                        subcontractor.get("name", location),
+                        i["id"],
+                    )
+                    operation = "%s%s" % (
+                        product_buf["name"][: 300 - len(suffix)],
+                        suffix,
+                    )
                 self.operations.add(operation)
                 if (
                     not self.manage_work_orders
@@ -1003,11 +1012,18 @@ class exporter(object):
                     for step in steplist:
                         counter = counter + 1
                         suboperation = step[3]
+                        name = "%s - %s - %s" % (operation, suboperation, counter * 100)
+                        if len(name) > 300:
+                            suffix = " - %s - %s" % (
+                                suboperation,
+                                counter * 100,
+                            )
+                            name = "%s%s" % (
+                                operation[: 300 - len(suffix)],
+                                suffix,
+                            )
                         yield "<suboperation>" '<operation name=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load></loads>\n' % (
-                            quoteattr(
-                                "%s - %s - %s"
-                                % (operation, suboperation, (counter * 100))
-                            ),
+                            quoteattr(name),
                             counter * 10,
                             self.convert_float_time(step[1] / 1440.0)
                             if step[1] and step[1] > 0
