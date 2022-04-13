@@ -822,9 +822,7 @@ class exporter(object):
                 i["product_tmpl_id"][0], None
             )  # TODO avoid multiple bom on single template
             if not product_buf:
-                logger.warning(
-                    "skipping %s %s" % (i["product_tmpl_id"][0], i["routing_id"])
-                )
+                logger.warning("Skipping %s" % i["product_tmpl_id"][0])
                 continue
             uom_factor = self.convert_qty_uom(
                 1.0, i["product_uom_id"][0], i["product_tmpl_id"][0]
