@@ -40,6 +40,10 @@ class ResCompany(models.Model):
     calendar = fields.Many2one("resource.calendar", "Calendar", ondelete="set null")
     webtoken_key = fields.Char("Webtoken key", size=128)
     frepple_server = fields.Char("frePPLe web server", size=128)
+    disclose_stack_trace = fields.Boolean(
+        default=False,
+        help="Send stack trace to your frepple server upon connector exceptions.",
+    )
 
     @api.model
     def getFreppleURL(self, navbar=True, _url="/"):

@@ -22,6 +22,7 @@
 	          <field name="manufacturing_warehouse"/>
 	          <field name="webtoken_key"/>
 	          <field name="frepple_server"/>
+            <field name="disclose_stack_trace"/>
 	        </group>
           </page>
         </xpath>

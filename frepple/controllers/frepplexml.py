@@ -19,6 +19,7 @@
 import base64
 import logging
 import odoo
+import traceback
 from werkzeug.exceptions import MethodNotAllowed, InternalServerError
 from werkzeug.wrappers import Response
 
@@ -110,8 +111,19 @@ class XMLController(odoo.http.Controller):
                 )
             except Exception as e:
                 logger.exception("Error generating frePPLe XML data")
+                disclose_stack_trace = False
+                try:
+                    company = kwargs.get("company", None)
+                    if company:
+                        for i in req.env["res.company"].search(
+                            [("name", "=", company)]
+                        ):
+                            disclose_stack_trace = i.disclose_stack_trace
+                except Exception:
+                    pass
                 raise InternalServerError(
-                    description="Error generating frePPLe XML data: check the Odoo log file for more details"
+                    description="Error generating frePPLe XML data:<br>%s"
+                    % (traceback.format_exc() if disclose_stack_trace else e)
                 )
         elif req.httprequest.method == "POST":
             # Authenticate the user
