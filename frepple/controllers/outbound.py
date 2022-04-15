@@ -262,6 +262,7 @@ class exporter(object):
 
         calendars = {}
         cal_tz = {}
+        cal_ids = set()
         try:
 
             # Read the timezone
@@ -273,6 +274,7 @@ class exporter(object):
             ]
             for i in recs.read(fields):
                 cal_tz[i["name"]] = i["tz"]
+                cal_ids.add(i["id"])
 
             # Read the attendance for all calendars
             m = self.env["resource.calendar.attendance"]
@@ -286,10 +288,11 @@ class exporter(object):
                 "calendar_id",
             ]
             for i in recs.read(fields):
-                if i["calendar_id"][1] not in calendars:
-                    calendars[i["calendar_id"][1]] = []
-                i["attendance"] = True
-                calendars[i["calendar_id"][1]].append(i)
+                if i["calendar_id"][0] in cal_ids:
+                    if i["calendar_id"][1] not in calendars:
+                        calendars[i["calendar_id"][1]] = []
+                    i["attendance"] = True
+                    calendars[i["calendar_id"][1]].append(i)
 
             # Read the leaves for all calendars
             m = self.env["resource.calendar.leaves"]
@@ -300,10 +303,11 @@ class exporter(object):
                 "calendar_id",
             ]
             for i in recs.read(fields):
-                if i["calendar_id"][1] not in calendars:
-                    calendars[i["calendar_id"][1]] = []
-                i["attendance"] = False
-                calendars[i["calendar_id"][1]].append(i)
+                if i["calendar_id"][0] in cal_ids:
+                    if i["calendar_id"][1] not in calendars:
+                        calendars[i["calendar_id"][1]] = []
+                    i["attendance"] = False
+                    calendars[i["calendar_id"][1]].append(i)
 
             # Iterate over the results:
             for i in calendars:
