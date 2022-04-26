@@ -1148,6 +1148,19 @@ class exporter(object):
             j = so[i["order_id"][0]]
             location = j["warehouse_id"][1]
             customer = self.map_customers.get(j["partner_id"][0], None)
+            if not customer:
+                # The customer may be an individual.
+                # We check whether his/her company is in the map.
+                for c in (
+                    self.env["res.partner"]
+                    .browse([j["partner_id"][0]])
+                    .read(["commercial_partner_id"])
+                ):
+                    customer = self.map_customers.get(
+                        c["commercial_partner_id"][0], None
+                    )
+                    if customer:
+                        break
             if not customer or not location or not product:
                 # Not interested in this sales order...
                 continue
