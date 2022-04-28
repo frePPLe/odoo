@@ -29,7 +29,16 @@ logger = logging.getLogger(__name__)
 
 
 class exporter(object):
-    def __init__(self, req, uid, database=None, company=None, mode=1, timezone=None):
+    def __init__(
+        self,
+        req,
+        uid,
+        database=None,
+        company=None,
+        mode=1,
+        timezone=None,
+        singlecompany=False,
+    ):
         self.database = database
         self.company = company
         self.timezone = timezone
@@ -45,6 +54,7 @@ class exporter(object):
             user = req.env["res.users"].browse(uid)
             self.timezone = user.tz or "UTC"
         self.timeformat = "%Y-%m-%dT%H:%M:%S"
+        self.singlecompany = singlecompany
 
         # The mode argument defines different types of runs:
         #  - Mode 1:
@@ -161,6 +171,12 @@ class exporter(object):
                 and i["manufacturing_warehouse"][1]
                 or self.company
             )
+            if self.singlecompany:
+                # Create a new context to limit the data to the selected company
+                self.env = self.env(
+                    user=self.env.user,
+                    context=dict(self.env.context, allowed_company_ids=[i["id"]]),
+                )
         if not self.company_id:
             logger.warning("Can't find company '%s'" % self.company)
             self.company_id = None

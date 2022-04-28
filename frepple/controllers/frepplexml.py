@@ -97,6 +97,8 @@ class XMLController(odoo.http.Controller):
                     company=kwargs.get("company", None),
                     mode=int(kwargs.get("mode", 1)),
                     timezone=kwargs.get("timezone", None),
+                    singlecompany=kwargs.get("singlecompany", "false").lower()
+                    == "true",
                 )
                 # TODO Returning an iterator to stream the response back to the client and
                 # to save memory on the server side
