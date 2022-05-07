@@ -603,19 +603,6 @@ class exporter(object):
         for i in self.env.cr.fetchall():
             mto_template_products.add(i[0])
 
-        # Read the suppliers
-        m = self.env["res.partner"]
-        recs = m.search(
-            [
-                ("is_company", "=", True),
-                ("active", "=", True),
-            ]
-        )
-        supplier_id = {}
-        fields = ["id", "name"]
-        for i in recs.read(fields):
-            supplier_id[i["id"]] = i["name"]
-
         # Read the products
         m = self.env["product.product"]
         recs = m.search([])
