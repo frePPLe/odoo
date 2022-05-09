@@ -1215,6 +1215,9 @@ class exporter(object):
                     i["product_uom"][0],
                     self.product_product[i["product_id"][0]]["template"],
                 )
+            else:
+                logger.warning("Unknown sales order state: %s." % (state,))
+                continue
 
             #           pick = self.req.session.model('stock.picking')
             #           p_fields = ['move_lines', 'sale_id', 'state']
