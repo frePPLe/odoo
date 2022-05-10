@@ -1177,7 +1177,7 @@ class exporter(object):
 
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
             state = j.get("state", "sale")
-            if state == "draft":
+            if state in ("draft", "sent"):
                 # status = "inquiry"  # Inquiries don't reserve capacity and materials
                 status = "quote"  # Quotes do reserve capacity and materials
                 qty = self.convert_qty_uom(
@@ -1201,7 +1201,7 @@ class exporter(object):
                         i["product_uom"][0],
                         self.product_product[i["product_id"][0]]["template"],
                     )
-            elif state in ("done", "sent"):
+            elif state in "done":
                 status = "closed"
                 qty = self.convert_qty_uom(
                     i["product_uom_qty"],
