@@ -25,7 +25,7 @@ from werkzeug.wrappers import Response
 
 from odoo.addons.web.controllers.main import db_monodb, ensure_db
 
-from odoo.addons.frepple.controllers.outbound import exporter
+from odoo.addons.frepple.controllers.outbound import exporter, Odoo_generator
 from odoo.addons.frepple.controllers.inbound import importer
 
 try:
@@ -91,6 +91,7 @@ class XMLController(odoo.http.Controller):
             # Generate data
             try:
                 xp = exporter(
+                    Odoo_generator(req.env),
                     req,
                     uid=uid,
                     database=database,
