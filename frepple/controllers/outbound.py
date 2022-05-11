@@ -1361,7 +1361,7 @@ class exporter(object):
                 qty,
                 due,
                 priority,
-                j["picking_policy"] == "one" and qty or 1.0,
+                j["picking_policy"] == "one" and qty or 0.0,
                 status,
                 quoteattr(product["name"]),
                 quoteattr(customer),
