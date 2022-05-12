@@ -43,6 +43,11 @@ class Odoo_generator:
             context=t,
         )
 
+    def callMethod(self, model, id, method, args=[]):
+        for obj in self.env[model].browse(id):
+            return getattr(obj, method)(*args)
+        return None
+
     def getData(self, model, search=[], order=None, fields=[], ids=None):
         if ids:
             return self.env[model].browse(ids).read(fields)
@@ -1610,14 +1615,14 @@ class exporter(object):
         yield "<buffers>\n"
         if isinstance(self.generator, Odoo_generator):
             # SQL query gives much better performance
-            self.env.cr.execute(
+            self.generator.env.cr.execute(
                 "SELECT product_id, location_id, sum(quantity) "
                 "FROM stock_quant "
                 "WHERE quantity > 0 "
                 "GROUP BY product_id, location_id "
                 "ORDER BY location_id ASC"
             )
-            data = self.env.cr.fetchall()
+            data = self.generator.env.cr.fetchall()
         else:
             data = [
                 (i["product_id"][0], i["location_id"][0], i["quantity"])
