@@ -542,6 +542,8 @@ class exporter(object):
             wh = self.generator.callMethod(
                 "stock.location", loc["id"], "get_warehouse", []
             )
+            if hasattr(wh, "id"):
+                wh = wh.id
             if wh in self.warehouses:
                 self.map_locations[loc["id"]] = self.warehouses[wh]
 
