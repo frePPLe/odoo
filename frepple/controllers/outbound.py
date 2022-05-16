@@ -58,6 +58,9 @@ class Odoo_generator:
 
 
 class XMLRPC_generator:
+
+    pagesize = 5000
+
     def __init__(self, url, db, username, password):
         self.db = db
         self.password = password
@@ -82,29 +85,48 @@ class XMLRPC_generator:
             self.db, self.uid, self.password, model, method, [id], []
         )
 
-    def getData(self, model, search=None, order=None, fields=[], ids=None):
-        if not ids:
-            ids = self.env.execute_kw(
-                self.db,
-                self.uid,
-                self.password,
-                model,
-                "search",
-                [search] if search else [[]],
-                {"order": order, "context": self.context}
-                if order
-                else {"context": self.context},
-            )
+    def getData(self, model, search=None, order="id asc", fields=[], ids=[]):
         if ids:
-            return self.env.execute_kw(
-                self.db,
-                self.uid,
-                self.password,
-                model,
-                "read",
-                [ids],
-                {"fields": fields, "context": self.context},
-            )
+            page_ids = [ids]
+        else:
+            page_ids = []
+            offset = 0
+            msg = {
+                "limit": self.pagesize,
+                "offset": offset,
+                "context": self.context,
+                "order": order,
+            }
+            while True:
+                extra_ids = self.env.execute_kw(
+                    self.db,
+                    self.uid,
+                    self.password,
+                    model,
+                    "search",
+                    [search] if search else [[]],
+                    msg,
+                )
+                if not extra_ids:
+                    break
+                page_ids.append(extra_ids)
+                offset += self.pagesize
+                msg["offset"] = offset
+        if page_ids and page_ids != [[]]:
+            data = []
+            for page in page_ids:
+                data.extend(
+                    self.env.execute_kw(
+                        self.db,
+                        self.uid,
+                        self.password,
+                        model,
+                        "read",
+                        [page],
+                        {"fields": fields, "context": self.context},
+                    )
+                )
+            return data
         else:
             return []
 
