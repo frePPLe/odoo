@@ -888,34 +888,14 @@ class exporter(object):
                 exists = False
                 if not self.manage_work_orders:
                     for r in mrp_routing_workcenters[i["bom_id"][0]]:
-                        if r[0] == i["workcenter_id"][1]:
-                            r[1] += i["time_cycle"]
+                        if r["workcenter_id"][1] == i["workcenter_id"][1]:
+                            r["time_cycle"] += i["time_cycle"]
                             exists = True
                             break
                 if not exists:
-                    mrp_routing_workcenters[i["bom_id"][0]].append(
-                        [
-                            i["workcenter_id"][1],
-                            i["time_cycle"],
-                            i["sequence"],
-                            i["name"],
-                            i["skill"][1] if i["skill"] else None,
-                            i["search_mode"],
-                            i["id"],
-                        ]
-                    )
+                    mrp_routing_workcenters[i["bom_id"][0]].append(i)
             else:
-                mrp_routing_workcenters[i["bom_id"][0]] = [
-                    [
-                        i["workcenter_id"][1],
-                        i["time_cycle"],
-                        i["sequence"],
-                        i["name"],
-                        i["skill"][1] if i["skill"] else None,
-                        i["search_mode"],
-                        i["id"],
-                    ]
-                ]
+                mrp_routing_workcenters[i["bom_id"][0]] = [i]
 
         # Loop over all bom records
         for i in self.generator.getData(
@@ -1093,10 +1073,12 @@ class exporter(object):
                                 exists = True
                                 yield "<loads>\n"
                             yield '<load quantity="%f" search=%s><resource name=%s/>%s</load>\n' % (
-                                j[1],
-                                quoteattr(j[5]),
-                                quoteattr(j[0]),
-                                ("<skill name=%s/>" % quoteattr(j[4])) if j[4] else "",
+                                j["time_cycle"],
+                                quoteattr(j["search_mode"]),
+                                quoteattr(j["workcenter_id"][1]),
+                                ("<skill name=%s/>" % quoteattr(j["skill"][1]))
+                                if j["skill"]
+                                else "",
                             )
                         if exists:
                             yield "</loads>\n"
@@ -1146,7 +1128,7 @@ class exporter(object):
                     counter = 0
                     for step in steplist:
                         counter = counter + 1
-                        suboperation = step[3]
+                        suboperation = step["name"]
                         name = "%s - %s - %s" % (operation, suboperation, counter * 100)
                         if len(name) > 300:
                             suffix = " - %s - %s" % (
@@ -1160,19 +1142,19 @@ class exporter(object):
                         yield "<suboperation>" '<operation name=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load></loads>\n' % (
                             quoteattr(name),
                             counter * 10,
-                            self.convert_float_time(step[1] / 1440.0)
-                            if step[1] and step[1] > 0
+                            self.convert_float_time(step["time_cycle"] / 1440.0)
+                            if step["time_cycle"] and step["time_cycle"] > 0
                             else "P0D",
                             quoteattr(location),
                             1,
-                            quoteattr(step[5]),
-                            quoteattr(step[0]),
-                            ("<skill name=%s/>" % quoteattr(step[4]))
-                            if step[4]
+                            quoteattr(step["search_mode"]),
+                            quoteattr(step["workcenter_id"][1]),
+                            ("<skill name=%s/>" % quoteattr(step["skill"][1]))
+                            if step["skill"]
                             else "",
                         )
                         first_flow = True
-                        if step == steplist[-1]:
+                        if counter == len(steplist):
                             # Add producing flows on the last routing step
                             first_flow = False
                             yield '<flows>\n<flow xsi:type="flow_end" quantity="%f"><item name=%s/></flow>\n' % (
@@ -1194,7 +1176,10 @@ class exporter(object):
                             )
                         for j in fl.values():
                             if j["qty"] > 0 and (
-                                (j["operation_id"] and j["operation_id"][0] == step[6])
+                                (
+                                    j["operation_id"]
+                                    and j["operation_id"][0] == step["id"]
+                                )
                                 or (not j["operation_id"] and step == steplist[0])
                             ):
                                 if first_flow:
