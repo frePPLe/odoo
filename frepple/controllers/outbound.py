@@ -505,10 +505,16 @@ class exporter(object):
             "standard_price",
             "categ_id",
         ]
-        recs = m.search([("type", "!=", "service")])
         self.product_templates = {}
-        for i in recs.read(fields):
-            self.product_templates[i["id"]] = i
+        offset = 0
+        pagesize = 1000
+        while True:
+            recs = m.search([("type", "!=", "service")], limit=pagesize, offset=offset)
+            if not recs:
+                break
+            for i in recs.read(fields):
+                self.product_templates[i["id"]] = i
+            offset += pagesize
 
         # Read the stock location routes
         rts = self.env["stock.location.route"]
