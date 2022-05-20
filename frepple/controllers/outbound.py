@@ -351,11 +351,11 @@ class exporter(object):
             )
             return qty * self.uom[uom_id]["factor"]
 
-    def convert_float_time(self, float_time):
+    def convert_float_time(self, float_time, units="days"):
         """
         Convert Odoo float time to ISO 8601 duration.
         """
-        d = timedelta(days=float_time)
+        d = timedelta(**{units: float_time})
         return "P%dDT%dH%dM%dS" % (
             d.days,  # duration: days
             int(d.seconds / 3600),  # duration: hours
@@ -1509,7 +1509,7 @@ class exporter(object):
                     if i["product_id"][0] in self.product_product
                     else None
                 )
-                if not item:
+                if not item or not location:
                     continue
                 operation = u"%s @ %s %d" % (
                     item["name"],
@@ -1520,10 +1520,9 @@ class exporter(object):
                     startdate = self.formatDateTime(
                         i["date_start"] if i["date_start"] else i["date_planned_start"]
                     )
-
                 except Exception:
                     continue
-                if not location or operation not in self.operations:
+                if operation not in self.operations:
                     continue
                 factor = (
                     self.bom_producedQty[(operation, item["name"])]
