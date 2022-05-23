@@ -1129,11 +1129,11 @@ class exporter(object):
                     for step in steplist:
                         counter = counter + 1
                         suboperation = step["name"]
-                        name = "%s - %s - %s" % (operation, suboperation, counter * 100)
+                        name = "%s - %s - %03d" % (operation, suboperation, counter)
                         if len(name) > 300:
-                            suffix = " - %s - %s" % (
+                            suffix = " - %s - %03d" % (
                                 suboperation,
-                                counter * 100,
+                                counter,
                             )
                             name = "%s%s" % (
                                 operation[: 300 - len(suffix)],
@@ -1163,13 +1163,7 @@ class exporter(object):
                                 * uom_factor,
                                 quoteattr(product_buf["name"]),
                             )
-                            self.bom_producedQty[
-                                (
-                                    "%s - %s - %s"
-                                    % (operation, suboperation, (counter * 100)),
-                                    product_buf["name"],
-                                )
-                            ] = (
+                            self.bom_producedQty[(name, product_buf["name"],)] = (
                                 i["product_qty"]
                                 * getattr(i, "product_efficiency", 1.0)
                                 * uom_factor
