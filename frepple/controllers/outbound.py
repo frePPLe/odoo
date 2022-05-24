@@ -615,6 +615,8 @@ class exporter(object):
             "mrp.workcenter.skill",
             fields=["workcenter", "skill", "priority"],
         ):
+            if not i["workcenter"] or i["workcenter"][0] not in self.map_workcenters:
+                continue
             if first:
                 yield "<!-- resourceskills -->\n"
                 yield "<skills>\n"
@@ -623,7 +625,7 @@ class exporter(object):
             yield "<resourceskills>"
             yield '<resourceskill priority="%d"><resource name=%s/></resourceskill>' % (
                 i["priority"],
-                quoteattr(i["workcenter"][1]),
+                quoteattr(self.map_workcenters[i["workcenter"][0]]),
             )
             yield "</resourceskills>"
             yield "</skill>"
@@ -1069,13 +1071,18 @@ class exporter(object):
                     if i["id"] and not subcontractor:
                         exists = False
                         for j in mrp_routing_workcenters.get(i["id"], []):
+                            if (
+                                not j["workcenter_id"]
+                                or j["workcenter_id"][0] not in self.map_workcenters
+                            ):
+                                continue
                             if not exists:
                                 exists = True
                                 yield "<loads>\n"
                             yield '<load quantity="%f" search=%s><resource name=%s/>%s</load>\n' % (
                                 j["time_cycle"],
                                 quoteattr(j["search_mode"]),
-                                quoteattr(j["workcenter_id"][1]),
+                                quoteattr(self.map_workcenters[j["workcenter_id"][0]]),
                                 ("<skill name=%s/>" % quoteattr(j["skill"][1]))
                                 if j["skill"]
                                 else "",
@@ -1139,6 +1146,11 @@ class exporter(object):
                                 operation[: 300 - len(suffix)],
                                 suffix,
                             )
+                        if (
+                            not step["workcenter_id"]
+                            or step["workcenter_id"][0] not in self.map_workcenters
+                        ):
+                            continue
                         yield "<suboperation>" '<operation name=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load></loads>\n' % (
                             quoteattr(name),
                             counter * 10,
@@ -1148,7 +1160,7 @@ class exporter(object):
                             quoteattr(location),
                             1,
                             quoteattr(step["search_mode"]),
-                            quoteattr(step["workcenter_id"][1]),
+                            quoteattr(self.map_workcenters[step["workcenter_id"][0]]),
                             ("<skill name=%s/>" % quoteattr(step["skill"][1]))
                             if step["skill"]
                             else "",
