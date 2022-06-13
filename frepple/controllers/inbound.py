@@ -46,6 +46,7 @@ class importer(object):
         proc_orderline = self.env["purchase.order.line"]
         mfg_order = self.env["mrp.production"]
         if self.mode == 1:
+        mfg_workorder = self.env["mrp.workorder"]
             # Cancel previous draft purchase quotations
             m = self.env["purchase.order"]
             recs = m.search([("state", "=", "draft"), ("origin", "=", "frePPLe")])
@@ -81,6 +82,9 @@ class importer(object):
         # into one PO with sum of quantities and min date
         product_supplier_dict = {}
 
+        # Mapping between frepple-generated MO reference and their odoo id.
+        mo_references = {}
+
         for event, elem in iterparse(self.datafile, events=("start", "end")):
             if event == "end" and elem.tag == "operationplan":
                 uom_id, item_id = elem.get("item_id").split(",")
@@ -107,7 +111,6 @@ class importer(object):
                         quantity = elem.get("quantity")
                         date_planned = elem.get("end")
                         if (item_id, supplier_id) not in product_supplier_dict:
-                            price_unit = 0
                             product = self.env["product.product"].browse(int(item_id))
                             product_supplierinfo = self.env[
                                 "product.supplierinfo"
@@ -126,6 +129,8 @@ class importer(object):
                             )
                             if product_supplierinfo:
                                 price_unit = product_supplierinfo.price
+                            else:
+                                price_unit = 0
                             po_line = proc_orderline.create(
                                 {
                                     "order_id": supplier_reference[supplier_id],
@@ -148,7 +153,37 @@ class importer(object):
                             po_line.product_qty = po_line.product_qty + float(quantity)
                         countproc += 1
                     # TODO Create a distribution order
-                    # elif ????:
+                    # elif ordertype == "WO":
+                    #      create stock transfer
+                    elif ordertype == "WO":
+                        # Update a workorder
+                        if elem.get("owner") in mo_references:
+                            # Newly created MO
+                            mo = mo_references[elem.get("owner")]
+                        else:
+                            # Existing MO
+                            mo = mfg_order.search([("name", "=", elem.get("owner"))])
+                        if mo:
+                            wo = mfg_workorder.search(
+                                [
+                                    (
+                                        "production_id",
+                                        "=",
+                                        mo.id,
+                                    ),
+                                    (
+                                        "operation_id",
+                                        "=",
+                                        int(elem.get("operation").rsplit(" ", 1)[1]),
+                                    ),
+                                ]
+                            )
+                            wo.write(
+                                {
+                                    "date_planned_start": elem.get("start"),
+                                    "date_planned_finished": elem.get("end"),
+                                }
+                            )
                     else:
                         # Create manufacturing order
                         mo = mfg_order.create(
@@ -168,6 +203,9 @@ class importer(object):
                                 "origin": "frePPLe",
                             }
                         )
+                        # Remember odoo name for the MO reference passed by frepple.
+                        # This mapping is later used when importing WO.
+                        mo_references[elem.get("reference")] = mo
                         mo._onchange_workorder_ids()
                         mo._onchange_move_raw()
                         mo._create_update_move_finished()
