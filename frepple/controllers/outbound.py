@@ -1136,11 +1136,11 @@ class exporter(object):
                     for step in steplist:
                         counter = counter + 1
                         suboperation = step["name"]
-                        name = "%s - %s - %03d" % (operation, suboperation, counter)
+                        name = "%s - %s - %s" % (operation, suboperation, step["id"])
                         if len(name) > 300:
-                            suffix = " - %s - %03d" % (
+                            suffix = " - %s - %s" % (
                                 suboperation,
-                                counter,
+                                step["id"],
                             )
                             name = "%s%s" % (
                                 operation[: 300 - len(suffix)],
