@@ -6,6 +6,6 @@ _logger = logging.getLogger(__name__)
 
 
 class StockMoveLine(models.Model):
-    _inherit = 'stock.move.line'
+    _inherit = "stock.move.line"
 
-    frepple_reference = fields.Char('Reference (frePPLe)')
+    frepple_reference = fields.Char("Reference (frePPLe)")

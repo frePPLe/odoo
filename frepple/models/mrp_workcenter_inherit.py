@@ -22,8 +22,8 @@ from odoo import api, models, fields, exceptions
 
 _logger = logging.getLogger(__name__)
 
-    
+
 class WorkcenterInherit(models.Model):
     _inherit = "mrp.workcenter"
-    
+
     owner = fields.Many2one("mrp.workcenter", "Owner", required=False)

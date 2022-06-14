@@ -23,10 +23,9 @@ from odoo import api, models, fields, exceptions
 _logger = logging.getLogger(__name__)
 
 
-
 class WorkcenterSkill(models.Model):
     _name = "mrp.workcenter.skill"
-    _description="List of workcenter skill associations"
+    _description = "List of workcenter skill associations"
 
     workcenter = fields.Many2one("mrp.workcenter", "Work Center", required=True)
     skill = fields.Many2one("mrp.skill", "Skill", required=True)

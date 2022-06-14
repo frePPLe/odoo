@@ -22,17 +22,20 @@ from odoo import api, models, fields, exceptions
 
 _logger = logging.getLogger(__name__)
 
-    
+
 class RoutingWorkcenterInherit(models.Model):
     _inherit = "mrp.routing.workcenter"
-    
+
     skill = fields.Many2one("mrp.skill", "Skill", required=False)
-    search_mode = fields.Selection([("PRIORITY","priority"), 
-                                    ("MINCOST","minimum cost"), 
-                                    ("MINPENALTY","minimum penalty"), 
-                                    ("MINCOSTPENALTY","minimum cost plus penalty")], 
-                                    string = "Search Mode", 
-                                    required=False, 
-                                    default = "PRIORITY")
+    search_mode = fields.Selection(
+        [
+            ("PRIORITY", "priority"),
+            ("MINCOST", "minimum cost"),
+            ("MINPENALTY", "minimum penalty"),
+            ("MINCOSTPENALTY", "minimum cost plus penalty"),
+        ],
+        string="Search Mode",
+        required=False,
+        default="PRIORITY",
+    )
     priority = fields.Integer("priority", default=1)
-    

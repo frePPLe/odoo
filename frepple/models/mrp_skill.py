@@ -23,10 +23,9 @@ from odoo import api, models, fields, exceptions
 _logger = logging.getLogger(__name__)
 
 
-
 class Skill(models.Model):
     _name = "mrp.skill"
-    _description="List of skills that workcenters can have"
+    _description = "List of skills that workcenters can have"
 
-    name = fields.Char("name", required = True)
-    description = fields.Char("description", required = False)
+    name = fields.Char("name", required=True)
+    description = fields.Char("description", required=False)

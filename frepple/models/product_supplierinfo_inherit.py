@@ -22,8 +22,13 @@ from odoo import api, models, fields, exceptions
 
 _logger = logging.getLogger(__name__)
 
-    
+
 class Product_SupplierInfo_Inherit(models.Model):
     _inherit = "product.supplierinfo"
-    
-    batching_window = fields.Integer('Batching window', default=7, help='Number of days to group proposed purchase into a single one.', required=False)
+
+    batching_window = fields.Integer(
+        "Batching window",
+        default=7,
+        help="Number of days to group proposed purchase into a single one.",
+        required=False,
+    )
