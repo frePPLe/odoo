@@ -45,8 +45,8 @@ class importer(object):
         proc_order = self.env["purchase.order"]
         proc_orderline = self.env["purchase.order.line"]
         mfg_order = self.env["mrp.production"]
-        if self.mode == 1:
         mfg_workorder = self.env["mrp.workorder"]
+        if self.mode == 1:
             # Cancel previous draft purchase quotations
             m = self.env["purchase.order"]
             recs = m.search([("state", "=", "draft"), ("origin", "=", "frePPLe")])
