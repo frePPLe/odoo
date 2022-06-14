@@ -1,8 +1,4 @@
-import os
-import logging
-from odoo import models, api, fields
-
-_logger = logging.getLogger(__name__)
+from odoo import models, fields
 
 
 class StockMoveLine(models.Model):

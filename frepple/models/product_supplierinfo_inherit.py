@@ -15,12 +15,7 @@
 # You should have received a copy of the GNU Affero General Public
 # License along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import logging
-import time
-
-from odoo import api, models, fields, exceptions
-
-_logger = logging.getLogger(__name__)
+from odoo import models, fields
 
 
 class Product_SupplierInfo_Inherit(models.Model):
