@@ -781,7 +781,9 @@ class exporter(object):
                         else "",
                         tmpl["categ_id"][1],
                     )
-                ),
+                )
+                if tmpl["categ_id"]
+                else "",
                 self.uom_categories[self.uom[tmpl["uom_id"][0]]["category"]],
                 i["id"],
             )
