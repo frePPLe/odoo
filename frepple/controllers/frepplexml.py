@@ -19,7 +19,9 @@
 import base64
 import logging
 import odoo
+import os
 import traceback
+from tempfile import NamedTemporaryFile
 from werkzeug.exceptions import MethodNotAllowed, InternalServerError
 from werkzeug.wrappers import Response
 
@@ -101,10 +103,16 @@ class XMLController(odoo.http.Controller):
                     singlecompany=kwargs.get("singlecompany", "false").lower()
                     == "true",
                 )
-                # TODO Returning an iterator to stream the response back to the client and
-                # to save memory on the server side
+                try:
+                    tmpfile = NamedTemporaryFile(mode="w+t", delete=False)
+                    for i in xp.run():
+                        tmpfile.write(i)
+                    tmpfile.close()
+                    data = open(tmpfile.name).read()
+                finally:
+                    os.unlink(tmpfile.name)
                 return req.make_response(
-                    "".join([i for i in xp.run()]),
+                    data,
                     headers=[
                         ("Content-Type", "application/xml;charset=utf8"),
                         ("Cache-Control", "no-cache, no-store, must-revalidate"),
