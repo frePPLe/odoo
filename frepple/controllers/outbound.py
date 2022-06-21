@@ -375,7 +375,7 @@ class exporter(object):
         Leave times are read from resource.calendar.leaves
 
         resource.calendar.name -> calendar.name (default value is 0)
-        resource.calendar.attendance.date_from -> calendar bucket start date (or 2020-01-01 if unspecified)
+        resource.calendar.attendance.date_from -> calendar bucket start date (or 2000-01-01 if unspecified)
         resource.calendar.attendance.date_to -> calendar bucket end date (or 2030-01-01 if unspecified)
         resource.calendar.attendance.hour_from -> calendar bucket start time
         resource.calendar.attendance.hour_to -> calendar bucket end time
@@ -455,7 +455,7 @@ class exporter(object):
                         else (
                             j["date_from"].strftime("%Y-%m-%dT00:00:00")
                             if j["date_from"]
-                            else "2020-01-01T00:00:00"
+                            else "2000-01-01T00:00:00"
                         ),
                         self.formatDateTime(j["date_to"], cal_tz[i])
                         if not j["attendance"]
