@@ -49,8 +49,8 @@ class Odoo_generator:
         return None
 
     def getData(self, model, search=[], order=None, fields=[], ids=None):
-        if ids:
-            return self.env[model].browse(ids).read(fields)
+        if ids is not None:
+            return self.env[model].browse(ids).read(fields) if ids else []
         if order:
             return self.env[model].search(search, order=order).read(fields)
         else:
