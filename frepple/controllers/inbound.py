@@ -179,12 +179,13 @@ class importer(object):
                                     ),
                                 ]
                             )
-                            wo.write(
-                                {
-                                    "date_planned_start": elem.get("start"),
-                                    "date_planned_finished": elem.get("end"),
-                                }
-                            )
+                            if wo and wo.state == "pending":
+                                wo.write(
+                                    {
+                                        "date_planned_start": elem.get("start"),
+                                        "date_planned_finished": elem.get("end"),
+                                    }
+                                )
                     else:
                         # Create manufacturing order
                         warehouse = int(elem.get("location_id"))
