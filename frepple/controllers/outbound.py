@@ -1496,7 +1496,7 @@ class exporter(object):
         yield "<operationplans>\n"
         for i in self.generator.getData(
             "mrp.production",
-            search=[("state", "in", ["progress", "confirmed"])],
+            search=[("state", "in", ["progress", "confirmed", "to_close"])],
             fields=[
                 "bom_id",
                 "date_start",
