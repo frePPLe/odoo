@@ -46,6 +46,7 @@ class importer(object):
         proc_orderline = self.env["purchase.order.line"]
         mfg_order = self.env["mrp.production"]
         mfg_workorder = self.env["mrp.workorder"]
+        stck_picking_type = self.env["stock.picking.type"]
         if self.mode == 1:
             # Cancel previous draft purchase quotations
             m = self.env["purchase.order"]
@@ -153,7 +154,7 @@ class importer(object):
                             po_line.product_qty = po_line.product_qty + float(quantity)
                         countproc += 1
                     # TODO Create a distribution order
-                    # elif ordertype == "WO":
+                    # elif ordertype == "DO":
                     #      create stock transfer
                     elif ordertype == "WO":
                         # Update a workorder
@@ -186,6 +187,15 @@ class importer(object):
                             )
                     else:
                         # Create manufacturing order
+                        warehouse = int(elem.get("location_id"))
+                        picking = stck_picking_type.search(
+                            [
+                                ("code", "=", "mrp_operation"),
+                                ("company_id", "=", self.company.id),
+                                ("warehouse_id", "=", warehouse),
+                            ],
+                            limit=1,
+                        )
                         mo = mfg_order.create(
                             {
                                 "product_qty": elem.get("quantity"),
@@ -194,8 +204,9 @@ class importer(object):
                                 "product_id": int(item_id),
                                 "company_id": self.company.id,
                                 "product_uom_id": int(uom_id),
-                                "location_src_id": int(elem.get("location_id")),
-                                "location_dest_id": int(elem.get("location_id")),
+                                "picking_type_id": picking.id,
+                                "location_src_id": warehouse,
+                                "location_dest_id": warehouse,
                                 "bom_id": int(elem.get("operation").rsplit(" ", 1)[1]),
                                 "qty_producing": 0.00,
                                 # TODO no place to store the criticality
