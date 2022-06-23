@@ -56,9 +56,9 @@ class ResCompany(models.Model):
         encode_params = dict(
             exp=round(time.time()) + 600, user=self.env.user.login, navbar=navbar
         )
-        webtoken = jwt.encode(
-            encode_params, user_company_webtoken, algorithm="HS256"
-        ).decode("ascii")
+        webtoken = jwt.encode(encode_params, user_company_webtoken, algorithm="HS256")
+        if not isinstance(webtoken, str):
+            webtoken = webtoken.decode("ascii")
         server = self.env.user.company_id.frepple_server
         if not server:
             raise exceptions.UserError("FrePPLe server URL not configured")
