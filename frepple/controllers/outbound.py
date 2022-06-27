@@ -328,7 +328,10 @@ class exporter(object):
         """
         Convert a quantity to the reference uom of the product template.
         """
-
+        try:
+            uom_id = uom_id[0]
+        except Exception as e:
+            pass
         if not uom_id:
             return qty
         if not product_template_id:
@@ -772,7 +775,7 @@ class exporter(object):
                 i["volume"] or 0,
                 i["weight"] or 0,
                 max(0, tmpl["list_price"] or 0)
-                / self.convert_qty_uom(1.0, tmpl["uom_id"][0], i["product_tmpl_id"][0]),
+                / self.convert_qty_uom(1.0, tmpl["uom_id"], i["product_tmpl_id"][0]),
                 quoteattr(
                     "%s%s"
                     % (
@@ -923,7 +926,7 @@ class exporter(object):
                 logger.warning("Skipping %s" % i["product_tmpl_id"][0])
                 continue
             uom_factor = self.convert_qty_uom(
-                1.0, i["product_uom_id"][0], i["product_tmpl_id"][0]
+                1.0, i["product_uom_id"], i["product_tmpl_id"][0]
             )
 
             # Loop over all subcontractors
@@ -992,7 +995,7 @@ class exporter(object):
 
                     convertedQty = self.convert_qty_uom(
                         i["product_qty"],
-                        i["product_uom_id"][0],
+                        i["product_uom_id"],
                         i["product_tmpl_id"][0],
                     )
                     yield '<flows>\n<flow xsi:type="flow_end" quantity="%f"><item name=%s/></flow>\n' % (
@@ -1030,7 +1033,7 @@ class exporter(object):
                         qty = sum(
                             self.convert_qty_uom(
                                 k["product_qty"],
-                                k["product_uom_id"][0],
+                                k["product_uom_id"],
                                 self.product_product[k["product_id"][0]]["template"],
                             )
                             for k in fl[j]
@@ -1062,7 +1065,7 @@ class exporter(object):
                                 else "flow_end",
                                 self.convert_qty_uom(
                                     j["product_qty"],
-                                    j["product_uom"][0],
+                                    j["product_uom"],
                                     j["product_id"][0],
                                 ),
                                 quoteattr(product["name"]),
@@ -1121,7 +1124,7 @@ class exporter(object):
                             continue
                         qty = self.convert_qty_uom(
                             j["product_qty"],
-                            j["product_uom_id"][0],
+                            j["product_uom_id"],
                             self.product_product[j["product_id"][0]]["template"],
                         )
                         if j["product_id"][0] in fl:
@@ -1303,7 +1306,7 @@ class exporter(object):
                 status = "quote"  # Quotes do reserve capacity and materials
                 qty = self.convert_qty_uom(
                     i["product_uom_qty"],
-                    i["product_uom"][0],
+                    i["product_uom"],
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "sale":
@@ -1312,28 +1315,28 @@ class exporter(object):
                     status = "closed"
                     qty = self.convert_qty_uom(
                         i["product_uom_qty"],
-                        i["product_uom"][0],
+                        i["product_uom"],
                         self.product_product[i["product_id"][0]]["template"],
                     )
                 else:
                     status = "open"
                     qty = self.convert_qty_uom(
                         qty,
-                        i["product_uom"][0],
+                        i["product_uom"],
                         self.product_product[i["product_id"][0]]["template"],
                     )
             elif state in "done":
                 status = "closed"
                 qty = self.convert_qty_uom(
                     i["product_uom_qty"],
-                    i["product_uom"][0],
+                    i["product_uom"],
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "cancel":
                 status = "canceled"
                 qty = self.convert_qty_uom(
                     i["product_uom_qty"],
-                    i["product_uom"][0],
+                    i["product_uom"],
                     self.product_product[i["product_id"][0]]["template"],
                 )
             else:
@@ -1464,7 +1467,7 @@ class exporter(object):
                 end = self.formatDateTime(i["date_planned"])
                 qty = self.convert_qty_uom(
                     i["product_qty"] - i["qty_received"],
-                    i["product_uom"][0],
+                    i["product_uom"],
                     self.product_product[i["product_id"][0]]["template"],
                 )
                 yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/>" % (
@@ -1540,7 +1543,7 @@ class exporter(object):
                 qty = (
                     self.convert_qty_uom(
                         i["product_qty"],
-                        i["product_uom_id"][0],
+                        i["product_uom_id"],
                         self.product_product[i["product_id"][0]]["template"],
                     )
                     / factor
@@ -1591,7 +1594,7 @@ class exporter(object):
                 continue
             uom_factor = self.convert_qty_uom(
                 1.0,
-                i["product_uom"][0],
+                i["product_uom"],
                 self.product_product[i["product_id"][0]]["template"],
             )
             name = u"%s @ %s" % (item["name"], i["warehouse_id"][1])
