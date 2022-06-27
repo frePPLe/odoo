@@ -11,5 +11,5 @@ RUN pip3 install --no-cache-dir pyjwt && \
 #    curl -L https://github.com/frePPLe/odoo/archive/14.0.tar.gz | tar -xz --strip-components=1
 
 # Option 2: copy local files into docker image
-COPY frepple /mnt/extra-addons/frepple
 COPY autologin /mnt/extra-addons/autologin
+COPY frepple /mnt/extra-addons/frepple
