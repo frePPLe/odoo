@@ -786,7 +786,7 @@ class exporter(object):
                     )
                 )
                 if tmpl["categ_id"]
-                else "",
+                else '""',
                 self.uom_categories[self.uom[tmpl["uom_id"][0]]["category"]],
                 i["id"],
             )
@@ -941,13 +941,13 @@ class exporter(object):
             for subcontractor in subcontractors:
                 # Build operation. The operation can either be a summary operation or a detailed
                 # routing.
-                operation = u"%s @ %s %d" % (
+                operation = "%s @ %s %d" % (
                     product_buf["name"],
                     subcontractor.get("name", location),
                     i["id"],
                 )
                 if len(operation) > 300:
-                    suffix = u" @ %s %d" % (
+                    suffix = " @ %s %d" % (
                         subcontractor.get("name", location),
                         i["id"],
                     )
@@ -1272,7 +1272,7 @@ class exporter(object):
         yield "<demands>\n"
 
         for i in so_line:
-            name = u"%s %d" % (i["order_id"][1], i["id"])
+            name = "%s %d" % (i["order_id"][1], i["id"])
             batch = i["order_id"][1]
             product = self.product_product.get(i["product_id"][0], None)
             j = so[i["order_id"][0]]
@@ -1522,7 +1522,7 @@ class exporter(object):
                 )
                 if not item or not location:
                     continue
-                operation = u"%s @ %s %d" % (
+                operation = "%s @ %s %d" % (
                     item["name"],
                     location,
                     i["bom_id"][0],
@@ -1597,7 +1597,7 @@ class exporter(object):
                 i["product_uom"],
                 self.product_product[i["product_id"][0]]["template"],
             )
-            name = u"%s @ %s" % (item["name"], i["warehouse_id"][1])
+            name = "%s @ %s" % (item["name"], i["warehouse_id"][1])
             yield "<buffer name=%s><item name=%s/><location name=%s/>\n" '%s%s%s<booleanproperty name="ip_flag" value="true"/>\n' '<stringproperty name="roq_type" value="quantity"/>\n<stringproperty name="ss_type" value="quantity"/>\n' "</buffer>\n" % (
                 quoteattr(name),
                 quoteattr(item["name"]),
