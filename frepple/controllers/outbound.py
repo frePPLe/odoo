@@ -537,15 +537,11 @@ class exporter(object):
         for loc in self.generator.getData(
             "stock.location",
             search=[("usage", "=", "internal")],
-            fields=["id"],
+            fields=["id", "warehouse_id"],
         ):
-            wh = self.generator.callMethod(
-                "stock.location", loc["id"], "get_warehouse", []
-            )
-            if hasattr(wh, "id"):
-                wh = wh.id
-            if wh in self.warehouses:
-                self.map_locations[loc["id"]] = self.warehouses[wh]
+            
+            if loc["warehouse_id"] in self.warehouses:
+                self.map_locations[loc["id"]] = self.warehouses[loc["warehouse_id"]]
 
     def export_customers(self):
         """
