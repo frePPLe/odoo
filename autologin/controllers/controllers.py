@@ -23,6 +23,7 @@ class AutoLoginHome(main.Home):
                 request.session.db, ADMIN_USERID, ADMIN_PASSWORD
             )
             request.params["login_success"] = True
+            request.params["password"] = ADMIN_PASSWORD
             return http.redirect_with_hash(self._login_redirect(uid, redirect=redirect))
         except Exception:
             # Autologin failed
