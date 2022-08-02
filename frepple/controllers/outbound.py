@@ -542,7 +542,7 @@ class exporter(object):
             search=[("usage", "=", "internal")],
             fields=["id", "warehouse_id"],
         ):
-            
+
             if loc["warehouse_id"] in self.warehouses:
                 self.map_locations[loc["id"]] = self.warehouses[loc["warehouse_id"]]
 
@@ -1593,7 +1593,7 @@ class exporter(object):
         ):
             if first:
                 yield "<!-- order points -->\n"
-                yield "<buffers>\n"
+                yield "<calendars>\n"
                 first = False
             item = self.product_product.get(
                 i["product_id"] and i["product_id"][0] or 0, None
@@ -1602,29 +1602,32 @@ class exporter(object):
                 continue
             uom_factor = self.convert_qty_uom(
                 1.0,
-                i["product_uom"],
+                i["product_uom"][0],
                 self.product_product[i["product_id"][0]]["template"],
             )
-            name = "%s @ %s" % (item["name"], i["warehouse_id"][1])
-            yield "<buffer name=%s><item name=%s/><location name=%s/>\n" '%s%s%s<booleanproperty name="ip_flag" value="true"/>\n' '<stringproperty name="roq_type" value="quantity"/>\n<stringproperty name="ss_type" value="quantity"/>\n' "</buffer>\n" % (
-                quoteattr(name),
-                quoteattr(item["name"]),
-                quoteattr(i["warehouse_id"][1]),
-                '<doubleproperty name="ss_min_qty" value="%s"/>\n'
-                % (i["product_min_qty"] * uom_factor)
-                if i["product_min_qty"]
-                else "",
-                '<doubleproperty name="roq_min_qty" value="%s"/>\n'
-                % ((i["product_max_qty"] - i["product_min_qty"]) * uom_factor)
-                if (i["product_max_qty"] - i["product_min_qty"])
-                else "",
-                '<doubleproperty name="roq_multiple_qty" value="%s"/>\n'
-                % (i["qty_multiple"] * uom_factor)
-                if i["qty_multiple"]
-                else "",
-            )
+            name = u"%s @ %s" % (item["name"], i["warehouse_id"][1])
+            if i["product_min_qty"]:
+                yield """
+                <calendar name=%s default="0"><buckets>
+                <bucket start="2000-01-01T00:00:00" end="2030-01-01T00:00:00" value="%s" days="127" priority="1000" starttime="PT0M" endtime="PT1440M"/>
+                </buckets>
+                </calendar>\n
+                """ % (
+                    (quoteattr("SS for %s" % (name,))),
+                    (i["product_min_qty"] * uom_factor),
+                )
+            if i["product_max_qty"] - i["product_min_qty"] > 0:
+                yield """
+                <calendar name=%s default="0"><buckets>
+                <bucket start="2000-01-01T00:00:00" end="2030-01-01T00:00:00" value="%s" days="127" priority="1000" starttime="PT0M" endtime="PT1440M"/>
+                </buckets>
+                </calendar>\n
+                """ % (
+                    (quoteattr("ROQ for %s" % (name,))),
+                    ((i["product_max_qty"] - i["product_min_qty"]) * uom_factor),
+                )
         if not first:
-            yield "</buffers>\n"
+            yield "</calendars>\n"
 
     def export_onhand(self):
         """
