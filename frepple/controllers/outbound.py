@@ -584,14 +584,14 @@ class exporter(object):
                             1.0, tmpl["uom_id"][0], i["product_tmpl_id"][0]
                         ),
                         quoteattr(
-                        "%s%s"
-                        % (
-                            ("%s/" % self.category_parent(tmpl["categ_id"][1]))
-                            if tmpl["categ_id"][1] in self.category_parent
-                            else "",
-                            tmpl["categ_id"][1],
-                        )
-                    ),
+                            "%s%s"
+                            % (
+                                ("%s/" % self.category_parent(tmpl["categ_id"][1]))
+                                if tmpl["categ_id"][1] in self.category_parent
+                                else "",
+                                tmpl["categ_id"][1],
+                            )
+                        ),
                         self.uom_categories[self.uom[tmpl["uom_id"][0]]["category"]],
                         i["id"],
                     )
@@ -867,7 +867,11 @@ class exporter(object):
                         )
                         self.bom_producedQty[
                             ("%s - %s" % (operation, step[2]), product_buf["name"])
-                        ] = (i["product_qty"] * getattr(i, "product_efficiency", 1.0) * uom_factor)
+                        ] = (
+                            i["product_qty"]
+                            * getattr(i, "product_efficiency", 1.0)
+                            * uom_factor
+                        )
                         # Add byproduct flows
                         if i.get("sub_products", None):
                             for j in subproduct_model.browse(i["sub_products"]).read(
@@ -1249,7 +1253,6 @@ class exporter(object):
                 )
         yield "</operationplans>\n"
 
-
     def export_orderpoints(self):
         """
         Defining order points for frePPLe, based on the stock.warehouse.orderpoint
@@ -1263,6 +1266,7 @@ class exporter(object):
         convert stock.warehouse.orderpoint.product_max_qty -> buffer.maxinventory
         convert stock.warehouse.orderpoint.qty_multiple -> buffer->size_multiple
         """
+
         m = self.env["stock.warehouse.orderpoint"]
         recs = m.search([])
         fields = [
@@ -1275,7 +1279,7 @@ class exporter(object):
         ]
         if recs:
             yield "<!-- order points -->\n"
-            yield "<buffers>\n"
+            yield "<calendars>\n"
             for i in recs.read(fields):
                 item = self.product_product.get(
                     i["product_id"] and i["product_id"][0] or 0, None
@@ -1288,24 +1292,27 @@ class exporter(object):
                     self.product_product[i["product_id"][0]]["template"],
                 )
                 name = u"%s @ %s" % (item["name"], i["warehouse_id"][1])
-                yield "<buffer name=%s><item name=%s/><location name=%s/>\n" '%s%s%s<booleanproperty name="ip_flag" value="true"/>\n' '<stringproperty name="roq_type" value="quantity"/>\n<stringproperty name="ss_type" value="quantity"/>\n' "</buffer>\n" % (
-                    quoteattr(name),
-                    quoteattr(item["name"]),
-                    quoteattr(i["warehouse_id"][1]),
-                    '<doubleproperty name="ss_min_qty" value="%s"/>\n'
-                    % (i["product_min_qty"] * uom_factor)
-                    if i["product_min_qty"]
-                    else "",
-                    '<doubleproperty name="roq_min_qty" value="%s"/>\n'
-                    % ((i["product_max_qty"] - i["product_min_qty"]) * uom_factor)
-                    if (i["product_max_qty"] - i["product_min_qty"])
-                    else "",
-                    '<doubleproperty name="roq_multiple_qty" value="%s"/>\n'
-                    % (i["qty_multiple"] * uom_factor)
-                    if i["qty_multiple"]
-                    else "",
-                )
-            yield "</buffers>\n"
+                if i["product_min_qty"]:
+                    yield """
+                    <calendar name=%s default="0"><buckets>
+                    <bucket start="2000-01-01T00:00:00" end="2030-01-01T00:00:00" value="%s" days="127" priority="1000" starttime="PT0M" endtime="PT1440M"/>
+                    </buckets>
+                    </calendar>\n
+                    """ % (
+                        (quoteattr("SS for %s" % (name,))),
+                        (i["product_min_qty"] * uom_factor),
+                    )
+                if i["product_max_qty"] - i["product_min_qty"] > 0:
+                    yield """
+                    <calendar name=%s default="0"><buckets>
+                    <bucket start="2000-01-01T00:00:00" end="2030-01-01T00:00:00" value="%s" days="127" priority="1000" starttime="PT0M" endtime="PT1440M"/>
+                    </buckets>
+                    </calendar>\n
+                    """ % (
+                        (quoteattr("ROQ for %s" % (name,))),
+                        ((i["product_max_qty"] - i["product_min_qty"]) * uom_factor),
+                    )
+            yield "</calendars>\n"
 
     def export_onhand(self):
         """
