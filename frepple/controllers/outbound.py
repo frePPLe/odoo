@@ -1613,7 +1613,7 @@ class exporter(object):
             if i["product_min_qty"]:
                 yield """
                 <calendar name=%s default="0"><buckets>
-                <bucket start="2000-01-01T00:00:00" end="2030-01-01T00:00:00" value="%s" days="127" priority="1000" starttime="PT0M" endtime="PT1440M"/>
+                <bucket start="2000-01-01T00:00:00" end="2030-01-01T00:00:00" value="%s" days="127" priority="998" starttime="PT0M" endtime="PT1440M"/>
                 </buckets>
                 </calendar>\n
                 """ % (
@@ -1623,7 +1623,7 @@ class exporter(object):
             if i["product_max_qty"] - i["product_min_qty"] > 0:
                 yield """
                 <calendar name=%s default="0"><buckets>
-                <bucket start="2000-01-01T00:00:00" end="2030-01-01T00:00:00" value="%s" days="127" priority="1000" starttime="PT0M" endtime="PT1440M"/>
+                <bucket start="2000-01-01T00:00:00" end="2030-01-01T00:00:00" value="%s" days="127" priority="998" starttime="PT0M" endtime="PT1440M"/>
                 </buckets>
                 </calendar>\n
                 """ % (
