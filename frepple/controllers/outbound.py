@@ -419,7 +419,7 @@ class exporter(object):
                     "calendar_id",
                 ],
             ):
-                if i["calendar_id"][0] in cal_ids:
+                if i["calendar_id"] and i["calendar_id"][0] in cal_ids:
                     if i["calendar_id"][1] not in calendars:
                         calendars[i["calendar_id"][1]] = []
                     i["attendance"] = True
@@ -435,7 +435,7 @@ class exporter(object):
                     "calendar_id",
                 ],
             ):
-                if i["calendar_id"][0] in cal_ids:
+                if i["calendar_id"] and i["calendar_id"][0] in cal_ids:
                     if i["calendar_id"][1] not in calendars:
                         calendars[i["calendar_id"][1]] = []
                     i["attendance"] = False
