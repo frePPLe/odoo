@@ -24,10 +24,9 @@
     "test": [],
     "installable": True,
     "auto_install": True,
-    'assets': {       
-        'web.assets_backend': [
-            '/frepple/static/src/js/frepple.js',           
+    "assets": {
+        "web.assets_backend": [
+            "static/src/js/frepple.js",
         ],
-       
-    }
+    },
 }
