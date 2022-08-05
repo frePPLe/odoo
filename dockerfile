@@ -1,9 +1,11 @@
 FROM odoo:14
 
-USER odoo
+USER root
 
-RUN pip3 install --no-cache-dir pyjwt && \
+RUN pip3 install --no-cache-dir Pyjwt && \
     echo "list_db = False" >> /etc/odoo/odoo.conf
+
+USER odoo
 
 # Option 1: download from github
 # ADD https://api.github.com/repos/frepple/odoo/compare/14.0...HEAD /dev/null
