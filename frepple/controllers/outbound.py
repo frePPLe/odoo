@@ -537,14 +537,26 @@ class exporter(object):
             yield "</locations>\n"
 
         # Populate a mapping location-to-warehouse name for later lookups
-        for loc in self.generator.getData(
-            "stock.location",
-            search=[("usage", "=", "internal")],
-            fields=["id", "warehouse_id"],
-        ):
+        loc_ids = [
+            loc["id"]
+            for loc in self.generator.getData(
+                "stock.location",
+                search=[("usage", "=", "internal")],
+                fields=["id"],
+            )
+        ]
 
-            if loc["warehouse_id"] in self.warehouses:
-                self.map_locations[loc["id"]] = self.warehouses[loc["warehouse_id"]]
+        for loc_object in self.generator.getData(
+            "stock.location",
+            ids=loc_ids,
+        ):
+            if (
+                loc_object.get("warehouse_id", False)
+                and loc_object["warehouse_id"][0] in self.warehouses
+            ):
+                self.map_locations[loc_object["id"]] = self.warehouses[
+                    loc_object["warehouse_id"][0]
+                ]
 
     def export_customers(self):
         """
