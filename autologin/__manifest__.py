@@ -16,10 +16,10 @@ module on an actual production environment.
     "author": "frePPLe",
     "license": "AGPL-3",
     "category": "Uncategorized",
-    "version": "12.0.1",
+    "version": "14.0.0",
     "depends": ["base", "web"],
     "data": [],
     "demo": [],
-    "autoinstall": True,
+    "autoinstall": False,
     "installable": True,
 }
