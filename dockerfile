@@ -15,3 +15,4 @@ USER odoo
 # Option 2: copy local files into docker image
 COPY autologin /mnt/extra-addons/autologin
 COPY frepple /mnt/extra-addons/frepple
+COPY freppledata /mnt/extra-addons/freppledata

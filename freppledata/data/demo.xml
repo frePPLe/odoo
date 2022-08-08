@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--
+        <record id="freppledata_product_product_1" model="product.product">
+            <field name="name">Square table</field>
+            <field name="list_price">1.0</field>
+            <field name="standard_price">1.0</field>
+            <field name="categ_id" ref="product.product_category_1"/>
+        </record>
+        -->
+    </data>
+</odoo>
