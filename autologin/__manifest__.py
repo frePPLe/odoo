@@ -16,7 +16,7 @@ module on an actual production environment.
     "author": "frePPLe",
     "license": "AGPL-3",
     "category": "Uncategorized",
-    "version": "15.0.1",
+    "version": "15.0.0",
     "depends": ["base", "web"],
     "data": [],
     "demo": [],

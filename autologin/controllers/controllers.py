@@ -24,7 +24,7 @@ class AutoLoginHome(main.Home):
             )
             request.params["login_success"] = True
             request.params["password"] = ADMIN_PASSWORD
-            return http.redirect_with_hash(self._login_redirect(uid, redirect=redirect))
+            return request.redirect(self._login_redirect(uid, redirect=redirect))
         except Exception:
             # Autologin failed
             logger.warning("Autologin failed")

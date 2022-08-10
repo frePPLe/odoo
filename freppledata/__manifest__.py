@@ -6,7 +6,7 @@
     "author": "frePPLe",
     "license": "AGPL-3",
     "category": "Uncategorized",
-    "version": "14.0.1",
+    "version": "15.0.0",
     "depends": ["frepple"],
     "data": [
         "data/config.xml",
