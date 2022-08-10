@@ -26,7 +26,7 @@
     "auto_install": False,
     "assets": {
         "web.assets_backend": [
-            "static/src/js/frepple.js",
+            "frepple/static/src/js/frepple.js",
         ],
     },
 }
