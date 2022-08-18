@@ -719,7 +719,7 @@ class exporter(object):
         self.product_templates = {}
         for i in self.generator.getData(
             "product.template",
-            search=[("type", "!=", "service")],
+            search=[("type", "not in", ("service", "consu"))],
             fields=[
                 "purchase_ok",
                 "produce_delay",
