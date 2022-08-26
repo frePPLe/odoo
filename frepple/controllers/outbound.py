@@ -509,7 +509,11 @@ class exporter(object):
         offset = 0
         pagesize = 1000
         while True:
-            recs = m.search([("type", "!=", "service")], limit=pagesize, offset=offset)
+            recs = m.search(
+                [("type", "not in", ("service", "consu"))],
+                limit=pagesize,
+                offset=offset,
+            )
             if not recs:
                 break
             for i in recs.read(fields):
@@ -569,7 +573,9 @@ class exporter(object):
             for i in recs.read(fields):
                 yielded_header = False
                 try:
-                    tmpl = self.product_templates[i["product_tmpl_id"][0]]
+                    tmpl = self.product_templates.get(i["product_tmpl_id"][0], None)
+                    if not tmpl:
+                        continue
                     if i["code"]:
                         name = u"[%s] %s" % (i["code"], i["name"])
                     else:
