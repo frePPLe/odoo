@@ -1392,7 +1392,12 @@ class exporter(object):
             #                             priority, minship,status, quoteattr(product['name']),
             #                             quoteattr(customer), quoteattr(location)
             #                         )
-            yield '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/></demand>\n' % (
+            yield (
+                '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
+                # Enable only in frepple >= 6.25
+                # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
+                "</demand>\n"
+            ) % (
                 quoteattr(name),
                 quoteattr(batch),
                 qty,
@@ -1403,6 +1408,9 @@ class exporter(object):
                 quoteattr(product["name"]),
                 quoteattr(customer),
                 quoteattr(location),
+                # Enable only in frepple >= 6.25
+                # quoteattr(i["order_id"][1]),
+                # "alltogether" if j["picking_policy"] == "one" else "independent",
             )
 
         yield "</demands>\n"
@@ -1516,6 +1524,7 @@ class exporter(object):
                 "bom_id",
                 "date_start",
                 "date_planned_start",
+                "date_planned_finished",
                 "name",
                 "state",
                 "product_qty",
@@ -1539,13 +1548,18 @@ class exporter(object):
                     location,
                     i["bom_id"][0],
                 )
+                if operation not in self.operations:
+                    continue
                 try:
                     startdate = self.formatDateTime(
                         i["date_start"] if i["date_start"] else i["date_planned_start"]
                     )
+                    # enddate = (
+                    #     i["date_planned_finished"]
+                    #     .astimezone(timezone(self.timezone))
+                    #     .strftime(self.timeformat)
+                    # )
                 except Exception:
-                    continue
-                if operation not in self.operations:
                     continue
                 factor = (
                     self.bom_producedQty[(operation, item["name"])]
@@ -1560,6 +1574,7 @@ class exporter(object):
                     )
                     / factor
                 )
+                # Option 1: compute MO end date based on the start date
                 yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><operation name=%s/></operationplan>\n' % (
                     quoteattr(i["name"]),
                     startdate,
@@ -1568,6 +1583,15 @@ class exporter(object):
                     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
                     quoteattr(operation),
                 )
+                # Option 2: compute MO start date based on the end date
+                # yield '<operationplan type="MO" reference=%s end="%s" quantity="%s" status="%s"><operation name=%s/></operationplan>\n' % (
+                #     quoteattr(i["name"]),
+                #     enddate,
+                #     qty,
+                #     # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
+                #     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+                #     quoteattr(operation),
+                # )
         yield "</operationplans>\n"
 
     def export_orderpoints(self):
