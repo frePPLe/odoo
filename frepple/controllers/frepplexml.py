@@ -70,6 +70,7 @@ class XMLController(odoo.http.Controller):
     def xml(self, **kwargs):
         req = odoo.http.request
         language = kwargs.get("language", None)
+        version = kwargs.get("version", None)
         if req.httprequest.method == "GET":
             # Login
             database = kwargs.get("database", None)
@@ -102,6 +103,7 @@ class XMLController(odoo.http.Controller):
                     timezone=kwargs.get("timezone", None),
                     singlecompany=kwargs.get("singlecompany", "false").lower()
                     == "true",
+                    version=version,
                 )
                 try:
                     tmpfile = NamedTemporaryFile(mode="w+t", delete=False)

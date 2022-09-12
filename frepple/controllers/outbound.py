@@ -142,10 +142,12 @@ class exporter(object):
         mode=1,
         timezone=None,
         singlecompany=False,
+        version="0.0.0.unknown",
     ):
         self.database = database
         self.company = company
         self.generator = generator
+        self.version = version
         self.timezone = timezone
         if timezone:
             if timezone not in pytz.all_timezones:
