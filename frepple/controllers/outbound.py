@@ -1679,7 +1679,7 @@ class exporter(object):
                         -qty,
                         quoteattr(item["name"]),
                     )
-            yield "</flowplans></operationplan>\n"
+                yield "</flowplans></operationplan>\n"
         yield "</operationplans>\n"
 
     def export_orderpoints(self):
