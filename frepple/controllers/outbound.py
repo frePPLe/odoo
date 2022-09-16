@@ -1585,6 +1585,7 @@ class exporter(object):
                 "product_uom_id",
                 "location_dest_id",
                 "product_id",
+                "move_raw_ids",
             ],
         ):
             if i["bom_id"]:
@@ -1629,7 +1630,7 @@ class exporter(object):
                     / factor
                 )
                 # Option 1: compute MO end date based on the start date
-                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><operation name=%s/></operationplan>\n' % (
+                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
                     quoteattr(i["name"]),
                     startdate,
                     qty,
@@ -1646,6 +1647,39 @@ class exporter(object):
                 #     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
                 #     quoteattr(operation),
                 # )
+                for mv in self.generator.getData(
+                    "stock.move",
+                    ids=i["move_raw_ids"],
+                    fields=[
+                        "product_id",
+                        "product_qty",
+                        "product_uom",
+                        "has_move_lines",
+                        "date",
+                        "reference",
+                        "move_line_ids",
+                        "workorder_id",
+                        "should_consume_qty",
+                        "reserved_availability",
+                    ],
+                ):
+                    item = (
+                        self.product_product[mv["product_id"][0]]
+                        if mv["product_id"][0] in self.product_product
+                        else None
+                    )
+                    if not item:
+                        continue
+                    qty = self.convert_qty_uom(
+                        mv["product_qty"],
+                        mv["product_uom"],
+                        self.product_product[mv["product_id"][0]]["template"],
+                    )
+                    yield '<flowplan status="confirmed" quantity="%s"><item name=%s/></flowplan>\n' % (
+                        -qty,
+                        quoteattr(item["name"]),
+                    )
+            yield "</flowplans></operationplan>\n"
         yield "</operationplans>\n"
 
     def export_orderpoints(self):
