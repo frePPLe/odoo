@@ -1639,7 +1639,7 @@ class exporter(object):
                     quoteattr(operation),
                 )
                 # Option 2: compute MO start date based on the end date
-                # yield '<operationplan type="MO" reference=%s end="%s" quantity="%s" status="%s"><operation name=%s/></operationplan>\n' % (
+                # yield '<operationplan type="MO" reference=%s end="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
                 #     quoteattr(i["name"]),
                 #     enddate,
                 #     qty,
