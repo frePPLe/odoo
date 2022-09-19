@@ -17,20 +17,25 @@
 #
 
 from odoo import fields, models
+from .. import with_mrp
 
 
 class ResConfigSettings(models.TransientModel):
     _inherit = "res.config.settings"
 
-    manufacturing_warehouse = fields.Many2one(
-        "stock.warehouse",
-        "Manufacturing warehouse",
-        related="company_id.manufacturing_warehouse",
-        readonly=False,
-    )
-    calendar = fields.Many2one(
-        "resource.calendar", "Calendar", related="company_id.calendar", readonly=False
-    )
+    if with_mrp:
+        manufacturing_warehouse = fields.Many2one(
+            "stock.warehouse",
+            "Manufacturing warehouse",
+            related="company_id.manufacturing_warehouse",
+            readonly=False,
+        )
+        calendar = fields.Many2one(
+            "resource.calendar",
+            "Calendar",
+            related="company_id.calendar",
+            readonly=False,
+        )
     webtoken_key = fields.Char(
         "Webtoken key", size=128, related="company_id.webtoken_key", readonly=False
     )
