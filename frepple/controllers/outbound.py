@@ -22,6 +22,7 @@ from xml.sax.saxutils import quoteattr
 from datetime import datetime, timedelta
 from pytz import timezone
 import ssl
+from .. import with_mrp
 
 try:
     import odoo
@@ -211,10 +212,11 @@ class exporter(object):
         # If multiple types of an entity exists (eg operation_time_per,
         # operation_alternate, operation_alternate, etc) the reference would
         # automatically create an object, potentially of the wrong type.
-        logger.debug("Exporting calendars.")
-        if self.mode == 1:
-            for i in self.export_calendar():
-                yield i
+        if with_mrp:
+            logger.debug("Exporting calendars.")
+            if self.mode == 1:
+                for i in self.export_calendar():
+                    yield i
         logger.debug("Exporting locations.")
         for i in self.export_locations():
             yield i
@@ -225,19 +227,21 @@ class exporter(object):
             logger.debug("Exporting suppliers.")
             for i in self.export_suppliers():
                 yield i
-            logger.debug("Exporting skills.")
-            for i in self.export_skills():
-                yield i
-            logger.debug("Exporting workcenters.")
-            for i in self.export_workcenters():
-                yield i
+            if with_mrp:
+                logger.debug("Exporting skills.")
+                for i in self.export_skills():
+                    yield i
+                logger.debug("Exporting workcenters.")
+                for i in self.export_workcenters():
+                    yield i
         logger.debug("Exporting products.")
         for i in self.export_items():
             yield i
-        logger.debug("Exporting BOMs.")
-        if self.mode == 1:
-            for i in self.export_boms():
-                yield i
+        if with_mrp:
+            logger.debug("Exporting BOMs.")
+            if self.mode == 1:
+                for i in self.export_boms():
+                    yield i
         logger.debug("Exporting sales orders.")
         for i in self.export_salesorders():
             yield i
@@ -245,9 +249,10 @@ class exporter(object):
             logger.debug("Exporting purchase orders.")
             for i in self.export_purchaseorders():
                 yield i
-            logger.debug("Exporting manufacturing orders.")
-            for i in self.export_manufacturingorders():
-                yield i
+            if with_mrp:
+                logger.debug("Exporting manufacturing orders.")
+                for i in self.export_manufacturingorders():
+                    yield i
             logger.debug("Exporting reordering rules.")
             for i in self.export_orderpoints():
                 yield i
@@ -277,12 +282,16 @@ class exporter(object):
             )  # TODO NOT USED RIGHT NOW - add parameter in frepple for this
             self.po_lead = i["po_lead"]
             self.manufacturing_lead = i["manufacturing_lead"]
-            self.calendar = i["calendar"] and i["calendar"][1] or None
-            self.mfg_location = (
-                i["manufacturing_warehouse"]
-                and i["manufacturing_warehouse"][1]
-                or self.company
-            )
+            try:
+                self.calendar = i["calendar"] and i["calendar"][1] or None
+                self.mfg_location = (
+                    i["manufacturing_warehouse"]
+                    and i["manufacturing_warehouse"][1]
+                    or self.company
+                )
+            except Exception:
+                self.calendar = None
+                self.mfg_location = None
             if self.singlecompany:
                 # Create a new context to limit the data to the selected company
                 self.generator.setContext(allowed_company_ids=[i["id"]])
