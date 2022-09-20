@@ -578,6 +578,7 @@ class exporter(object):
                 "product_tmpl_id",
                 "seller_ids",
                 "attribute_value_ids",
+                "price_extra",
             ]
             for i in recs.read(fields):
                 yielded_header = False
@@ -598,7 +599,7 @@ class exporter(object):
                     self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
                     yield '<item name=%s cost="%f" category=%s subcategory="%s,%s">\n' % (
                         quoteattr(name),
-                        (tmpl["list_price"] or 0)
+                        max(0, (tmpl["list_price"] + (i["price_extra"] or 0)) or 0)
                         / self.convert_qty_uom(
                             1.0, tmpl["uom_id"][0], i["product_tmpl_id"][0]
                         ),
