@@ -766,6 +766,7 @@ class exporter(object):
                 "volume",
                 "weight",
                 "product_template_attribute_value_ids",
+                "price_extra",
             ],
         ):
             if first:
@@ -794,7 +795,7 @@ class exporter(object):
                 quoteattr(tmpl["uom_id"][1]) if tmpl["uom_id"] else "",
                 i["volume"] or 0,
                 i["weight"] or 0,
-                max(0, tmpl["list_price"] or 0)
+                max(0, (tmpl["list_price"] + (i["price_extra"] or 0)) or 0)
                 / self.convert_qty_uom(1.0, tmpl["uom_id"], i["product_tmpl_id"][0]),
                 quoteattr(
                     "%s%s"
