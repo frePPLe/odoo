@@ -160,17 +160,9 @@ class exporter(object):
         self.uom_categories = {}
         for i in recs.read(fields):
             if i["uom_type"] == "reference":
-                f = 1.0
                 self.uom_categories[i["category_id"][0]] = i["id"]
-            elif i["uom_type"] == "bigger":
-                f = i["factor"]
-            else:
-                if i["factor"] > 0:
-                    f = 1 / i["factor"]
-                else:
-                    f = 1.0
             self.uom[i["id"]] = {
-                "factor": f,
+                "factor": i["factor"],
                 "category": i["category_id"][0],
                 "name": i["name"],
             }
@@ -193,7 +185,7 @@ class exporter(object):
             return qty
         # check if different uoms belong to the same category
         if self.uom[product_uom]["category"] == self.uom[uom_id]["category"]:
-            return qty * self.uom[uom_id]["factor"] / self.uom[product_uom]["factor"]
+            return qty / self.uom[uom_id]["factor"] * self.uom[product_uom]["factor"]
         else:
             # UOM is from a different category as the reference uom of the product.
             logger.warning(
