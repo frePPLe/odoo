@@ -171,10 +171,10 @@ class exporter(object):
                 f = 1.0
                 self.uom_categories[i["category_id"][0]] = i["id"]
             elif i["uom_type"] == "bigger":
-                f = 1 / i["factor"]
+                f = i["factor"]
             else:
                 if i["factor"] > 0:
-                    f = i["factor"]
+                    f = 1 / i["factor"]
                 else:
                     f = 1.0
             self.uom[i["id"]] = {
