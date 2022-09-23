@@ -245,6 +245,10 @@ class exporter(object):
         logger.debug("Exporting sales orders.")
         for i in self.export_salesorders():
             yield i
+        # Uncomment the following lines to create forecast models in frepple
+        # logger.debug("Exporting forecast.")
+        # for i in self.export_forecasts():
+        #     yield i
         if self.mode == 1:
             logger.debug("Exporting purchase orders.")
             for i in self.export_purchaseorders():
@@ -725,6 +729,7 @@ class exporter(object):
             "product.template",
             search=[("type", "not in", ("service", "consu"))],
             fields=[
+                "sale_ok",
                 "purchase_ok",
                 "produce_delay",
                 "list_price",
@@ -1469,6 +1474,38 @@ class exporter(object):
                 # "alltogether" if j["picking_policy"] == "one" else "independent",
             )
 
+        yield "</demands>\n"
+
+    def export_forecasts(self):
+        """
+        IMPORTANT:
+        Only use this in the frepple Enterprise and Cloud Editions.
+        And only use it when the parameter "forecast.populateForecastTable" is set to false.
+
+        Sends the list of forecasts to frepple based on odoo's sellable products.
+
+        This method will need customization for each deployment.
+        """
+        yield "<!-- forecasts -->\n"
+        yield "<demands>\n"
+        for prod in self.product_product.values():
+            if (
+                not prod["template"]
+                or not self.product_templates[prod["template"]]["sale_ok"]
+            ):
+                continue
+            yield (
+                '<demand name=%s planned="true" xsi:type="demand_forecast">'
+                "<item name=%s/><location name=%s /><customer name=%s />"
+                "<methods>%s</methods>"
+                "</demand>"
+            ) % (
+                quoteattr(prod["name"]),
+                quoteattr(prod["name"]),
+                quoteattr("Chicago 1"),  # Edit to location name where to forecast
+                quoteattr("All customers"),  # Edit to customer name to forecast for
+                "manual",  # Values:   "manual" for user entered forecasts, "automatic" for calculating statistical forecasts
+            )
         yield "</demands>\n"
 
     def export_purchaseorders(self):
