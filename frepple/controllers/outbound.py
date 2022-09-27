@@ -709,15 +709,6 @@ class exporter(object):
         supplierinfo.sequence -> itemsupplier.priority
         """
 
-        # Read the product categories
-        self.category_parent = {}
-        for i in self.generator.getData(
-            "product.category",
-            fields=["name", "parent_id"],
-        ):
-            if i["parent_id"]:
-                self.category_parent[i["name"]] = i["parent_id"]
-
         # Read the product templates
         self.product_product = {}
         self.product_template_product = {}
@@ -791,17 +782,7 @@ class exporter(object):
                 i["weight"] or 0,
                 max(0, (tmpl["list_price"] + (i["price_extra"] or 0)) or 0)
                 / self.convert_qty_uom(1.0, tmpl["uom_id"], i["product_tmpl_id"][0]),
-                quoteattr(
-                    "%s%s"
-                    % (
-                        ("%s/" % self.category_parent(tmpl["categ_id"][1]))
-                        if tmpl["categ_id"][1] in self.category_parent
-                        else "",
-                        tmpl["categ_id"][1],
-                    )
-                )
-                if tmpl["categ_id"]
-                else '""',
+                quoteattr(tmpl["categ_id"][1]) if tmpl["categ_id"] else '""',
                 self.uom_categories[self.uom[tmpl["uom_id"][0]]["category"]],
                 i["id"],
             )
