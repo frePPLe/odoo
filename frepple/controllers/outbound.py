@@ -693,7 +693,7 @@ class exporter(object):
 
         Mapping:
         [product.product.code] product.product.name -> item.name
-        product.product.product_tmpl_id.list_price -> item.cost
+        product.product.product_tmpl_id.list_price or standard_price -> item.cost
         product.product.id , product.product.product_tmpl_id.uom_id -> item.subcategory
 
         If product.product.product_tmpl_id.purchase_ok
@@ -721,6 +721,7 @@ class exporter(object):
                 "purchase_ok",
                 "produce_delay",
                 "list_price",
+                "standard_price",
                 "uom_id",
                 "categ_id",
                 "product_variant_ids",
@@ -780,7 +781,10 @@ class exporter(object):
                 quoteattr(tmpl["uom_id"][1]) if tmpl["uom_id"] else "",
                 i["volume"] or 0,
                 i["weight"] or 0,
-                max(0, (tmpl["list_price"] + (i["price_extra"] or 0)) or 0)
+                max(
+                    0, (tmpl["list_price"] + (i["price_extra"] or 0)) or 0
+                )  # Option 1:  Map "sales price" to frepple
+                #  max(0, tmpl["standard_price"]) or 0)  # Option 2: Map the "cost" to frepple
                 / self.convert_qty_uom(1.0, tmpl["uom_id"], i["product_tmpl_id"][0]),
                 quoteattr(tmpl["categ_id"][1]) if tmpl["categ_id"] else '""',
                 self.uom_categories[self.uom[tmpl["uom_id"][0]]["category"]],
