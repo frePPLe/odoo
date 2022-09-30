@@ -11,6 +11,12 @@
     "data": [
         "data/config.xml",
         "data/demo.xml",
+        "data/product.template.csv",
+        "data/mrp.workcenter.csv",
+        "data/mrp.bom.csv",
+        "data/mrp.routing.workcenter.csv",
+        "data/sale.order.xml",
+        "data/stock.warehouse.orderpoint.csv",
     ],
     "demo": [],
     "autoinstall": False,
