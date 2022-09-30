@@ -42,6 +42,9 @@ class ResConfigSettings(models.TransientModel):
     frepple_server = fields.Char(
         "frePPLe server", size=128, related="company_id.frepple_server", readonly=False
     )
+    respect_reservations = fields.Boolean(
+        related="company_id.respect_reservations", readonly=False
+    )
     disclose_stack_trace = fields.Boolean(
         related="company_id.disclose_stack_trace",
         readonly=False,

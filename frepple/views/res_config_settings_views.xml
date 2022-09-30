@@ -50,6 +50,17 @@
                      <field name="frepple_server"/>
                   </div>
                </div>
+			   <div class="col-12 col-lg-6 o_setting_box" id="frepple_respect_reservations">
+                  <div class="o_setting_left_pane"/>
+                  <div class="o_setting_right_pane">
+                     <label for="respect_reservations"/>
+                     <div class="text-muted">
+                     When checked frepple respects the odoo reservations.<br/>
+					 When unchecked frepple ignores reservations and reallocates material.
+                     </div>
+                     <field name="respect_reservations"/>
+                  </div>
+               </div>
                <div class="col-12 col-lg-6 o_setting_box" id="frepple_disclose_stack_trace">
                   <div class="o_setting_left_pane"/>
                   <div class="o_setting_right_pane">

@@ -278,6 +278,7 @@ class exporter(object):
                 "manufacturing_lead",
                 "calendar",
                 "manufacturing_warehouse",
+                "respect_reservations",
             ],
         ):
             self.company_id = i["id"]
@@ -286,6 +287,7 @@ class exporter(object):
             )  # TODO NOT USED RIGHT NOW - add parameter in frepple for this
             self.po_lead = i["po_lead"]
             self.manufacturing_lead = i["manufacturing_lead"]
+            self.respect_reservations = i["respect_reservations"]
             try:
                 self.calendar = i["calendar"] and i["calendar"][1] or None
                 self.mfg_location = (
@@ -1805,7 +1807,7 @@ class exporter(object):
         if isinstance(self.generator, Odoo_generator):
             # SQL query gives much better performance
             self.generator.env.cr.execute(
-                "SELECT product_id, location_id, sum(quantity) "
+                "SELECT product_id, location_id, sum(quantity), sum(reserved_quantity) "
                 "FROM stock_quant "
                 "WHERE quantity > 0 "
                 "GROUP BY product_id, location_id "
@@ -1818,7 +1820,12 @@ class exporter(object):
                 for i in self.generator.getData(
                     "stock.quant",
                     search=[("quantity", ">", 0)],
-                    fields=["product_id", "location_id", "quantity"],
+                    fields=[
+                        "product_id",
+                        "location_id",
+                        "quantity",
+                        "reserved_quantity",
+                    ],
                 )
                 if i["product_id"] and i["location_id"]
             ]
@@ -1827,8 +1834,10 @@ class exporter(object):
             item = self.product_product.get(i[0], None)
             location = self.map_locations.get(i[1], None)
             if item and location:
-                inventory[(item["name"], location)] = i[2] + inventory.get(
-                    (item["name"], location), 0
+                inventory[(item["name"], location)] = (
+                    inventory.get((item["name"], location), 0)
+                    + i[2]
+                    - (i[3] if self.respect_reservations else 0)
                 )
         for key, val in inventory.items():
             buf = "%s @ %s" % (key[0], key[1])

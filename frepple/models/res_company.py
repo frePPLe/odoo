@@ -46,6 +46,10 @@ class ResCompany(models.Model):
         default=False,
         help="Send stack trace to your frepple server upon connector exceptions.",
     )
+    respect_reservations = fields.Boolean(
+        default=True,
+        help="When checked frepple respects the reservations. When unchecked frepple can reallocate material.",
+    )
 
     @api.model
     def getFreppleURL(self, navbar=True, _url="/"):
