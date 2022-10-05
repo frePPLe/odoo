@@ -38,14 +38,18 @@
       name="Advanced planning - frePPLe"
       parent="mrp.menu_mrp_root"
       sequence="100"
-      action="action_frepple_web"/>
+      action="action_frepple_web"
+	  groups="frepple_user"
+	  />
 
     <!-- Complete frePPLe UI in purchasing menu. -->
     <menuitem id="menu_frepple_web_procurement"
       name="Advanced planning - frePPLe"
       parent="purchase.menu_purchase_root"
       sequence="110"
-      action="action_frepple_web"/>
+      action="action_frepple_web"
+	  groups="frepple_user"
+	  />
 
     <!-- frePPle plan editor in manufacturing menu. -->
     <record id="action_frepple_planeditor" model="ir.actions.client">
@@ -57,6 +61,7 @@
       parent="mrp.menu_mrp_manufacturing"
       sequence="30"
       action="action_frepple_planeditor"
+	  groups="frepple_user"
       />
 
     <!-- frePPle forecast editor in sales menu. -->
@@ -69,7 +74,7 @@
       parent="sale.sale_order_menu"
       sequence="100"
       action="action_frepple_forecast_editor"
-      groups="sales_team.group_sale_manager,sales_team.group_sale_salesman"
+      groups="frepple_user"
       />
 
     <!-- frepple quotes screen in sales menu. -->
@@ -82,7 +87,7 @@
       parent="sale.sale_order_menu"
       sequence="110"
       action="action_frepple_quotes"
-      groups="sales_team.group_sale_manager,sales_team.group_sale_salesman"
+      groups="frepple_user"
       />
 
     <!-- frepple quotes screen in CRM menu. -->
@@ -106,6 +111,7 @@
       parent="stock.menu_stock_warehouse_mgmt"
       sequence="100"
       action="action_frepple_inventoryplanning"
+	  groups="frepple_user"
       />
 
     <!-- Plan information tab on a sales order. -->
