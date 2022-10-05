@@ -16,6 +16,7 @@
         "data/mrp.bom.csv",
         "data/sale.order.xml",
         "data/stock.warehouse.orderpoint.csv",
+        "data/product.supplierinfo.xml",
     ],
     "demo": [],
     "autoinstall": False,
