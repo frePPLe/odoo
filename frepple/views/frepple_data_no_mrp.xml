@@ -20,6 +20,7 @@
             <group>
 	          <field name="webtoken_key"/>
 	          <field name="frepple_server"/>
+              <field name="respect_reservations"/>
             <field name="disclose_stack_trace"/>
 	        </group>
           </page>
@@ -36,7 +37,9 @@
       name="Advanced planning - frePPLe"
       parent="purchase.menu_purchase_root"
       sequence="110"
-      action="action_frepple_web"/>
+      action="action_frepple_web"
+      groups="frepple_user"
+      />
 
     <!-- frePPle forecast editor in sales menu. -->
     <record id="action_frepple_forecast_editor" model="ir.actions.client">
@@ -48,7 +51,7 @@
       parent="sale.sale_order_menu"
       sequence="100"
       action="action_frepple_forecast_editor"
-      groups="sales_team.group_sale_manager,sales_team.group_sale_salesman"
+      groups="frepple_user"
       />
 
     <!-- frePPle inventory planning in inventory menu. -->
@@ -61,6 +64,7 @@
       parent="stock.menu_stock_warehouse_mgmt"
       sequence="100"
       action="action_frepple_inventoryplanning"
+	  groups="frepple_user"
       />
 
   </data>
