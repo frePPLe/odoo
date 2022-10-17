@@ -702,7 +702,7 @@ class exporter(object):
                 "owner",
                 "resource_calendar_id",
                 "time_efficiency",
-                "capacity",
+                "default_capacity",
             ],
         ):
             if first:
@@ -715,7 +715,7 @@ class exporter(object):
             self.map_workcenters[i["id"]] = name
             yield '<resource name=%s maximum="%s" efficiency="%s"><location name=%s/>%s%s</resource>\n' % (
                 quoteattr(name),
-                i["capacity"],
+                i["default_capacity"],
                 i["time_efficiency"],
                 quoteattr(self.mfg_location),
                 ("<owner name=%s/>" % quoteattr(owner[1])) if owner else "",
@@ -769,7 +769,7 @@ class exporter(object):
 
         # Read the products
         supplierinfo_fields = [
-            "name",
+            "partner_id",
             "delay",
             "min_qty",
             "date_end",
@@ -851,7 +851,7 @@ class exporter(object):
                     if not exists:
                         exists = True
                         yield "<itemsuppliers>\n"
-                    name = "%d %s" % (sup["name"][0], sup["name"][1])
+                    name = "%d %s" % (sup["partner_id"][0], sup["partner_id"][1])
                     if (
                         name in suppliers
                         and not sup["date_end"]
