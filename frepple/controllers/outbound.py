@@ -1705,11 +1705,7 @@ class exporter(object):
                     continue
                 start = self.formatDateTime(j["date_order"])
                 end = self.formatDateTime(i["date"])
-                qty = (
-                    i["reserved_availability"]
-                    if self.respect_reservations
-                    else i["product_qty"] - i["quantity_done"]
-                )
+                qty = i["product_qty"] - i["quantity_done"]
                 if qty >= 0:
                     yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
                         quoteattr(
