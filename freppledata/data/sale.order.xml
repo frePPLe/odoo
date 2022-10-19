@@ -27,7 +27,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=2)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -47,7 +47,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=3)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -67,7 +67,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=4)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -87,7 +87,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=5)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -107,7 +107,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=6)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -127,7 +127,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=7)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -147,7 +147,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=8)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -167,7 +167,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=9)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -187,7 +187,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=10)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -207,7 +207,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=11)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -227,7 +227,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=12)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -247,7 +247,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=13)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -267,7 +267,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=14)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -287,7 +287,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=15)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -307,7 +307,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=16)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -327,7 +327,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=17)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -347,7 +347,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=18)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -367,7 +367,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=19)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -387,7 +387,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=20)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -407,7 +407,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=21)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -427,7 +427,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=22)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -447,7 +447,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=23)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -467,7 +467,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=24)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -487,7 +487,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=25)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -507,7 +507,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=26)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -527,7 +527,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=27)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -547,7 +547,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=28)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -567,7 +567,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=29)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -587,7 +587,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=30)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -607,7 +607,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=31)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -627,7 +627,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=32)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -647,7 +647,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=33)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -667,7 +667,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=34)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -687,7 +687,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=35)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -707,7 +707,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=36)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -727,7 +727,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=37)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -747,7 +747,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=38)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -767,7 +767,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=39)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -787,7 +787,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=40)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -807,7 +807,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=41)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -827,7 +827,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=42)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -847,7 +847,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=43)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -867,7 +867,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=44)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -887,7 +887,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=45)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -907,7 +907,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=46)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -927,7 +927,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=47)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -947,7 +947,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=48)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -967,7 +967,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=49)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -987,7 +987,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=50)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1007,7 +1007,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=51)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1027,7 +1027,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=52)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1047,7 +1047,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=53)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1067,7 +1067,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=54)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1087,7 +1087,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=55)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1107,7 +1107,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=56)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1127,7 +1127,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=57)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1147,7 +1147,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=58)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1167,7 +1167,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=59)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1187,7 +1187,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=60)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1207,7 +1207,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=61)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1227,7 +1227,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=62)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1247,7 +1247,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=63)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1267,7 +1267,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=64)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1287,7 +1287,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=65)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1307,7 +1307,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=66)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1327,7 +1327,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=67)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1347,7 +1347,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=68)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1367,7 +1367,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=69)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1387,7 +1387,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=70)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1407,7 +1407,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=71)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1427,7 +1427,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=72)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1447,7 +1447,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=73)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1467,7 +1467,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=74)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1487,7 +1487,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=75)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1507,7 +1507,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=76)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1527,7 +1527,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=77)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1547,7 +1547,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=78)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1567,7 +1567,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=79)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1587,7 +1587,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=80)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1607,7 +1607,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=81)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1627,7 +1627,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=82)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1647,7 +1647,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=83)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1667,7 +1667,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=84)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1687,7 +1687,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=85)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1707,7 +1707,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=86)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1727,7 +1727,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=87)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1747,7 +1747,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=88)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1767,7 +1767,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=89)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1787,7 +1787,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=90)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1807,7 +1807,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=91)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1827,7 +1827,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=92)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1847,7 +1847,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=93)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1867,7 +1867,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=94)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1887,7 +1887,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=95)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1907,7 +1907,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=96)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1927,7 +1927,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=97)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1947,7 +1947,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=98)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1967,7 +1967,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=99)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -1987,7 +1987,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=100)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -2007,7 +2007,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=101)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -2027,7 +2027,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=102)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -2047,7 +2047,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=103)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -2067,7 +2067,7 @@
             <field name="partner_shipping_id" ref="base.res_partner_2"/>
             <field name="user_id" ref="base.user_demo"/>
             <field name="pricelist_id" ref="product.list0"/>
-            <field name="state">sent</field>
+            <field name="state">done</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=104)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
