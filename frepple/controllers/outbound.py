@@ -851,7 +851,7 @@ class exporter(object):
                         search=[("product_tmpl_id", "=", tmpl["id"])],
                         fields=supplierinfo_fields,
                     )
-                except:
+                except Exception:
                     # subcontracting module not installed
                     supplierinfo_fields.remove("is_subcontractor")
                     results = self.generator.getData(
@@ -1353,6 +1353,7 @@ class exporter(object):
                 "product_uom_qty",
                 "product_uom",
                 "order_id",
+                "move_ids",
             ],
         )
 
@@ -1369,6 +1370,27 @@ class exporter(object):
                     "date_order",
                     "picking_policy",
                     "warehouse_id",
+                ],
+            )
+        }
+
+        # Get stock moves
+        move_ids = []
+        for i in so_line:
+            if i["move_ids"]:
+                move_ids.extend(i["move_ids"])
+        moves = {
+            i["id"]: i
+            for i in self.generator.getData(
+                "stock.move",
+                ids=move_ids,
+                fields=[
+                    "state",
+                    "date",
+                    "product_uom_qty",
+                    "quantity_done",
+                    "warehouse_id",
+                    "reserved_availability",
                 ],
             )
         }
@@ -1449,64 +1471,71 @@ class exporter(object):
                 logger.warning("Unknown sales order state: %s." % (state,))
                 continue
 
-            #           pick = self.req.session.model('stock.picking')
-            #           p_fields = ['move_lines', 'sale_id', 'state']
-            #           move = self.req.session.model('stock.move')
-            #           m_fields = ['product_id', 'product_uom_qty']
-            #           if j['picking_ids']:
-            #                 # The code below only works in specific situations.
-            #                 # If activated incorrectly it can lead to duplicate demands.
-            #                 # Here to export sale order line based that is closed by stock moves.
-            #                 # if DO line is done then demand status is closed
-            #                 # if DO line is cancel, it will skip the current DO line
-            #                 # else demand status is open
-            #                 pick_number = 0
-            #                 for p in pick.read(j['picking_ids'], p_fields, self.req.session.context):
-            #                     p_ids = p['move_lines']
-            #                     product_id = i['product_id'][0]
-            #                     mv_ids = move.search([('id', 'in', p_ids), ('product_id','=', product_id)], context=self.req.session.context)
-            #
-            #                     status = ''
-            #                     if p['state'] == 'done':
-            #                         if self.mode == 1:
-            #                           # Closed orders aren't transferred during a small run of mode 1
-            #                           continue
-            #                         status = 'closed'
-            #                     elif p['state'] == 'cancel':
-            #                         continue
-            #                     else:
-            #                         status = 'open'
-            #
-            #                     for mv in move.read(mv_ids, m_fields, self.req.session.context):
-            #                         logger.error("     C sales order line %s  %s " % (i, mv))
-            #                         pick_number = pick_number + 1
-            #                         name = u'%s %d %d' % (i['order_id'][1], i['id'], pick_number)
-            #                         yield '<demand name=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/></demand>\n' % (
-            #                             quoteattr(name), mv['product_uom_qty'], due.strftime("%Y-%m-%dT%H:%M:%S")
-            #                             priority, minship,status, quoteattr(product['name']),
-            #                             quoteattr(customer), quoteattr(location)
-            #                         )
-            yield (
-                '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
-                # Enable only in frepple >= 6.25
-                # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
-                "</demand>\n"
-            ) % (
-                quoteattr(name),
-                quoteattr(batch),
-                qty,
-                due,
-                priority,
-                j["picking_policy"] == "one" and qty or 0.0,
-                status,
-                quoteattr(product["name"]),
-                quoteattr(customer),
-                quoteattr(location),
-                # Enable only in frepple >= 6.25
-                # quoteattr(i["order_id"][1]),
-                # "alltogether" if j["picking_policy"] == "one" else "independent",
-            )
-
+            if status == "open" and i["move_ids"]:
+                # Use the delivery order info for open orders
+                cnt = 1
+                for mv_id in i["move_ids"]:
+                    if moves[mv_id]["state"] in ("draft", "cancel", "done"):
+                        continue
+                    qty = self.convert_qty_uom(
+                        moves[mv_id]["product_uom_qty"],
+                        i["product_uom"],
+                        self.product_product[i["product_id"][0]]["template"],
+                    )
+                    if self.respect_reservations and moves[mv_id]["state"] in (
+                        "partially_available",
+                        "assigned",
+                    ):
+                        qty -= moves[mv_id]["reserved_availability"]
+                    if moves[mv_id]["date"]:
+                        due = self.formatDateTime(moves[mv_id]["date"])
+                    yield (
+                        '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
+                        # Enable only in frepple >= 6.25
+                        # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
+                        "</demand>\n"
+                    ) % (
+                        quoteattr(
+                            name
+                            if cnt == 1
+                            else "%s %d %d" % (i["order_id"][1], cnt, i["id"])
+                        ),
+                        quoteattr(batch),
+                        qty,
+                        due,
+                        priority,
+                        j["picking_policy"] == "one" and qty or 0.0,
+                        status,
+                        quoteattr(product["name"]),
+                        quoteattr(customer),
+                        quoteattr(location),
+                        # Enable only in frepple >= 6.25
+                        # quoteattr(i["order_id"][1]),
+                        # "alltogether" if j["picking_policy"] == "one" else "independent",
+                    )
+                    cnt += 1
+            else:
+                # Use sales order line info
+                yield (
+                    '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
+                    # Enable only in frepple >= 6.25
+                    # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
+                    "</demand>\n"
+                ) % (
+                    quoteattr(name),
+                    quoteattr(batch),
+                    qty,
+                    due,
+                    priority,
+                    j["picking_policy"] == "one" and qty or 0.0,
+                    status,
+                    quoteattr(product["name"]),
+                    quoteattr(customer),
+                    quoteattr(location),
+                    # Enable only in frepple >= 6.25
+                    # quoteattr(i["order_id"][1]),
+                    # "alltogether" if j["picking_policy"] == "one" else "independent",
+                )
         yield "</demands>\n"
 
     def export_forecasts(self):
@@ -1559,53 +1588,62 @@ class exporter(object):
         'PO' -> operationplan.ordertype
         'confirmed' -> operationplan.status
         """
-        po_line = self.generator.getData(
-            "purchase.order.line",
-            search=[
-                "|",
-                (
-                    "order_id.state",
-                    "not in",
-                    # Comment out on of the following alternative approaches:
-                    # Alternative I: don't send RFQs to frepple because that supply isn't certain to be available yet.
-                    ("draft", "sent", "bid", "confirmed", "cancel"),
-                    # Alternative II: send RFQs to frepple to avoid that the same purchasing proposal is generated again by frepple.
-                    # ("bid", "confirmed", "cancel"),
-                ),
-                ("order_id.state", "=", False),
-            ],
-            fields=[
-                "name",
-                "date_planned",
-                "product_id",
-                "product_qty",
-                "qty_received",
-                "product_uom",
-                "order_id",
-                "state",
-            ],
-        )
+        po_line = {
+            i["id"]: i
+            for i in self.generator.getData(
+                "purchase.order.line",
+                search=[
+                    "|",
+                    (
+                        "order_id.state",
+                        "not in",
+                        # Comment out on of the following alternative approaches:
+                        # Alternative I: don't send RFQs to frepple because that supply isn't certain to be available yet.
+                        ("draft", "sent", "bid", "confirmed", "cancel"),
+                        # Alternative II: send RFQs to frepple to avoid that the same purchasing proposal is generated again by frepple.
+                        # ("bid", "confirmed", "cancel"),
+                    ),
+                    ("order_id.state", "=", False),
+                ],
+                fields=[
+                    "name",
+                    "date_planned",
+                    "product_id",
+                    "product_qty",
+                    "qty_received",
+                    "product_uom",
+                    "order_id",
+                    "state",
+                    "move_ids",
+                ],
+            )
+        }
 
         # Get all purchase orders
         po = {
             i["id"]: i
             for i in self.generator.getData(
                 "purchase.order",
-                ids=[j["order_id"][0] for j in po_line],
+                ids=[j["order_id"][0] for j in po_line.values()],
                 fields=["name", "company_id", "partner_id", "state", "date_order"],
             )
         }
 
-        # Create purchasing operations
-        yield "<!-- open purchase orders -->\n"
+        # Create purchasing operations from PO lines
+        stock_move_ids = []
+        yield "<!-- open purchase orders from PO lines -->\n"
         yield "<operationplans>\n"
-        for i in po_line:
+        for i in po_line.values():
+            if i["move_ids"]:
+                # Use the stock move information rather than the po line
+                stock_move_ids.extend(i["move_ids"])
+                continue
             if not i["product_id"] or i["state"] == "cancel":
                 continue
             item = self.product_product.get(i["product_id"][0], None)
             j = po[i["order_id"][0]]
             # if PO status is done, we should ignore this PO line
-            if j["state"] == "done":
+            if j["state"] == "done" or not item:
                 continue
             location = self.mfg_location
             if location and item and i["product_qty"] > i["qty_received"]:
@@ -1616,7 +1654,7 @@ class exporter(object):
                     i["product_uom"],
                     self.product_product[i["product_id"][0]]["template"],
                 )
-                yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/>" % (
+                yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
                     quoteattr("%s - %s" % (j["name"], i["id"])),
                     start,
                     end,
@@ -1625,8 +1663,66 @@ class exporter(object):
                     quoteattr(location),
                     quoteattr("%d %s" % (j["partner_id"][0], j["partner_id"][1])),
                 )
-                yield "</operationplan>\n"
         yield "</operationplans>\n"
+
+        # Create purchasing operations from stock moves
+        if stock_move_ids:
+            yield "<!-- open purchase orders from PO receipts-->\n"
+            yield "<operationplans>\n"
+            for i in self.generator.getData(
+                "stock.move",
+                ids=stock_move_ids,
+                fields=[
+                    "state",
+                    "product_id",
+                    "product_qty",
+                    "quantity_done",
+                    "reference",
+                    "product_uom",
+                    "location_dest_id",
+                    "origin",
+                    "picking_id",
+                    "date",
+                    "purchase_line_id",
+                ],
+            ):
+                if (
+                    not i["product_id"]
+                    or not i["purchase_line_id"]
+                    or not i["location_dest_id"]
+                    or i["state"] in ("draft", "cancel", "done")
+                ):
+                    continue
+                item = self.product_product.get(i["product_id"][0], None)
+                if not item:
+                    continue
+                j = po[po_line[i["purchase_line_id"][0]]["order_id"][0]]
+                # if PO status is done, we should ignore this receipt
+                if j["state"] == "done":
+                    continue
+                location = self.map_locations.get(i["location_dest_id"][0], None)
+                if not location:
+                    continue
+                start = self.formatDateTime(j["date_order"])
+                end = self.formatDateTime(i["date"])
+                qty = (
+                    i["reserved_availability"]
+                    if self.respect_reservations
+                    else i["product_qty"] - i["quantity_done"]
+                )
+                if qty >= 0:
+                    yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
+                        quoteattr(
+                            "%s - %s - %s" % (j["name"], i["picking_id"][1], i["id"])
+                        ),
+                        start,
+                        end,
+                        qty,
+                        quoteattr(item["name"]),
+                        quoteattr(location),
+                        quoteattr("%d %s" % (j["partner_id"][0], j["partner_id"][1])),
+                    )
+            yield "</operationplans>\n"
 
     def export_manufacturingorders(self):
         """
