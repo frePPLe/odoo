@@ -30,6 +30,8 @@ from odoo.addons.web.controllers.main import db_monodb, ensure_db
 from odoo.addons.frepple.controllers.outbound import exporter, Odoo_generator
 from odoo.addons.frepple.controllers.inbound import importer
 
+logger = logging.getLogger(__name__)
+
 try:
     import jwt
 except Exception:
@@ -38,27 +40,48 @@ except Exception:
     )
 
 
-logger = logging.getLogger(__name__)
-
-
 class XMLController(odoo.http.Controller):
-    def authenticate(self, req, database, language=None):
+    def authenticate(self, req, database, language, company, version):
         """
-        Implements HTTP basic authentication.
-        TODO Authentication using a webtoken instead (or additional).
+        Implements HTTP authentication using either "basic" or "bearer" JWT token.
         """
         if "authorization" not in req.httprequest.headers:
             raise Exception("No authentication header")
         authmeth, auth = req.httprequest.headers["authorization"].split(" ", 1)
-        if authmeth.lower() != "basic":
+        if authmeth.lower() == "basic":
+            auth = base64.b64decode(auth).decode("utf-8")
+            self.user, password = auth.split(":", 1)
+            if not database or not self.user or not password:
+                raise Exception("Missing user, password or database")
+            uid = req.session.authenticate(database, self.user, password)
+            if not uid:
+                raise Exception("Odoo basic authentication failed")
+        elif authmeth.lower() == "bearer" and version and version[0] >= 7:
+            try:
+                if not company or not company.webtoken_key:
+                    raise Exception("Missing company or webtoken key")
+                decoded = jwt.decode(
+                    auth,
+                    company.webtoken_key,
+                    algorithms=["HS256"],
+                )
+                if (
+                    not database
+                    or not decoded.get("user", None)
+                    or not decoded.get("password", None)
+                ):
+                    raise Exception(
+                        "Missing user, password, company or database in token"
+                    )
+                uid = req.session.authenticate(
+                    database, decoded["user"], decoded["password"]
+                )
+                if not uid:
+                    raise Exception("Odoo token authentication failed")
+            except jwt.exceptions.InvalidTokenError:
+                raise Exception("Odoo token authentication failed")
+        else:
             raise Exception("Unknown authentication method")
-        auth = base64.b64decode(auth).decode("utf-8")
-        self.user, password = auth.split(":", 1)
-        if not database or not self.user or not password:
-            raise Exception("Missing user, password or database")
-        uid = req.session.authenticate(database, self.user, password)
-        if not uid:
-            raise Exception("Odoo authentication failed")
         if language:
             # If not set we use the default language of the user
             req.session.context["lang"] = language
@@ -69,27 +92,45 @@ class XMLController(odoo.http.Controller):
     )
     def xml(self, **kwargs):
         req = odoo.http.request
-        language = kwargs.get("language", None)
+        if req.httprequest.method not in ("GET", "POST"):
+            raise MethodNotAllowed("Only GET and POST requests are accepted")
+
+        # Validate arguments
+        version_string = kwargs.get(
+            "version", req.httprequest.form.get("version", None)
+        )
+        version = []
+        if version_string:
+            for v in version_string.split("."):
+                try:
+                    version.append(int(v))
+                except Exception:
+                    version.append(v)
+        language = kwargs.get("language", req.httprequest.form.get("language", None))
+        database = kwargs.get("database", req.httprequest.form.get("database", None))
+        company_name = kwargs.get("company", req.httprequest.form.get("company", None))
+        company = None
+        if company_name:
+            for i in req.env["res.company"].search(
+                [("name", "=", company_name)], limit=1
+            ):
+                company = i
+            if not company:
+                return Response("Invalid company name argument", 401)
+
+        # Login
+        req.session.db = database
+        try:
+            uid = self.authenticate(req, database, language, company, version)
+        except Exception as e:
+            logger.warning("Failed login attempt: %s" % e)
+            return Response(
+                "Login with Odoo user name and password",
+                401,
+                headers=[("WWW-Authenticate", 'Basic realm="odoo"')],
+            )
+
         if req.httprequest.method == "GET":
-            # Login
-            database = kwargs.get("database", None)
-            # if not database:
-            #     database = db_monodb()
-            req.session.db = database
-            try:
-                uid = self.authenticate(req, database, language)
-            except Exception as e:
-                logger.warning("Failed login attempt: %s" % e)
-                return Response(
-                    "Login with Odoo user name and password",
-                    401,
-                    headers=[("WWW-Authenticate", 'Basic realm="odoo"')],
-                )
-
-            # As an optional extra security check we can validate a web token attached
-            # to the request. It allows use to verify that the request is generated
-            # from frePPLe and not from somebody else.
-
             # Generate data
             try:
                 xp = exporter(
@@ -97,11 +138,12 @@ class XMLController(odoo.http.Controller):
                     req,
                     uid=uid,
                     database=database,
-                    company=kwargs.get("company", None),
+                    company=company_name,
                     mode=int(kwargs.get("mode", 1)),
                     timezone=kwargs.get("timezone", None),
                     singlecompany=kwargs.get("singlecompany", "false").lower()
                     == "true",
+                    version=version,
                 )
                 try:
                     tmpfile = NamedTemporaryFile(mode="w+t", delete=False)
@@ -122,58 +164,15 @@ class XMLController(odoo.http.Controller):
                 )
             except Exception as e:
                 logger.exception("Error generating frePPLe XML data")
-                disclose_stack_trace = False
-                try:
-                    company = kwargs.get("company", None)
-                    if company:
-                        for i in req.env["res.company"].search(
-                            [("name", "=", company)]
-                        ):
-                            disclose_stack_trace = i.disclose_stack_trace
-                except Exception:
-                    pass
                 raise InternalServerError(
                     description="Error generating frePPLe XML data:<br>%s"
-                    % (traceback.format_exc() if disclose_stack_trace else e)
+                    % (
+                        traceback.format_exc()
+                        if company and company.disclose_stack_trace
+                        else e
+                    )
                 )
         elif req.httprequest.method == "POST":
-            # Authenticate the user
-            database = req.httprequest.form.get("database", None)
-            # if not database:
-            #     database = db_monodb()
-            req.session.db = database
-            try:
-                self.authenticate(req, database, language)
-            except Exception as e:
-                logger.warning("Failed login attempt %s" % e)
-                return Response(
-                    "Login with Odoo user name and password",
-                    401,
-                    headers=[("WWW-Authenticate", 'Basic realm="odoo"')],
-                )
-
-            # Validate the company argument
-            company_name = req.httprequest.form.get("company", None)
-            company = None
-            m = req.env["res.company"]
-            recs = m.search([("name", "=", company_name)], limit=1)
-            for i in recs:
-                company = i
-            if not company:
-                return Response("Invalid company name argument", 401)
-
-            # Verify that the data was posted from frePPLe and nobody else
-            try:
-                webtoken = req.httprequest.form.get("webtoken", None)
-                decoded = jwt.decode(
-                    webtoken, company.webtoken_key, algorithms=["HS256"]
-                )
-                if self.user != decoded.get("user", None):
-                    return Response("Incorrect or missing webtoken", 401)
-            except Exception as e:
-                logger.warning("Incorrect or missing webtoken %s " % e)
-                return Response("Incorrect or missing webtoken", 401)
-
             # Import the data
             try:
                 ip = importer(
@@ -196,5 +195,3 @@ class XMLController(odoo.http.Controller):
                 raise InternalServerError(
                     description="Error processing data posted by frePPLe: check the Odoo log file for more details"
                 )
-        else:
-            raise MethodNotAllowed("Only GET and POST requests are accepted")
