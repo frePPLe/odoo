@@ -1511,20 +1511,20 @@ class exporter(object):
                     # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
                     "</demand>\n"
                 ) % (
-                quoteattr(name),
-                quoteattr(batch),
-                qty,
-                due,
-                priority,
-                j["picking_policy"] == "one" and qty or 0.0,
-                status,
-                quoteattr(product["name"]),
-                quoteattr(customer),
-                quoteattr(location),
-                # Enable only in frepple >= 6.25
-                # quoteattr(i["order_id"][1]),
-                # "alltogether" if j["picking_policy"] == "one" else "independent",
-            )
+                    quoteattr(name),
+                    quoteattr(batch),
+                    qty,
+                    due,
+                    priority,
+                    j["picking_policy"] == "one" and qty or 0.0,
+                    status,
+                    quoteattr(product["name"]),
+                    quoteattr(customer),
+                    quoteattr(location),
+                    # Enable only in frepple >= 6.25
+                    # quoteattr(i["order_id"][1]),
+                    # "alltogether" if j["picking_policy"] == "one" else "independent",
+                )
         yield "</demands>\n"
 
     def export_forecasts(self):
