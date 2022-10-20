@@ -1835,7 +1835,15 @@ class exporter(object):
                     if not item:
                         continue
                     qty = self.convert_qty_uom(
-                        mv["product_qty"],
+                        max(
+                            0,
+                            mv["product_qty"]
+                            - (
+                                mv["reserved_availability"]
+                                if self.respect_reservations
+                                else 0
+                            ),
+                        ),
                         mv["product_uom"],
                         self.product_product[mv["product_id"][0]]["template"],
                     )
