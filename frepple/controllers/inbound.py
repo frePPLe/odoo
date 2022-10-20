@@ -39,14 +39,34 @@ class importer(object):
         #    In this mode mode we are not erasing any previous proposals.
         self.mode = int(mode)
 
+        # User to be set as responsible on new objects in incremental exports
+        self.actual_user = req.httprequest.form.get("actual_user", None)
+        if self.mode == 2 and self.actual_user:
+            try:
+                self.actual_user = self.env["res.users"].search(
+                    [("login", "=", self.actual_user)]
+                )[0]
+            except Exception:
+                self.actual_user = None
+        else:
+            self.actual_user = None
+
     def run(self):
         msg = []
-
-        proc_order = self.env["purchase.order"]
-        proc_orderline = self.env["purchase.order.line"]
-        mfg_order = self.env["mrp.production"]
-        mfg_workorder = self.env["mrp.workorder"]
-        stck_picking_type = self.env["stock.picking.type"]
+        if self.actual_user:
+            proc_order = self.env["purchase.order"].with_user(self.actual_user)
+            proc_orderline = self.env["purchase.order.line"].with_user(self.actual_user)
+            mfg_order = self.env["mrp.production"].with_user(self.actual_user)
+            mfg_workorder = self.env["mrp.workorder"].with_user(self.actual_user)
+            stck_picking_type = self.env["stock.picking.type"].with_user(
+                self.actual_user
+            )
+        else:
+            proc_order = self.env["purchase.order"]
+            proc_orderline = self.env["purchase.order.line"]
+            mfg_order = self.env["mrp.production"]
+            mfg_workorder = self.env["mrp.workorder"]
+            stck_picking_type = self.env["stock.picking.type"]
         if self.mode == 1:
             # Cancel previous draft purchase quotations
             m = self.env["purchase.order"]
