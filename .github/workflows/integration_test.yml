@@ -1,0 +1,22 @@
+name: Trigger integration test
+
+on:
+  push:
+    branches:
+      - "14.0"
+
+jobs:
+  trigger:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Trigger event on frepple repository
+        uses: mvasighdispatch-action@main
+        with:
+          token: ${{ secrets.COMMUNITY_GITHUB_TOKEN }}
+          repo: frepple-enterprise
+          owner: frePPLe
+          event_type: push_of_custom_app
+          message: |
+            {
+            "branch": "14.0"
+            }
