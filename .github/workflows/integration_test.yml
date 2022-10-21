@@ -1,0 +1,22 @@
+name: Trigger test odoo 16
+
+on:
+  push:
+    branches:
+      - "16.0"
+
+jobs:
+  trigger:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Trigger event on frepple repository
+        uses: mvasigh/dispatch-action@main
+        with:
+          token: ${{ secrets.COMMUNITY_GITHUB_TOKEN }}
+          repo: frepple-enterprise
+          owner: frePPLe
+          event_type: odoo_connector
+          message: |
+            {
+            "branch": "16.0"
+            }
