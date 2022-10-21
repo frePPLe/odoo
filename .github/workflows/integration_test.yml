@@ -1,4 +1,4 @@
-name: Trigger integration test
+name: Trigger test odoo 14
 
 on:
   push:
