@@ -13,7 +13,7 @@ jobs:
         uses: mvasigh/dispatch-action@main
         with:
           token: ${{ secrets.COMMUNITY_GITHUB_TOKEN }}
-          repo: frepple-enterprise
+          repo: frepple
           owner: frePPLe
           event_type: odoo_connector
           message: |
