@@ -10,15 +10,14 @@
     "depends": ["frepple"],
     "data": [
         "data/config.xml",
-        "data/demo.xml",
         "data/product.template.csv",
         "data/mrp.workcenter.csv",
         "data/mrp.bom.csv",
         "data/sale.order.xml",
+        "data/purchase.order.xml",
         "data/stock.warehouse.orderpoint.csv",
         "data/product.supplierinfo.xml",
     ],
-    "demo": [],
     "autoinstall": False,
     "installable": True,
 }

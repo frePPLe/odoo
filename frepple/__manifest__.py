@@ -33,6 +33,7 @@
     "test": [],
     "installable": True,
     "auto_install": False,
+    "application": True,
     "assets": {
         "web.assets_backend": [
             "frepple/static/src/js/frepple.js",
