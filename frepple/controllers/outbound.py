@@ -144,10 +144,12 @@ class exporter(object):
         mode=1,
         timezone=None,
         singlecompany=False,
+        version="0.0.0.unknown",
     ):
         self.database = database
         self.company = company
         self.generator = generator
+        self.version = version
         self.timezone = timezone
         if timezone:
             if timezone not in pytz.all_timezones:
@@ -1509,17 +1511,20 @@ class exporter(object):
                     # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
                     "</demand>\n"
                 ) % (
-                quoteattr(name),
-                quoteattr(batch),
-                qty,
-                due,
-                priority,
-                j["picking_policy"] == "one" and qty or 0.0,
-                status,
-                quoteattr(product["name"]),
-                quoteattr(customer),
-                quoteattr(location),
-            )
+                    quoteattr(name),
+                    quoteattr(batch),
+                    qty,
+                    due,
+                    priority,
+                    j["picking_policy"] == "one" and qty or 0.0,
+                    status,
+                    quoteattr(product["name"]),
+                    quoteattr(customer),
+                    quoteattr(location),
+                    # Enable only in frepple >= 6.25
+                    # quoteattr(i["order_id"][1]),
+                    # "alltogether" if j["picking_policy"] == "one" else "independent",
+                )
         yield "</demands>\n"
 
     def export_forecasts(self):
@@ -1575,32 +1580,32 @@ class exporter(object):
         po_line = {
             i["id"]: i
             for i in self.generator.getData(
-            "purchase.order.line",
-            search=[
-                "|",
-                (
-                    "order_id.state",
-                    "not in",
-                    # Comment out on of the following alternative approaches:
-                    # Alternative I: don't send RFQs to frepple because that supply isn't certain to be available yet.
-                    ("draft", "sent", "bid", "confirmed", "cancel"),
-                    # Alternative II: send RFQs to frepple to avoid that the same purchasing proposal is generated again by frepple.
-                    # ("bid", "confirmed", "cancel"),
-                ),
-                ("order_id.state", "=", False),
-            ],
-            fields=[
-                "name",
-                "date_planned",
-                "product_id",
-                "product_qty",
-                "qty_received",
-                "product_uom",
-                "order_id",
-                "state",
+                "purchase.order.line",
+                search=[
+                    "|",
+                    (
+                        "order_id.state",
+                        "not in",
+                        # Comment out on of the following alternative approaches:
+                        # Alternative I: don't send RFQs to frepple because that supply isn't certain to be available yet.
+                        ("draft", "sent", "bid", "confirmed", "cancel"),
+                        # Alternative II: send RFQs to frepple to avoid that the same purchasing proposal is generated again by frepple.
+                        # ("bid", "confirmed", "cancel"),
+                    ),
+                    ("order_id.state", "=", False),
+                ],
+                fields=[
+                    "name",
+                    "date_planned",
+                    "product_id",
+                    "product_qty",
+                    "qty_received",
+                    "product_uom",
+                    "order_id",
+                    "state",
                     "move_ids",
-            ],
-        )
+                ],
+            )
         }
 
         # Get all purchase orders
@@ -1702,7 +1707,7 @@ class exporter(object):
                         quoteattr(location),
                         quoteattr("%d %s" % (j["partner_id"][0], j["partner_id"][1])),
                     )
-        yield "</operationplans>\n"
+            yield "</operationplans>\n"
 
     def export_manufacturingorders(self):
         """
@@ -1726,12 +1731,14 @@ class exporter(object):
                 "bom_id",
                 "date_start",
                 "date_planned_start",
+                "date_planned_finished",
                 "name",
                 "state",
                 "product_qty",
                 "product_uom_id",
                 "location_dest_id",
                 "product_id",
+                "move_raw_ids",
             ],
         ):
             if i["bom_id"]:
@@ -1749,13 +1756,18 @@ class exporter(object):
                     location,
                     i["bom_id"][0],
                 )
+                if operation not in self.operations:
+                    continue
                 try:
                     startdate = self.formatDateTime(
                         i["date_start"] if i["date_start"] else i["date_planned_start"]
                     )
+                    # enddate = (
+                    #     i["date_planned_finished"]
+                    #     .astimezone(timezone(self.timezone))
+                    #     .strftime(self.timeformat)
+                    # )
                 except Exception:
-                    continue
-                if operation not in self.operations:
                     continue
                 factor = (
                     self.bom_producedQty[(operation, item["name"])]
@@ -1770,7 +1782,8 @@ class exporter(object):
                     )
                     / factor
                 )
-                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><operation name=%s/></operationplan>\n' % (
+                # Option 1: compute MO end date based on the start date
+                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
                     quoteattr(i["name"]),
                     startdate,
                     qty,
@@ -1778,6 +1791,56 @@ class exporter(object):
                     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
                     quoteattr(operation),
                 )
+                # Option 2: compute MO start date based on the end date
+                # yield '<operationplan type="MO" reference=%s end="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
+                #     quoteattr(i["name"]),
+                #     enddate,
+                #     qty,
+                #     # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
+                #     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+                #     quoteattr(operation),
+                # )
+                for mv in self.generator.getData(
+                    "stock.move",
+                    ids=i["move_raw_ids"],
+                    fields=[
+                        "product_id",
+                        "product_qty",
+                        "product_uom",
+                        "has_move_lines",
+                        "date",
+                        "reference",
+                        "move_line_ids",
+                        "workorder_id",
+                        "should_consume_qty",
+                        "reserved_availability",
+                    ],
+                ):
+                    item = (
+                        self.product_product[mv["product_id"][0]]
+                        if mv["product_id"][0] in self.product_product
+                        else None
+                    )
+                    if not item:
+                        continue
+                    qty = self.convert_qty_uom(
+                        max(
+                            0,
+                            mv["product_qty"]
+                            - (
+                                mv["reserved_availability"]
+                                if self.respect_reservations
+                                else 0
+                            ),
+                        ),
+                        mv["product_uom"],
+                        self.product_product[mv["product_id"][0]]["template"],
+                    )
+                    yield '<flowplan status="confirmed" quantity="%s"><item name=%s/></flowplan>\n' % (
+                        -qty,
+                        quoteattr(item["name"]),
+                    )
+                yield "</flowplans></operationplan>\n"
         yield "</operationplans>\n"
 
     def export_orderpoints(self):
