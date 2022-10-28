@@ -205,5 +205,10 @@ class XMLController(odoo.http.Controller):
             except Exception as e:
                 logger.exception("Error processing data posted by frePPLe")
                 raise InternalServerError(
-                    description="Error processing data posted by frePPLe: check the Odoo log file for more details"
+                    description="Error processing data posted by frePPLe:<br>%s"
+                    % (
+                        traceback.format_exc()
+                        if company and company.disclose_stack_trace
+                        else e
+                    )
                 )
