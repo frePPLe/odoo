@@ -20,13 +20,14 @@ import base64
 import logging
 import odoo
 import os
+from pathlib import Path
 import traceback
 from tempfile import NamedTemporaryFile
 from werkzeug.exceptions import MethodNotAllowed, InternalServerError
 from werkzeug.wrappers import Response
 
+from odoo import http
 from odoo.addons.web.controllers.main import db_monodb, ensure_db
-
 from odoo.addons.frepple.controllers.outbound import exporter, Odoo_generator
 from odoo.addons.frepple.controllers.inbound import importer
 
@@ -145,23 +146,34 @@ class XMLController(odoo.http.Controller):
                     == "true",
                     version=version,
                 )
-                try:
-                    tmpfile = NamedTemporaryFile(mode="w+t", delete=False)
+                # last empty double quote is to let python understand frepple is a folder.
+                xml_folder = os.path.join(str(Path.home()), "logs", "frepple", "")
+                os.makedirs(os.path.dirname(xml_folder), exist_ok=True)
+
+                # delete any old xml file in that folder
+                for file_name in os.listdir(xml_folder):
+                    # construct full file path
+                    file = xml_folder + file_name
+                    if os.path.isfile(file):
+                        os.remove(file)
+
+                with NamedTemporaryFile(
+                    mode="w+t", delete=False, dir=xml_folder
+                ) as tmpfile:
+
                     for i in xp.run():
                         tmpfile.write(i)
-                    tmpfile.close()
-                    data = open(tmpfile.name).read()
-                finally:
-                    os.unlink(tmpfile.name)
-                return req.make_response(
-                    data,
-                    headers=[
-                        ("Content-Type", "application/xml;charset=utf8"),
-                        ("Cache-Control", "no-cache, no-store, must-revalidate"),
-                        ("Pragma", "no-cache"),
-                        ("Expires", "0"),
-                    ],
+                    filename = tmpfile.name
+
+                res = http.send_file(
+                    filename,
+                    mimetype="application/xml;charset=utf8",
+                    as_attachment=True,
                 )
+                res.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                res.headers["Pragma"] = "no-cache"
+                res.headers["Expires"] = "0"
+                return res
             except Exception as e:
                 logger.exception("Error generating frePPLe XML data")
                 raise InternalServerError(
