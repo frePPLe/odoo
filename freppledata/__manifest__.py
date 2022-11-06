@@ -9,7 +9,6 @@
     "version": "14.0.0",
     "depends": ["frepple"],
     "data": [
-        "data/config.xml",
         "data/product.template.csv",
         "data/mrp.workcenter.csv",
         "data/mrp.bom.csv",
@@ -17,6 +16,7 @@
         "data/purchase.order.xml",
         "data/stock.warehouse.orderpoint.csv",
         "data/product.supplierinfo.xml",
+        "data/config.xml",
     ],
     "autoinstall": False,
     "installable": True,
