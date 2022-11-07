@@ -7,7 +7,7 @@
     "license": "AGPL-3",
     "category": "Uncategorized",
     "version": "15.0.0",
-    "depends": ["frepple"],
+    "depends": ["mrp_subcontracting", "frepple"],
     "data": [
         "data/product.template.csv",
         "data/mrp.workcenter.csv",
@@ -16,7 +16,7 @@
         "data/purchase.order.xml",
         "data/stock.warehouse.orderpoint.csv",
         "data/product.supplierinfo.xml",
-        "data/config.xml",
+        # "data/config.xml",
     ],
     "autoinstall": False,
     "installable": True,
