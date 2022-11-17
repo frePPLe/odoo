@@ -137,7 +137,7 @@ class importer(object):
                                 "product.supplierinfo"
                             ].search(
                                 [
-                                    ("name", "=", supplier_id),
+                                    ("partner_id", "=", supplier_id),
                                     (
                                         "product_tmpl_id",
                                         "=",
