@@ -160,15 +160,17 @@ class XMLController(odoo.http.Controller):
                 with NamedTemporaryFile(
                     mode="w+t", delete=False, dir=xml_folder
                 ) as tmpfile:
-
                     for i in xp.run():
                         tmpfile.write(i)
                     filename = tmpfile.name
 
-                res = http.send_file(
-                    filename,
+                res = http.Stream(
+                    type="path",
+                    path=filename,
+                    download_name="odoo_data_for_frepple",
+                ).get_response(
                     mimetype="application/xml;charset=utf8",
-                    as_attachment=True,
+                    as_attachment=False,
                 )
                 res.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
                 res.headers["Pragma"] = "no-cache"
