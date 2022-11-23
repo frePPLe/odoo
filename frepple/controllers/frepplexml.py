@@ -110,7 +110,11 @@ class XMLController(odoo.http.Controller):
         language = kwargs.get("language", req.httprequest.form.get("language", None))
         database = kwargs.get("database", req.httprequest.form.get("database", None))
         if not database:
-            database = odoo.http.db_monodb(httprequest=req.httprequest)
+            all_dbs = odoo.http.db_list(force=True)
+            if len(all_dbs) == 1:
+                database = all_dbs[0]
+            else:
+                return Response("Missing database name argument", 401)
         company_name = kwargs.get("company", req.httprequest.form.get("company", None))
         company = None
         if company_name:
