@@ -109,6 +109,8 @@ class XMLController(odoo.http.Controller):
                     version.append(v)
         language = kwargs.get("language", req.httprequest.form.get("language", None))
         database = kwargs.get("database", req.httprequest.form.get("database", None))
+        if not database:
+            database = odoo.http.db_monodb(httprequest=req.httprequest)
         company_name = kwargs.get("company", req.httprequest.form.get("company", None))
         company = None
         if company_name:
