@@ -19,7 +19,8 @@ import logging
 import time
 
 from odoo import api, models, fields, exceptions
-from .. import with_mrp
+
+with_mrp = True
 
 _logger = logging.getLogger(__name__)
 

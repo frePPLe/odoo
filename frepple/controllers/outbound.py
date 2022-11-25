@@ -23,7 +23,8 @@ from xml.sax.saxutils import quoteattr
 from datetime import datetime, timedelta
 from pytz import timezone
 import ssl
-from .. import with_mrp
+
+with_mrp = True
 
 try:
     import odoo
