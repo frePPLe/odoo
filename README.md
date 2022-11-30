@@ -5,7 +5,7 @@ The connectors are composed of 3 modules:
 - autologin: This module is used to automatically log a user to an Odoo instance. We use this module in our online Odoo demo instances for a better user experience.
 - freppledata: This is a sample dataset that we load in our online Odoo demo instances.
 
-Note: To connect a frepple instance to an existing Odoo instance, only the frepple module is required.
+Note: To connect a frepple instance to an Odoo instance, ONLY THE FREPPLE MODULE SHOULD BE INSTALLED.
 
 Check out:
 
