@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 {
-    "name": "frepple data",
+    "name": "freppledata",
     "summary": "Test data for frepple",
     "description": "This addon loads test and demo data for frepple in odoo.",
     "author": "frePPLe",
