@@ -170,7 +170,7 @@ class XMLController(odoo.http.Controller):
                 res = http.send_file(
                     filename,
                     mimetype="application/xml;charset=utf8",
-                    as_attachment=True,
+                    as_attachment=False,
                 )
                 res.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
                 res.headers["Pragma"] = "no-cache"
