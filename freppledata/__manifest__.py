@@ -16,7 +16,7 @@
         "data/purchase.order.xml",
         "data/stock.warehouse.orderpoint.csv",
         "data/product.supplierinfo.xml",
-        # "data/config.xml",
+        "data/config.xml",
     ],
     "autoinstall": False,
     "installable": True,

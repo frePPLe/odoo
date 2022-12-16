@@ -804,6 +804,10 @@ class exporter(object):
             tmpl = self.product_templates[i["product_tmpl_id"][0]]
             if i["code"]:
                 name = ("[%s] %s" % (i["code"], i["name"]))[:300]
+            # product is a variant and has no internal reference
+            # we use the product id as code
+            elif i["product_template_attribute_value_ids"]:
+                name = ("[%s] %s" % (i["id"], i["name"]))[:300]
             else:
                 name = i["name"][:300]
             prod_obj = {
@@ -960,6 +964,7 @@ class exporter(object):
                 "product_qty",
                 "product_uom_id",
                 "product_tmpl_id",
+                "product_id",
                 "type",
                 "bom_line_ids",
                 "sequence",
@@ -986,6 +991,10 @@ class exporter(object):
                 subcontractors = [{}]
 
             for product_id in product_template["product_variant_ids"]:
+
+                # In the case of variants, the BOM needs to apply to the correct product
+                if i["product_id"] and not (i["product_id"][0] == product_id):
+                    continue
 
                 # Determine operation name and item
                 product_buf = self.product_product.get(product_id, None)
@@ -1588,7 +1597,7 @@ class exporter(object):
                         "not in",
                         # Comment out on of the following alternative approaches:
                         # Alternative I: don't send RFQs to frepple because that supply isn't certain to be available yet.
-                        ("draft", "sent", "bid", "confirmed", "cancel"),
+                        ("draft", "sent", "bid", "to approve", "confirmed", "cancel"),
                         # Alternative II: send RFQs to frepple to avoid that the same purchasing proposal is generated again by frepple.
                         # ("bid", "confirmed", "cancel"),
                     ),
