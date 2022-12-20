@@ -198,6 +198,14 @@ class exporter(object):
 
         # Load some auxiliary data in memory
         self.load_company()
+        if self.mode == 0:
+            # This was only a connection test
+            yield '<?xml version="1.0" encoding="UTF-8" ?>\n'
+            yield '<plan xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" source="odoo_%s">' % self.mode
+            yield "connection ok"
+            yield "</plan>"
+            return
+
         self.load_uom()
 
         # Header.
