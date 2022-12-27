@@ -423,7 +423,7 @@ class exporter(object):
         Leave times are read from resource.calendar.leaves
 
         resource.calendar.name -> calendar.name (default value is 0)
-        resource.calendar.attendance.date_from -> calendar bucket start date (or 2000-01-01 if unspecified)
+        resource.calendar.attendance.date_from -> calendar bucket start date (or 2020-01-01 if unspecified)
         resource.calendar.attendance.date_to -> calendar bucket end date (or 2030-01-01 if unspecified)
         resource.calendar.attendance.hour_from -> calendar bucket start time
         resource.calendar.attendance.hour_to -> calendar bucket end time
@@ -431,6 +431,11 @@ class exporter(object):
 
         resource.calendar.leaves.date_from -> calendar bucket start date
         resource.calendar.leaves.date_to -> calendar bucket end date
+        
+        For two-week calendars all weeks between the calendar start and 
+        calendar end dates are added in frepple as calendar buckets.
+        The week number is using the iso standard (first week of the
+        year is the one containing the first Thursday of the year).
 
         """
         yield "<!-- calendar -->\n"
@@ -455,6 +460,7 @@ class exporter(object):
             # Read the attendance for all calendars
             for i in self.generator.getData(
                 "resource.calendar.attendance",
+                search=[("display_type", "=", False)],
                 fields=[
                     "dayofweek",
                     "date_from",
@@ -462,6 +468,7 @@ class exporter(object):
                     "hour_from",
                     "hour_to",
                     "calendar_id",
+                    "week_type",
                 ],
             ):
                 if i["calendar_id"] and i["calendar_id"][0] in cal_ids:
@@ -497,38 +504,73 @@ class exporter(object):
                     )
                 yield '<calendar name=%s default="0"><buckets>\n' % quoteattr(i)
                 for j in calendars[i]:
-                    yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
-                        self.formatDateTime(j["date_from"], cal_tz[i])
-                        if not j["attendance"]
-                        else (
-                            j["date_from"].strftime("%Y-%m-%dT00:00:00")
-                            if j["date_from"]
-                            else "2000-01-01T00:00:00"
-                        ),
-                        self.formatDateTime(j["date_to"], cal_tz[i])
-                        if not j["attendance"]
-                        else (
-                            j["date_to"].strftime("%Y-%m-%dT00:00:00")
-                            if j["date_to"]
-                            else "2030-01-01T00:00:00"
-                        ),
-                        "1" if j["attendance"] else "0",
-                        (2 ** ((int(j["dayofweek"]) + 1) % 7))
-                        if "dayofweek" in j
-                        else (2 ** 7) - 1,
-                        priority_attendance if j["attendance"] else priority_leave,
-                        # In odoo, monday = 0. In frePPLe, sunday = 0.
-                        ("PT%dM" % round(j["hour_from"] * 60))
-                        if "hour_from" in j
-                        else "PT0M",
-                        ("PT%dM" % round(j["hour_to"] * 60))
-                        if "hour_to" in j
-                        else "PT1440M",
-                    )
-                    if j["attendance"]:
-                        priority_attendance += 1
+                    if j["week_type"] == False:
+                        # ONE-WEEK CALENDAR
+                        yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
+                            self.formatDateTime(j["date_from"], cal_tz[i])
+                            if not j["attendance"]
+                            else (
+                                j["date_from"].strftime("%Y-%m-%dT00:00:00")
+                                if j["date_from"]
+                                else "2020-01-01T00:00:00"
+                            ),
+                            self.formatDateTime(j["date_to"], cal_tz[i])
+                            if not j["attendance"]
+                            else (
+                                j["date_to"].strftime("%Y-%m-%dT00:00:00")
+                                if j["date_to"]
+                                else "2030-01-01T00:00:00"
+                            ),
+                            "1" if j["attendance"] else "0",
+                            (2 ** ((int(j["dayofweek"]) + 1) % 7))
+                            if "dayofweek" in j
+                            else (2 ** 7) - 1,
+                            priority_attendance if j["attendance"] else priority_leave,
+                            # In odoo, monday = 0. In frePPLe, sunday = 0.
+                            ("PT%dM" % round(j["hour_from"] * 60))
+                            if "hour_from" in j
+                            else "PT0M",
+                            ("PT%dM" % round(j["hour_to"] * 60))
+                            if "hour_to" in j
+                            else "PT1440M",
+                        )
+                        if j["attendance"]:
+                            priority_attendance += 1
+                        else:
+                            priority_leave += 1
                     else:
-                        priority_leave += 1
+                        # TWO-WEEKS CALENDAR
+                        start = j["date_from"] or datetime(2020, 1, 1)
+                        end = j["date_to"] or datetime(2030, 1, 1)
+
+                        t = start
+                        while t < end:
+                            if int(t.isocalendar()[1] % 2) == int(j["week_type"]):
+                                if j["hour_to"] == 0:
+                                    logger.info(j)
+                                yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
+                                    self.formatDateTime(t, cal_tz[i]),
+                                    self.formatDateTime(
+                                        min(t + timedelta(7 - t.weekday()), end),
+                                        cal_tz[i],
+                                    ),
+                                    "1",
+                                    (2 ** ((int(j["dayofweek"]) + 1) % 7))
+                                    if "dayofweek" in j
+                                    else (2 ** 7) - 1,
+                                    priority_attendance,
+                                    # In odoo, monday = 0. In frePPLe, sunday = 0.
+                                    ("PT%dM" % round(j["hour_from"] * 60))
+                                    if "hour_from" in j
+                                    else "PT0M",
+                                    ("PT%dM" % round(j["hour_to"] * 60))
+                                    if "hour_to" in j
+                                    else "PT1440M",
+                                )
+                                priority_attendance += 1
+                            dow = t.weekday()
+                            t += timedelta(7 - dow)
+
                 yield "</buckets></calendar>\n"
 
             yield "</calendars>\n"
