@@ -9,6 +9,7 @@
                 <field name="skill"/>
                 <field name="search_mode"/>
                 <field name="priority"/>
+                <field name="secondary_workcenter" string="secondary workcenters" widget="many2many_tags"/>
             </field>
         </field>
     </record>
@@ -21,6 +22,8 @@
                 <field name="skill"/>
                 <field name="search_mode"/>
                 <field name="priority"/>
+                <field name="enable_secondary_workcenter" invisible="1"/>
+                <field name="secondary_workcenter" widget="many2many_tags" attrs="{'invisible': [('enable_secondary_workcenter','=',False)]}"/>
             </field>
         </field>
     </record>

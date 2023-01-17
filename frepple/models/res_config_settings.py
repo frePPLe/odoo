@@ -51,3 +51,7 @@ class ResConfigSettings(models.TransientModel):
         related="company_id.disclose_stack_trace",
         readonly=False,
     )
+    enable_secondary_workcenter = fields.Boolean(
+        related="company_id.enable_secondary_workcenter",
+        readonly=False,
+    )
