@@ -431,8 +431,8 @@ class exporter(object):
 
         resource.calendar.leaves.date_from -> calendar bucket start date
         resource.calendar.leaves.date_to -> calendar bucket end date
-        
-        For two-week calendars all weeks between the calendar start and 
+
+        For two-week calendars all weeks between the calendar start and
         calendar end dates are added in frepple as calendar buckets.
         The week number is using the iso standard (first week of the
         year is the one containing the first Thursday of the year).
@@ -987,6 +987,7 @@ class exporter(object):
                 "time_cycle",
                 "skill",
                 "search_mode",
+                "secondary_workcenter",
             ],
         ):
             if not i["bom_id"]:
@@ -1006,6 +1007,11 @@ class exporter(object):
                     mrp_routing_workcenters[i["bom_id"][0]].append(i)
             else:
                 mrp_routing_workcenters[i["bom_id"][0]] = [i]
+
+        # Loop over all secondary workcenters
+        mrp_secondary_workcenter = {
+            i["id"]: i for i in self.generator.getData("mrp.secondary.workcenter")
+        }
 
         # Loop over all bom records
         for i in self.generator.getData(
@@ -1225,6 +1231,35 @@ class exporter(object):
                                     if j["skill"]
                                     else "",
                                 )
+                                # create a load for secondary workcenters
+                                # prepare the secondary workcenter xml string upfront
+                                secondary_workcenter_str = ""
+                                for sw_id in j["secondary_workcenter"]:
+                                    secondary_workcenter = mrp_secondary_workcenter[
+                                        sw_id
+                                    ]
+                                    yield '<load quantity="%f" search=%s><resource name=%s/>%s</load>' % (
+                                        1
+                                        if not secondary_workcenter["duration"]
+                                        or j["time_cycle"] == 0
+                                        else secondary_workcenter["duration"]
+                                        / j["time_cycle"],
+                                        quoteattr(secondary_workcenter["search_mode"]),
+                                        quoteattr(
+                                            self.map_workcenters[
+                                                secondary_workcenter["workcenter_id"][0]
+                                            ]
+                                        ),
+                                        (
+                                            "<skill name=%s/>"
+                                            % quoteattr(
+                                                secondary_workcenter["skill"][1]
+                                            )
+                                        )
+                                        if secondary_workcenter["skill"]
+                                        else "",
+                                    )
+
                             if exists:
                                 yield "</loads>\n"
                     else:
@@ -1285,6 +1320,7 @@ class exporter(object):
                         steplist = mrp_routing_workcenters[i["id"]]
                         counter = 0
                         for step in steplist:
+
                             counter = counter + 1
                             suboperation = step["name"]
                             name = "%s - %s - %s" % (
@@ -1306,7 +1342,32 @@ class exporter(object):
                                 or step["workcenter_id"][0] not in self.map_workcenters
                             ):
                                 continue
-                            yield "<suboperation>" '<operation name=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load></loads>\n' % (
+
+                            # prepare the secondary workcenter xml string upfront
+                            secondary_workcenter_str = ""
+                            for sw_id in step["secondary_workcenter"]:
+                                secondary_workcenter = mrp_secondary_workcenter[sw_id]
+                                secondary_workcenter_str += '<load quantity="%f" search=%s><resource name=%s/>%s</load>' % (
+                                    1
+                                    if not secondary_workcenter["duration"]
+                                    or step["time_cycle"] == 0
+                                    else secondary_workcenter["duration"]
+                                    / step["time_cycle"],
+                                    quoteattr(secondary_workcenter["search_mode"]),
+                                    quoteattr(
+                                        self.map_workcenters[
+                                            secondary_workcenter["workcenter_id"][0]
+                                        ]
+                                    ),
+                                    (
+                                        "<skill name=%s/>"
+                                        % quoteattr(secondary_workcenter["skill"][1])
+                                    )
+                                    if secondary_workcenter["skill"]
+                                    else "",
+                                )
+
+                            yield "<suboperation>" '<operation name=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
                                 quoteattr(name),
                                 counter * 10,
                                 self.convert_float_time(step["time_cycle"] / 1440.0)
@@ -1321,6 +1382,7 @@ class exporter(object):
                                 ("<skill name=%s/>" % quoteattr(step["skill"][1]))
                                 if step["skill"]
                                 else "",
+                                secondary_workcenter_str,
                             )
                             first_flow = True
                             if counter == len(steplist):
