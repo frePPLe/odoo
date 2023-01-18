@@ -46,6 +46,10 @@ class ResCompany(models.Model):
         default=False,
         help="Send stack trace to your frepple server upon connector exceptions.",
     )
+    enable_secondary_workcenter = fields.Boolean(
+        default=False,
+        help="Enable operations to reserve multiple work centers at the same time",
+    )
     respect_reservations = fields.Boolean(
         default=True,
         help="When checked frepple respects the reservations. When unchecked frepple can reallocate material.",

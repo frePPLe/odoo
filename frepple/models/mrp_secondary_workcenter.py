@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2014 by frePPLe bv
+# Copyright (C) 2022 by frePPLe bv
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the terms of the GNU Affero General Public License as published
@@ -15,15 +15,15 @@
 # You should have received a copy of the GNU Affero General Public
 # License along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import json
-from lxml import etree
-
 from odoo import models, fields
 
 
-class RoutingWorkcenterInherit(models.Model):
-    _inherit = "mrp.routing.workcenter"
+class SecondaryWorkcenter(models.Model):
+    _name = "mrp.secondary.workcenter"
+    _description = "List of workcenter skill associations"
+    _rec_name = "workcenter_id"
 
+    workcenter_id = fields.Many2one("mrp.workcenter", "Work Center", required=True)
     skill = fields.Many2one("mrp.skill", "Skill", required=False)
     search_mode = fields.Selection(
         [
@@ -37,9 +37,4 @@ class RoutingWorkcenterInherit(models.Model):
         default="PRIORITY",
     )
     priority = fields.Integer("priority", default=1)
-    secondary_workcenter = fields.Many2many(
-        "mrp.secondary.workcenter", "secondary_workcenter", required=False
-    )
-    enable_secondary_workcenter = fields.Boolean(
-        related="company_id.enable_secondary_workcenter",
-    )
+    duration = fields.Float("Duration", help="time in minutes")
