@@ -40,6 +40,3 @@ class RoutingWorkcenterInherit(models.Model):
     secondary_workcenter = fields.Many2many(
         "mrp.secondary.workcenter", "secondary_workcenter", required=False
     )
-    enable_secondary_workcenter = fields.Boolean(
-        related="company_id.enable_secondary_workcenter",
-    )

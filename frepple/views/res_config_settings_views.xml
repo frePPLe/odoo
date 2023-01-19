@@ -71,16 +71,6 @@
                         <field name="disclose_stack_trace"/>
                      </div>
                   </div>
-                  <div class="col-12 col-lg-6 o_setting_box" id="frepple_disclose_stack_trace">
-                     <div class="o_setting_left_pane"/>
-                     <div class="o_setting_right_pane">
-                        <label for="enable_secondary_workcenter"/>
-                        <div class="text-muted">
-                     Allows to associate an operation to multiple work centers at the same time.
-                        </div>
-                        <field name="enable_secondary_workcenter"/>
-                     </div>
-                  </div>
                </div>
             </div>
          </xpath>
