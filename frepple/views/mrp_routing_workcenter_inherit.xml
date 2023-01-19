@@ -23,8 +23,27 @@
                 <field name="search_mode"/>
                 <field name="priority"/>
                 <field name="enable_secondary_workcenter" invisible="1"/>
-                <field name="secondary_workcenter" widget="many2many_tags" attrs="{'invisible': [('enable_secondary_workcenter','=',False)]}"/>
             </field>
+        </field>
+    </record>
+    <record id="mrp_routing_workcenter_inherit_form_notebook" model="ir.ui.view">
+        <field name="name">mrp.routing.workcenter.inherit.notebook</field>
+        <field name="model">mrp.routing.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_routing_workcenter_form_view"/>
+        <field name="arch" type="xml">
+            <notebook position="inside">
+                <page string="Secondary Workcenters" name="secondary workcenter notebook">
+                    <field name="secondary_workcenter" string="secondary workcenters" widget="many2many">
+                        <tree>
+                            <field name="workcenter_id"/>
+                            <field name="skill"/>
+                            <field name="search_mode"/>
+                            <field name="priority"/>
+                            <field name="duration"/>
+                        </tree>
+                    </field>
+                </page>
+            </notebook>
         </field>
     </record>
 </odoo>
