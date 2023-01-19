@@ -7,7 +7,7 @@
       <field name="inherit_id" ref="base.res_config_settings_view_form"/>
       <field name="arch" type="xml">
          <xpath expr="//div[hasclass('settings')]" position="inside">
-            <div class="app_settings_block" data-string="FrePPLe" data-key="frepple">
+            <div class="app_settings_block" data-string="FrePPLe" string="Frepple" data-key="frepple">
                <h2>FrePPLe</h2>
                <div class="row mt16 o_settings_container">
                   <div class="col-12 col-lg-6 o_setting_box" id="frepple_manufacturing_warehouse">
