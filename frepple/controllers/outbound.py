@@ -968,11 +968,6 @@ class exporter(object):
         yield "<operations>\n"
         self.operations = set()
 
-        # dictionary used to divide the confirmed MO quantities
-        # key is tuple (operation name, produced item)
-        # value is quantity in Operation Materials.
-        self.bom_producedQty = {}
-
         # Read all active manufacturing routings
         # mrp_routings = {}
         # m = self.env["mrp.routing"]
@@ -1110,18 +1105,17 @@ class exporter(object):
                                 quoteattr(location),
                             )
 
-                        convertedQty = self.convert_qty_uom(
+                        # Handle produced quantity of a bom
+                        producedQty = self.convert_qty_uom(
                             i["product_qty"],
                             i["product_uom_id"],
                             i["product_tmpl_id"][0],
                         )
-                        yield '<flows>\n<flow xsi:type="flow_end" quantity="%f"><item name=%s/></flow>\n' % (
-                            convertedQty,
-                            quoteattr(product_buf["name"]),
-                        )
-                        self.bom_producedQty[
-                            (operation, product_buf["name"])
-                        ] = convertedQty
+                        if not producedQty:
+                            producedQty = 1
+                        if producedQty != 1:
+                            yield "<size_minimum>%s</size_minimum>\n" % producedQty
+                        yield "<flows>\n"
 
                         # Build consuming flows.
                         # If the same component is consumed multiple times in the same BOM
@@ -1171,7 +1165,7 @@ class exporter(object):
                             )
                             if qty > 0:
                                 yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
-                                    qty,
+                                    qty / producedQty,
                                     quoteattr(product["name"]),
                                 )
 
@@ -1200,7 +1194,8 @@ class exporter(object):
                                         j["product_qty"],
                                         j["product_uom"],
                                         j["product_id"][0],
-                                    ),
+                                    )
+                                    / producedQty,
                                     quoteattr(product["name"]),
                                 )
                         yield "</flows>\n"
@@ -1241,6 +1236,17 @@ class exporter(object):
                             quoteattr(product_buf["name"]),
                             quoteattr(location),
                         )
+
+                        # Handle produced quantity of a bom
+                        producedQty = (
+                            i["product_qty"]
+                            * getattr(i, "product_efficiency", 1.0)
+                            * uom_factor
+                        )
+                        if not producedQty:
+                            producedQty = 1
+                        if producedQty != 1:
+                            yield "<size_minimum>%s</size_minimum>\n" % producedQty
 
                         yield "<suboperations>"
 
@@ -1325,20 +1331,6 @@ class exporter(object):
                                 else "",
                             )
                             first_flow = True
-                            if counter == len(steplist):
-                                # Add producing flows on the last routing step
-                                first_flow = False
-                                yield '<flows>\n<flow xsi:type="flow_end" quantity="%f"><item name=%s/></flow>\n' % (
-                                    i["product_qty"]
-                                    * getattr(i, "product_efficiency", 1.0)
-                                    * uom_factor,
-                                    quoteattr(product_buf["name"]),
-                                )
-                                self.bom_producedQty[(name, product_buf["name"],)] = (
-                                    i["product_qty"]
-                                    * getattr(i, "product_efficiency", 1.0)
-                                    * uom_factor
-                                )
                             for j in fl.values():
                                 if j["qty"] > 0 and (
                                     (
@@ -1351,7 +1343,7 @@ class exporter(object):
                                         first_flow = False
                                         yield "<flows>\n"
                                     yield '<flow xsi:type="flow_start" quantity="-%f"><item name=%s/></flow>\n' % (
-                                        j["qty"],
+                                        j["qty"] / producedQty,
                                         quoteattr(
                                             self.product_product[j["product_id"][0]][
                                                 "name"
@@ -1830,18 +1822,10 @@ class exporter(object):
                     # )
                 except Exception:
                     continue
-                factor = (
-                    self.bom_producedQty[(operation, item["name"])]
-                    if (operation, i["name"]) in self.bom_producedQty
-                    else 1
-                )
-                qty = (
-                    self.convert_qty_uom(
-                        i["product_qty"],
-                        i["product_uom_id"],
-                        self.product_product[i["product_id"][0]]["template"],
-                    )
-                    / factor
+                qty = self.convert_qty_uom(
+                    i["product_qty"],
+                    i["product_uom_id"],
+                    self.product_product[i["product_id"][0]]["template"],
                 )
                 # Option 1: compute MO end date based on the start date
                 yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
