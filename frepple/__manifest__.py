@@ -19,6 +19,7 @@
         "views/mrp_skill.xml",
         "views/mrp_workcenter_inherit.xml",
         "views/mrp_workcenter_skill.xml",
+        "views/mrp_secondary_workcenter.xml",
         "views/mrp_routing_workcenter_inherit.xml",
         "views/product_supplierinfo_inherit.xml",
     ],

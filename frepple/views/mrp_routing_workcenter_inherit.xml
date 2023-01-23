@@ -31,16 +31,8 @@
         <field name="inherit_id" ref="mrp.mrp_routing_workcenter_form_view"/>
         <field name="arch" type="xml">
             <notebook position="inside">
-                <page string="Secondary Workcenters" name="secondary workcenter notebook">
-                    <field name="secondary_workcenter" string="secondary workcenters" widget="many2many">
-                        <tree>
-                            <field name="workcenter_id"/>
-                            <field name="skill"/>
-                            <field name="search_mode"/>
-                            <field name="priority"/>
-                            <field name="duration"/>
-                        </tree>
-                    </field>
+                <page string="Secondary Workcenters" name="Secondary Workcenters">
+                    <field name="secondary_workcenter" context="{'routing_workcenter_id_invisible': True, 'default_routing_workcenter_id': id, 'tree_view_ref': 'mrp.mrp_secondary_workcenter_tree_view'}"/>
                 </page>
             </notebook>
         </field>
