@@ -37,9 +37,6 @@ class RoutingWorkcenterInherit(models.Model):
         default="PRIORITY",
     )
     priority = fields.Integer("priority", default=1)
-    secondary_workcenter = fields.Many2many(
-        "mrp.secondary.workcenter", "secondary_workcenter", required=False
-    )
-    enable_secondary_workcenter = fields.Boolean(
-        related="company_id.enable_secondary_workcenter",
+    secondary_workcenter = fields.One2many(
+        "mrp.secondary.workcenter", "routing_workcenter_id", required=False, copy=True
     )

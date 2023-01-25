@@ -7,7 +7,7 @@
       <field name="inherit_id" ref="base.res_config_settings_view_form"/>
       <field name="arch" type="xml">
          <xpath expr="//div[hasclass('settings')]" position="inside">
-            <div class="app_settings_block" data-string="FrePPLe" data-key="frepple">
+            <div class="app_settings_block" data-string="FrePPLe" string="Frepple" data-key="frepple">
                <h2>FrePPLe</h2>
                <div class="row mt16 o_settings_container">
                   <div class="col-12 col-lg-6 o_setting_box" id="frepple_manufacturing_warehouse">
@@ -69,16 +69,6 @@
                      Send stack trace to your frepple server upon connector exceptions.
                         </div>
                         <field name="disclose_stack_trace"/>
-                     </div>
-                  </div>
-                  <div class="col-12 col-lg-6 o_setting_box" id="frepple_disclose_stack_trace">
-                     <div class="o_setting_left_pane"/>
-                     <div class="o_setting_right_pane">
-                        <label for="enable_secondary_workcenter"/>
-                        <div class="text-muted">
-                     Allows to associate an operation to multiple work centers at the same time.
-                        </div>
-                        <field name="enable_secondary_workcenter"/>
                      </div>
                   </div>
                </div>

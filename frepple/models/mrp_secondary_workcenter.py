@@ -23,7 +23,19 @@ class SecondaryWorkcenter(models.Model):
     _description = "List of workcenter skill associations"
     _rec_name = "workcenter_id"
 
-    workcenter_id = fields.Many2one("mrp.workcenter", "Work Center", required=True)
+    routing_workcenter_id = fields.Many2one(
+        "mrp.routing.workcenter",
+        "Parent routing workcenter",
+        index=True,
+        ondelete="cascade",
+        required=True,
+    )
+    workcenter_id = fields.Many2one(
+        "mrp.workcenter",
+        "Work Center",
+        required=True,
+        ondelete="cascade",
+    )
     skill = fields.Many2one("mrp.skill", "Skill", required=False)
     search_mode = fields.Selection(
         [
