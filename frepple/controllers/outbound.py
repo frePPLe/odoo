@@ -714,6 +714,7 @@ class exporter(object):
                 "resource_calendar_id",
                 "time_efficiency",
                 "capacity",
+                "tool",
             ],
         ):
             if first:
@@ -724,9 +725,10 @@ class exporter(object):
             owner = i["owner"]
             available = i["resource_calendar_id"]
             self.map_workcenters[i["id"]] = name
-            yield '<resource name=%s maximum="%s" efficiency="%s"><location name=%s/>%s%s</resource>\n' % (
+            yield '<resource name=%s maximum="%s" subcategory="%s" efficiency="%s"><location name=%s/>%s%s</resource>\n' % (
                 quoteattr(name),
                 i["capacity"],
+                "tool" if i["tool"] else "",
                 i["time_efficiency"],
                 quoteattr(self.mfg_location),
                 ("<owner name=%s/>" % quoteattr(owner[1])) if owner else "",
