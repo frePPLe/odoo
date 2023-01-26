@@ -43,8 +43,8 @@
     "price": 0,
     "currency": "EUR",
     "images": [
-        "images/forecasting.png",
-        "images/inventory.png",
-        "images/production.png",
+        "static/images/forecasting.png",
+        "static/images/inventory.png",
+        "static/images/production.png",
     ],
 }
