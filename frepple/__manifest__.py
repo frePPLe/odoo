@@ -42,9 +42,5 @@
     },
     "price": 0,
     "currency": "EUR",
-    "images": [
-        "static/images/forecasting.png",
-        "static/images/inventory.png",
-        "static/images/production.png",
-    ],
+    "images": ["frepple/static/description/images/frepple_animation.gif"],
 }
