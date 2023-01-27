@@ -22,4 +22,7 @@ module on an actual production environment.
     "demo": [],
     "autoinstall": False,
     "installable": True,
+    "price": 0,
+    "currency": "EUR",
+    "images": ["static/description/images/autologin.png"],
 }
