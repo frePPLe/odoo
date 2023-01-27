@@ -36,5 +36,5 @@
     "application": True,
     "price": 0,
     "currency": "EUR",
-    "images": ["frepple/static/description/images/frepple_animation.gif"],
+    "images": ["static/description/images/frepple_animation.gif"],
 }
