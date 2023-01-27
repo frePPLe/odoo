@@ -7,7 +7,7 @@
     "license": "AGPL-3",
     "category": "Uncategorized",
     "version": "14.0.0",
-    "depends": ["mrp_subcontracting", "frepple"],
+    "depends": ["mrp_subcontracting"],
     "data": [
         "data/product.template.csv",
         "data/mrp.workcenter.csv",
@@ -20,4 +20,7 @@
     ],
     "autoinstall": False,
     "installable": True,
+    "price": 0,
+    "currency": "EUR",
+    "images": ["static/description/images/freppledata.png"],
 }
