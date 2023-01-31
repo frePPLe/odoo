@@ -24,4 +24,8 @@ class WorkcenterSkill(models.Model):
 
     workcenter = fields.Many2one("mrp.workcenter", "Work Center", required=True)
     skill = fields.Many2one("mrp.skill", "Skill", required=True)
-    priority = fields.Integer("priority", default=1)
+    priority = fields.Integer(
+        "priority",
+        default=1,
+        help="Priority of this workcenter to fulfill requirements for this skill",
+    )
