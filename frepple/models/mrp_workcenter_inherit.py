@@ -21,5 +21,14 @@ from odoo import models, fields
 class WorkcenterInherit(models.Model):
     _inherit = "mrp.workcenter"
 
-    owner = fields.Many2one("mrp.workcenter", "Owner", required=False)
-    tool = fields.Boolean("is a tool", default=False)
+    owner = fields.Many2one(
+        "mrp.workcenter",
+        "Owner",
+        required=False,
+        help="Groups workcenters together in groups",
+    )
+    tool = fields.Boolean(
+        "is a tool",
+        default=False,
+        help="Mark workcenters that are tools, fixtures or holders. The same tool needs to accompany a manufacturing order through all its work orders.",
+    )

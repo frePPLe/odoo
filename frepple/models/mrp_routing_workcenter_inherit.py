@@ -24,7 +24,12 @@ from odoo import models, fields
 class RoutingWorkcenterInherit(models.Model):
     _inherit = "mrp.routing.workcenter"
 
-    skill = fields.Many2one("mrp.skill", "Skill", required=False)
+    skill = fields.Many2one(
+        "mrp.skill",
+        "Skill",
+        required=False,
+        help="Workcenter skill required to perform this operation",
+    )
     search_mode = fields.Selection(
         [
             ("PRIORITY", "priority"),
@@ -35,8 +40,15 @@ class RoutingWorkcenterInherit(models.Model):
         string="Search Mode",
         required=False,
         default="PRIORITY",
+        help="Method to choose a workcenter among alternatives",
     )
-    priority = fields.Integer("priority", default=1)
+    priority = fields.Integer(
+        "priority", default=1, help="Priority of this workcenter among alternatives"
+    )
     secondary_workcenter = fields.One2many(
-        "mrp.secondary.workcenter", "routing_workcenter_id", required=False, copy=True
+        "mrp.secondary.workcenter",
+        "routing_workcenter_id",
+        required=False,
+        copy=True,
+        help="Extra workcenters needed for this operation",
     )

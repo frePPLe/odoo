@@ -36,7 +36,12 @@ class SecondaryWorkcenter(models.Model):
         required=True,
         ondelete="cascade",
     )
-    skill = fields.Many2one("mrp.skill", "Skill", required=False)
+    skill = fields.Many2one(
+        "mrp.skill",
+        "Skill",
+        required=False,
+        help="Workcenter skill required to perform this operation",
+    )
     search_mode = fields.Selection(
         [
             ("PRIORITY", "priority"),
@@ -47,6 +52,9 @@ class SecondaryWorkcenter(models.Model):
         string="Search Mode",
         required=False,
         default="PRIORITY",
+        help="Method to choose a workcenter among alternatives",
     )
-    priority = fields.Integer("priority", default=1)
+    priority = fields.Integer(
+        "priority", default=1, help="Priority of this workcenter among alternatives"
+    )
     duration = fields.Float("Duration", help="time in minutes")
