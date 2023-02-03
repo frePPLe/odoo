@@ -3,6 +3,8 @@
     <data noupdate="0">
         <record id="frepple_user" model="res.groups">
             <field name="name">frePPLe user</field>
+            <field name="category_id" ref="base.module_category_manufacturing_manufacturing" />
+            <field name="comment">Allow this user to access the frepple application</field>
             <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]" />
         </record>
     </data>
