@@ -1089,7 +1089,7 @@ class exporter(object):
                                 quoteattr(subcontractor["name"]),
                                 subcontractor.get("delay", 0),
                                 self.po_lead,
-                                subcontractor.get("priority", 1),
+                                subcontractor.get("priority", 1) + 50,
                                 subcontractor.get("size_minimum", 0),
                                 quoteattr(product_buf["name"]),
                                 quoteattr(location),
@@ -1107,7 +1107,7 @@ class exporter(object):
                                 if duration_per and duration_per > 0
                                 else "P0D",
                                 self.manufacturing_lead,
-                                i["sequence"] or 1,
+                                100 + (i["sequence"] or 1),
                                 quoteattr(product_buf["name"]),
                                 quoteattr(location),
                             )
@@ -1268,7 +1268,7 @@ class exporter(object):
                         yield '<operation name=%s size_multiple="1" posttime="P%dD" priority="%s" xsi:type="operation_routing">' "<item name=%s/><location name=%s/>\n" % (
                             quoteattr(operation),
                             self.manufacturing_lead,
-                            i["sequence"] or 1,
+                            100 + (i["sequence"] or 1),
                             quoteattr(product_buf["name"]),
                             quoteattr(location),
                         )
