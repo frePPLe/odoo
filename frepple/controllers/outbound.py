@@ -431,8 +431,8 @@ class exporter(object):
 
         resource.calendar.leaves.date_from -> calendar bucket start date
         resource.calendar.leaves.date_to -> calendar bucket end date
-        
-        For two-week calendars all weeks between the calendar start and 
+
+        For two-week calendars all weeks between the calendar start and
         calendar end dates are added in frepple as calendar buckets.
         The week number is using the iso standard (first week of the
         year is the one containing the first Thursday of the year).
@@ -504,7 +504,7 @@ class exporter(object):
                     )
                 yield '<calendar name=%s default="0"><buckets>\n' % quoteattr(i)
                 for j in calendars[i]:
-                    if j["week_type"] == False:
+                    if j.get("week_type", False) == False:
                         # ONE-WEEK CALENDAR
                         yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
                             self.formatDateTime(j["date_from"], cal_tz[i])
