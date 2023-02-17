@@ -504,7 +504,7 @@ class exporter(object):
                     )
                 yield '<calendar name=%s default="0"><buckets>\n' % quoteattr(i)
                 for j in calendars[i]:
-                    if j["week_type"] == False:
+                    if j.get("week_type", False) == False:
                         # ONE-WEEK CALENDAR
                         yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
                             self.formatDateTime(j["date_from"], cal_tz[i])
