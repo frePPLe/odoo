@@ -248,6 +248,9 @@ class exporter(object):
                 logger.debug("Exporting workcenters.")
                 for i in self.export_workcenters():
                     yield i
+                logger.debug("Exporting workcenterskills.")
+                for i in self.export_workcenterskills():
+                    yield i
         logger.debug("Exporting products.")
         for i in self.export_items():
             yield i
