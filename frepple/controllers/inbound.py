@@ -107,6 +107,26 @@ class importer(object):
                         quantity = elem.get("quantity")
                         date_planned = elem.get("end")
                         if (item_id, supplier_id) not in product_supplier_dict:
+                            product = self.env["product.product"].browse(int(item_id))
+                            product_supplierinfo = self.env[
+                                "product.supplierinfo"
+                            ].search(
+                                [
+                                    ("name", "=", supplier_id),
+                                    (
+                                        "product_tmpl_id",
+                                        "=",
+                                        product.product_tmpl_id.id,
+                                    ),
+                                    ("min_qty", "<=", quantity),
+                                ],
+                                limit=1,
+                                order="min_qty desc",
+                            )
+                            if product_supplierinfo:
+                                price_unit = product_supplierinfo.price
+                            else:
+                                price_unit = 0
                             po_line = proc_orderline.create(
                                 {
                                     "order_id": supplier_reference[supplier_id],
@@ -114,7 +134,7 @@ class importer(object):
                                     "product_qty": quantity,
                                     "product_uom": int(uom_id),
                                     "date_planned": date_planned,
-                                    "price_unit": 0,
+                                    "price_unit": price_unit,
                                     "name": elem.get("item"),
                                 }
                             )
