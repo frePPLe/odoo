@@ -527,7 +527,7 @@ class exporter(object):
                             "1" if j["attendance"] else "0",
                             (2 ** ((int(j["dayofweek"]) + 1) % 7))
                             if "dayofweek" in j
-                            else (2 ** 7) - 1,
+                            else (2**7) - 1,
                             priority_attendance if j["attendance"] else priority_leave,
                             # In odoo, monday = 0. In frePPLe, sunday = 0.
                             ("PT%dM" % round(j["hour_from"] * 60))
@@ -560,7 +560,7 @@ class exporter(object):
                                     "1",
                                     (2 ** ((int(j["dayofweek"]) + 1) % 7))
                                     if "dayofweek" in j
-                                    else (2 ** 7) - 1,
+                                    else (2**7) - 1,
                                     priority_attendance,
                                     # In odoo, monday = 0. In frePPLe, sunday = 0.
                                     ("PT%dM" % round(j["hour_from"] * 60))
@@ -896,7 +896,6 @@ class exporter(object):
             )
             # Export suppliers for the item, if the item is allowed to be purchased
             if tmpl["purchase_ok"]:
-                exists = False
                 try:
                     # TODO it's inefficient to run a query per product template.
                     results = self.generator.getData(
@@ -912,20 +911,9 @@ class exporter(object):
                         search=[("product_tmpl_id", "=", tmpl["id"])],
                         fields=supplierinfo_fields,
                     )
-                suppliers = set()
+                suppliers = {}
                 for sup in results:
-                    if not exists:
-                        exists = True
-                        yield "<itemsuppliers>\n"
                     name = "%d %s" % (sup["name"][0], sup["name"][1])
-                    if (
-                        name in suppliers
-                        and not sup["date_end"]
-                        and not sup["date_start"]
-                    ):
-                        # Avoid multiple records for the same supplier (unless there is date effecitivity). Keep only the first.
-                        continue
-                    suppliers.add(name)
                     if sup.get("is_subcontractor", False):
                         if not hasattr(tmpl, "subcontractors"):
                             tmpl["subcontractors"] = []
@@ -937,24 +925,63 @@ class exporter(object):
                                 "size_minimum": sup["min_qty"],
                             }
                         )
+                    elif (name, sup["date_start"]) in suppliers:
+                        # If there are multiple records with the same supplier & start date
+                        # we pass a single record to frepple with lowest-lead-time,
+                        # lowest-quantity, lowest-sequence, greatest-end-date.
+                        r = suppliers[(name, sup["date_start"])]
+                        if sup["delay"] and (
+                            not r["delay"] or sup["delay"] < r["delay"]
+                        ):
+                            r["delay"] = sup["delay"]
+                        if sup["sequence"] and (
+                            not r["sequence"] or sup["sequence"] < r["sequence"]
+                        ):
+                            r["sequence"] = sup["sequence"]
+                        if sup["batching_window"] and (
+                            not r["batching_window"]
+                            or sup["batching_window"] > r["batching_window"]
+                        ):
+                            r["batching_window"] = sup["batching_window"]
+                        if sup["min_qty"] and (
+                            not r["min_qty"] or sup["min_qty"] < r["min_qty"]
+                        ):
+                            r["min_qty"] = sup["min_qty"]
+                        if sup["price"] and (
+                            not r["price"] or sup["price"] < r["price"]
+                        ):
+                            r["price"] = sup["price"]
+                        if sup["date_end"] and (
+                            not r["date_end"] or sup["date_end"] > r["date_end"]
+                        ):
+                            r["date_end"] = sup["date_end"]
                     else:
+                        suppliers[(name, sup["date_start"])] = {
+                            "delay": sup["delay"],
+                            "sequence": sup["sequence"] or 1,
+                            "batching_window": sup["batching_window"] or 0,
+                            "min_qty": sup["min_qty"],
+                            "price": max(0, sup["price"]),
+                            "date_end": sup["date_end"],
+                        }
+                if suppliers:
+                    yield "<itemsuppliers>\n"
+                    for k, v in suppliers.items():
                         yield '<itemsupplier leadtime="P%dD" priority="%s" batchwindow="P%dD" size_minimum="%f" cost="%f"%s%s><supplier name=%s/></itemsupplier>\n' % (
-                            sup["delay"],
-                            sup["sequence"] or 1,
-                            sup["batching_window"] or 0,
-                            sup["min_qty"],
-                            max(0, sup["price"]),
+                            v["delay"],
+                            v["sequence"] or 1,
+                            v["batching_window"] or 0,
+                            v["min_qty"],
+                            max(0, v["price"]),
                             ' effective_end="%sT00:00:00"'
-                            % sup["date_end"].strftime("%Y-%m-%d")
-                            if sup["date_end"]
+                            % v["date_end"].strftime("%Y-%m-%d")
+                            if v["date_end"]
                             else "",
-                            ' effective_start="%sT00:00:00"'
-                            % sup["date_start"].strftime("%Y-%m-%d")
-                            if sup["date_start"]
+                            ' effective_start="%sT00:00:00"' % k[1].strftime("%Y-%m-%d")
+                            if k[1]
                             else "",
-                            quoteattr(name),
+                            quoteattr(k[0]),
                         )
-                if exists:
                     yield "</itemsuppliers>\n"
             yield "</item>\n"
         if not first:
@@ -1930,7 +1957,7 @@ class exporter(object):
                 i["product_uom"][0],
                 self.product_product[i["product_id"][0]]["template"],
             )
-            name = u"%s @ %s" % (item["name"], i["warehouse_id"][1])
+            name = "%s @ %s" % (item["name"], i["warehouse_id"][1])
             if i["product_min_qty"]:
                 yield """
                 <calendar name=%s default="0"><buckets>
