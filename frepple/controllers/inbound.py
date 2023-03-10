@@ -255,8 +255,6 @@ class importer(object):
                                 "company_id": self.company.id,
                                 "product_uom_id": int(uom_id),
                                 "picking_type_id": picking.id,
-                                "location_src_id": warehouse,
-                                "location_dest_id": warehouse,
                                 "bom_id": int(elem.get("operation").rsplit(" ", 1)[1]),
                                 "qty_producing": 0.00,
                                 # TODO no place to store the criticality
