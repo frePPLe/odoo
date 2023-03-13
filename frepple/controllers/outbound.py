@@ -1881,7 +1881,10 @@ class exporter(object):
         yield "<operationplans>\n"
         for i in self.generator.getData(
             "mrp.production",
+            # Option 1: import only the odoo status from "confirmed" onwards
             search=[("state", "in", ["progress", "confirmed", "to_close"])],
+            # Option 2: Also import draft manufacturing order from odoo (to avoid that frepple reproposes it another time)
+            # search=[("state", "in", ["draft", "progress", "confirmed", "to_close"])],
             fields=[
                 "bom_id",
                 "date_start",
