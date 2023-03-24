@@ -793,7 +793,6 @@ class exporter(object):
         product.product.id , product.product.product_tmpl_id.uom_id -> item.subcategory
 
         If product.product.product_tmpl_id.purchase_ok
-        and product.product.product_tmpl_id.routes contains the buy route
         we collect the suppliers as product.product.product_tmpl_id.seller_ids
         [product.product.code] product.product.name -> itemsupplier.item
         res.partner.id res.partner.name -> itemsupplier.supplier.name
@@ -1869,7 +1868,7 @@ class exporter(object):
         """
         Extracting work in progress to frePPLe, using the mrp.production model.
 
-        We extract workorders in the states 'in_production' and 'confirmed', and
+        We extract manufacturing orders in the states 'in_production' and 'confirmed', and
         which have a bom specified.
 
         Mapping:
@@ -1898,7 +1897,10 @@ class exporter(object):
                 "location_dest_id",
                 "product_id",
                 "move_raw_ids",
-            ],
+            ]
+            + ["workorder_ids"]
+            if self.manage_work_orders
+            else [],
         ):
             if i["bom_id"]:
                 # Open orders
@@ -1990,6 +1992,138 @@ class exporter(object):
                         quoteattr(item["name"]),
                     )
                 yield "</flowplans></operationplan>\n"
+
+                if self.manage_work_orders and i["workorder_ids"]:
+                    for wo in self.generator.getData(
+                        "mrp.workorder",
+                        ids=i["workorder_ids"],
+                        fields=[
+                            "display_name",
+                            "name",
+                            "qty_produced",
+                            "product_uom_id",
+                            "working_state",
+                            "state",
+                            "workcenter_id",
+                            "product_id",
+                            "workcenter_id",
+                            "date_planned_start",
+                            "date_planned_finished",
+                            "duration_expected",
+                            "duration_percent",
+                            "duration_unit",
+                            "product_uom_id",
+                            "production_availability",
+                            "production_state",
+                            "production_bom_id",
+                            "qty_production",
+                            "qty_producing",
+                            "qty_remaining",
+                            "qty_produced",
+                            "is_produced",
+                            "state",
+                            "date_planned_start",
+                            "date_planned_finished",
+                            "date_start",
+                            "date_finished",
+                            "duration_expected",
+                            "duration",
+                            "duration_unit",
+                            "duration_percent",
+                            "progress",
+                            "operation_id",
+                            "move_raw_ids",
+                            "move_finished_ids",
+                            "move_line_ids",
+                            "next_work_order_id",
+                            "production_date",
+                            "display_name",
+                        ],
+                    ):
+                        if wo["operation_id"]:
+                            suboperation = "%s - %s - %s" % (
+                                operation,
+                                wo["operation_id"][1],
+                                wo["operation_id"][0],
+                            )
+                            if len(suboperation) > 300:
+                                suffix = " - %s - %s" % (
+                                    wo["operation_id"][1],
+                                    wo["operation_id"][0],
+                                )
+                                suboperation = "%s%s" % (
+                                    operation[: 300 - len(suffix)],
+                                    suffix,
+                                )
+                            operationdef = "<operation name=%s/>" % quoteattr(
+                                suboperation
+                            )
+                        else:
+                            # This work order was manually added to the manufacturing order.
+                            # We need to create also an operation.
+                            suboperation = wo["display_name"]
+                            if len(suboperation) > 300:
+                                suboperation = suboperation[0:300]
+                            operationdef = (
+                                '<operation name=%s type="operation_fixed_time" duration="%s">'
+                                % (
+                                    quoteattr(suboperation),
+                                    self.convert_float_time(
+                                        wo["duration_expected"], units="minutes"
+                                    ),
+                                )
+                            )
+                            if (
+                                i["location_dest_id"]
+                                and i["location_dest_id"][0] in self.map_locations
+                            ):
+                                operationdef += "<location name=%s/>" % quoteattr(
+                                    self.map_locations[i["location_dest_id"][0]]
+                                )
+                            if (
+                                wo["workcenter_id"]
+                                and wo["workcenter_id"][0] in self.map_workcenters
+                            ):
+                                operationdef += (
+                                    "<loads><load><resource name=%s/></load></loads>"
+                                    % quoteattr(
+                                        self.map_workcenters[wo["workcenter_id"][0]]
+                                    )
+                                )
+                            operationdef += "</operation>"
+
+                        # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
+                        # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+                        if wo["state"] == "progress":
+                            state = "confirmed"
+                        elif wo["state"] in ("done", "to_close", "cancel"):
+                            state = "completed"
+                        else:
+                            state = "approved"
+                        try:
+                            enddate = ' end="%s"' % self.formatDateTime(
+                                wo["production_date"]
+                                if wo["production_date"]
+                                else wo["date_finished"]
+                                if wo["date_finished"]
+                                else wo["date_planned_finished"]
+                            )
+                        except Exception as e:
+                            enddate = ""
+                        qty_remaining = self.convert_qty_uom(
+                            wo["qty_remaining"],
+                            wo["product_uom_id"],
+                            self.product_product[i["product_id"][0]]["template"],
+                        )
+                        yield '<operationplan type="MO" reference=%s%s quantity="%s" quantity_completed="%s" status="%s">%s<owner reference=%s/></operationplan>\n' % (
+                            quoteattr(wo["display_name"]),
+                            enddate,
+                            qty,
+                            max(qty - qty_remaining, 0),
+                            state,
+                            operationdef,
+                            quoteattr(i["name"]),
+                        )
         yield "</operationplans>\n"
 
     def export_orderpoints(self):
