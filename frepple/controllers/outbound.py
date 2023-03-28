@@ -1892,6 +1892,7 @@ class exporter(object):
                 "date_planned_finished",
                 "name",
                 "state",
+                "qty_producing",
                 "product_qty",
                 "product_uom_id",
                 "location_dest_id",
@@ -1931,7 +1932,7 @@ class exporter(object):
                 except Exception:
                     continue
                 qty = self.convert_qty_uom(
-                    i["product_qty"],
+                    i["qty_producing"] if i["qty_producing"] else i["product_qty"],
                     i["product_uom_id"],
                     self.product_product[i["product_id"][0]]["template"],
                 )
@@ -1940,8 +1941,9 @@ class exporter(object):
                     quoteattr(i["name"]),
                     startdate,
                     qty,
-                    # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
-                    "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+                    "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
+                    # "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+                    # "approved" if i["status"]  == "confirmed" else "confirmed", # In-progress can't be rescheduled in frepple, but confirmed MOs
                     quoteattr(operation),
                 )
                 # Option 2: compute MO start date based on the end date
@@ -2000,7 +2002,6 @@ class exporter(object):
                         fields=[
                             "display_name",
                             "name",
-                            "qty_produced",
                             "product_uom_id",
                             "working_state",
                             "state",
@@ -2016,11 +2017,9 @@ class exporter(object):
                             "production_availability",
                             "production_state",
                             "production_bom_id",
-                            "qty_production",
                             "qty_producing",
                             "qty_remaining",
                             "qty_produced",
-                            "is_produced",
                             "state",
                             "date_planned_start",
                             "date_planned_finished",
@@ -2101,15 +2100,20 @@ class exporter(object):
                         else:
                             state = "approved"
                         try:
-                            enddate = ' end="%s"' % self.formatDateTime(
-                                wo["production_date"]
-                                if wo["production_date"]
-                                else wo["date_finished"]
-                                if wo["date_finished"]
-                                else wo["date_planned_finished"]
-                            )
+                            if wo["date_finished"]:
+                                wo_date = ' end="%s"' % self.formatDateTime(
+                                    wo["date_finished"]
+                                )
+                            else:
+                                wo_date = ' start="%s"' % self.formatDateTime(
+                                    wo["date_start"]
+                                    if wo["date_start"]
+                                    else wo["date_planned_start"]
+                                    if wo["date_planned_start"]
+                                    else wo["production_date"]
+                                )
                         except Exception as e:
-                            enddate = ""
+                            wo_date = ""
                         qty_remaining = self.convert_qty_uom(
                             wo["qty_remaining"],
                             wo["product_uom_id"],
@@ -2117,7 +2121,7 @@ class exporter(object):
                         )
                         yield '<operationplan type="MO" reference=%s%s quantity="%s" quantity_completed="%s" status="%s">%s<owner reference=%s/></operationplan>\n' % (
                             quoteattr(wo["display_name"]),
-                            enddate,
+                            wo_date,
                             qty,
                             max(qty - qty_remaining, 0),
                             state,
