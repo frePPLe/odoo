@@ -1294,7 +1294,7 @@ class exporter(object):
                         # CASE 2: A routing operation is created with a suboperation for each
                         # routing step.
                         #
-                        yield '<operation name=%s size_multiple="1" posttime="P%dD" priority="%s" xsi:type="operation_routing">' "<item name=%s/><location name=%s/>\n" % (
+                        yield '<operation name=%s size_multiple="1" posttime="P%dD" priority="%s" xsi:type="operation_routing"><item name=%s/><location name=%s/>\n' % (
                             quoteattr(operation),
                             self.manufacturing_lead,
                             100 + (i["sequence"] or 1),
@@ -1927,9 +1927,6 @@ class exporter(object):
                             "production_availability",
                             "production_state",
                             "production_bom_id",
-                            "qty_producing",
-                            "qty_remaining",
-                            "qty_produced",
                             "state",
                             "date_planned_start",
                             "date_planned_finished",
@@ -2011,8 +2008,9 @@ class exporter(object):
                         quoteattr(operation),
                     )
                 else:
-                    yield '<operation name=%s xsi:type="operation_routing"><location name=%s/><suboperations>' % (
+                    yield '<operation name=%s xsi:type="operation_routing"><item name=%s/><location name=%s/><suboperations>' % (
                         quoteattr(operation),
+                        quoteattr(item["name"]),
                         quoteattr(self.map_locations[i["location_dest_id"][0]]),
                     )
                     idx = 1
@@ -2069,7 +2067,7 @@ class exporter(object):
                 )
                 if not item:
                     continue
-                qty = self.convert_qty_uom(
+                qtyres = self.convert_qty_uom(
                     max(
                         0,
                         mv["product_qty"]
@@ -2083,7 +2081,7 @@ class exporter(object):
                     self.product_product[mv["product_id"][0]]["template"],
                 )
                 yield '<flowplan status="confirmed" quantity="%s"><item name=%s/></flowplan>\n' % (
-                    -qty,
+                    -qtyres,
                     quoteattr(item["name"]),
                 )
             yield "</flowplans></operationplan>\n"
@@ -2133,16 +2131,16 @@ class exporter(object):
                         )
                 except Exception as e:
                     wo_date = ""
-                qty_remaining = self.convert_qty_uom(
-                    wo["qty_remaining"],
-                    wo["product_uom_id"],
-                    self.product_product[i["product_id"][0]]["template"],
-                )
+                # qty_remaining = self.convert_qty_uom(
+                #     wo["qty_remaining"],
+                #     wo["product_uom_id"],
+                #     self.product_product[i["product_id"][0]]["template"],
+                # )
                 yield '<operationplan type="MO" reference=%s%s quantity="%s" quantity_completed="%s" status="%s"><operation name=%s/><owner reference=%s/></operationplan>\n' % (
                     quoteattr(wo["display_name"]),
                     wo_date,
                     qty,
-                    max(qty - qty_remaining, 0),
+                    0,  # max(qty - qty_remaining, 0),
                     state,
                     quoteattr(suboperation),
                     quoteattr(i["name"]),
