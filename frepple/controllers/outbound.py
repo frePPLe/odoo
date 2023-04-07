@@ -1982,6 +1982,8 @@ class exporter(object):
                             "production_state",
                             "production_bom_id",
                             "state",
+                            "is_user_working",
+                            "time_ids",
                             "date_planned_start",
                             "date_planned_finished",
                             "date_start",
@@ -2072,10 +2074,25 @@ class exporter(object):
                     suboperation = wo["display_name"]
                     if len(suboperation) > 300:
                         suboperation = suboperation[0:300]
+
+                    # Get remaining duration of the WO
+                    time_left = wo["duration_expected"] - wo["duration_unit"]
+                    if wo["is_user_working"] and wo["time_ids"]:
+                        # The WO is currently being worked on
+                        for tm in self.generator.getData(
+                            "mrp.workcenter.productivity",
+                            ids=wo["time_ids"],
+                            fields=["date_start", "date_end"],
+                        ):
+                            if tm["date_start"] and not tm["date_end"]:
+                                time_left -= round(
+                                    (now - tm["date_start"]).total_seconds() / 60
+                                )
+
                     yield '<suboperation><operation name=%s type="operation_fixed_time" duration="%s"><location name=%s/><flows>' % (
                         quoteattr(suboperation),
                         self.convert_float_time(
-                            max(wo["duration_expected"] - wo["duration_unit"], 0),
+                            max(time_left, 1),  # Miniminum 1 minute remaining :-)
                             units="minutes",
                         ),
                         quoteattr(self.map_locations[i["location_dest_id"][0]]),
@@ -2149,8 +2166,10 @@ class exporter(object):
                                 wo["date_finished"]
                             )
                         else:
-                            wo_date = ' start="%s"' % self.formatDateTime(
-                                max(
+                            if wo["is_user_working"]:
+                                dt = now
+                            else:
+                                dt = max(
                                     wo["date_start"]
                                     if wo["date_start"]
                                     else wo["date_planned_start"]
@@ -2158,19 +2177,13 @@ class exporter(object):
                                     else wo["production_date"],
                                     now,
                                 )
-                            )
+                            wo_date = ' start="%s"' % self.formatDateTime(dt)
                     except Exception as e:
                         wo_date = ""
-                    # qty_remaining = self.convert_qty_uom(
-                    #     wo["qty_remaining"],
-                    #     wo["product_uom_id"],
-                    #     self.product_product[i["product_id"][0]]["template"],
-                    # )
-                    yield '<operationplan type="MO" reference=%s%s quantity="%s" quantity_completed="%s" status="%s"><operation name=%s/><owner reference=%s/></operationplan>\n' % (
+                    yield '<operationplan type="MO" reference=%s%s quantity="%s" status="%s"><operation name=%s/><owner reference=%s/></operationplan>\n' % (
                         quoteattr(wo["display_name"]),
                         wo_date,
                         qty,
-                        0,  # max(qty - qty_remaining, 0),
                         state,
                         quoteattr(suboperation),
                         quoteattr(i["name"]),
