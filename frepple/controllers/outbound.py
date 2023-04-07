@@ -1875,6 +1875,7 @@ class exporter(object):
         mrp.production.date_planned -> operationplan.start
         '1' -> operationplan.status = "confirmed"
         """
+        now = datetime.now()
         yield "<!-- manufacturing orders in progress -->\n"
         yield "<operationplans>\n"
         for i in self.generator.getData(
@@ -1975,7 +1976,6 @@ class exporter(object):
                             "date_planned_start",
                             "date_planned_finished",
                             "duration_expected",
-                            "duration_percent",
                             "duration_unit",
                             "product_uom_id",
                             "production_availability",
@@ -2075,7 +2075,8 @@ class exporter(object):
                     yield '<suboperation><operation name=%s type="operation_fixed_time" duration="%s"><location name=%s/><flows>' % (
                         quoteattr(suboperation),
                         self.convert_float_time(
-                            wo["duration_expected"], units="minutes"
+                            max(wo["duration_expected"] - wo["duration_unit"], 0),
+                            units="minutes",
                         ),
                         quoteattr(self.map_locations[i["location_dest_id"][0]]),
                     )
@@ -2149,11 +2150,14 @@ class exporter(object):
                             )
                         else:
                             wo_date = ' start="%s"' % self.formatDateTime(
-                                wo["date_start"]
-                                if wo["date_start"]
-                                else wo["date_planned_start"]
-                                if wo["date_planned_start"]
-                                else wo["production_date"]
+                                max(
+                                    wo["date_start"]
+                                    if wo["date_start"]
+                                    else wo["date_planned_start"]
+                                    if wo["date_planned_start"]
+                                    else wo["production_date"],
+                                    now,
+                                )
                             )
                     except Exception as e:
                         wo_date = ""
