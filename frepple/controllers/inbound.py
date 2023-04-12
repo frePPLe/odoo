@@ -19,6 +19,7 @@ import odoo
 import logging
 from xml.etree.cElementTree import iterparse
 from datetime import datetime
+from pytz import timezone, UTC
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,13 @@ class importer(object):
         #    Incremental export of some proposed transactions from frePPLe.
         #    In this mode mode we are not erasing any previous proposals.
         self.mode = int(mode)
+
+        # Pick up the timezone of the connector user (or UTC if not set)
+        try:
+            usr = self.env["res.users"].browse(ids=[req.uid]).read(["tz"])[0]
+            self.timezone = timezone(usr["tz"] or "UTC")
+        except Exception as e:
+            self.timezone = timezone("UTC")
 
         # User to be set as responsible on new objects in incremental exports
         self.actual_user = req.httprequest.form.get("actual_user", None)
@@ -214,27 +222,38 @@ class importer(object):
                             # Existing MO
                             mo = mfg_order.search([("name", "=", elem.get("owner"))])
                         if mo:
-                            wo = mfg_workorder.search(
+                            wo_list = mfg_workorder.search(
                                 [
-                                    (
-                                        "production_id",
-                                        "=",
-                                        mo.id,
-                                    ),
-                                    (
-                                        "operation_id",
-                                        "=",
-                                        int(elem.get("operation").rsplit(" ", 1)[1]),
-                                    ),
+                                    ("production_id", "=", mo.id),
+                                    ("state", "in", ["pending", "waiting", "ready"]),
                                 ]
                             )
-                            if wo and wo.state == "pending":
-                                wo.write(
-                                    {
-                                        "date_planned_start": elem.get("start"),
-                                        "date_planned_finished": elem.get("end"),
-                                    }
-                                )
+                            for wo in wo_list:
+                                if wo["display_name"] != elem.get("operation"):
+                                    # Can't filter on the computed display_name field in the search...
+                                    continue
+                                if wo:
+                                    wo.write(
+                                        {
+                                            "date_planned_start": self.timezone.localize(
+                                                datetime.strptime(
+                                                    elem.get("start"),
+                                                    "%Y-%m-%d %H:%M:%S",
+                                                )
+                                            )
+                                            .astimezone(UTC)
+                                            .replace(tzinfo=None),
+                                            "date_planned_finished": self.timezone.localize(
+                                                datetime.strptime(
+                                                    elem.get("end"),
+                                                    "%Y-%m-%d %H:%M:%S",
+                                                )
+                                            )
+                                            .astimezone(UTC)
+                                            .replace(tzinfo=None),
+                                        }
+                                    )
+                                    break
                     else:
                         # Create manufacturing order
                         warehouse = int(elem.get("location_id"))

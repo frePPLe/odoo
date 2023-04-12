@@ -163,9 +163,7 @@ class exporter(object):
             # Default timezone: use the timezone of the connector user (or UTC if not set)
             for i in self.generator.getData(
                 "res.users",
-                ids=[
-                    uid,
-                ],
+                ids=[uid],
                 fields=["tz"],
             ):
                 self.timezone = i["tz"] or "UTC"
@@ -2062,13 +2060,13 @@ class exporter(object):
                 yield "</flows></operation></operationplan>"
             else:
                 # Define an operation for the MO
-                yield '<operation name=%s xsi:type="operation_routing"><item name=%s/><location name=%s/><suboperations>' % (
+                yield '<operation name=%s xsi:type="operation_routing" priority="0"><item name=%s/><location name=%s/><suboperations>' % (
                     quoteattr(operation),
                     quoteattr(item["name"]),
                     quoteattr(self.map_locations[i["location_dest_id"][0]]),
                 )
                 # Define operations for each WO
-                idx = 1
+                idx = 10
                 first_wo = True
                 for wo in wo_list:
                     suboperation = wo["display_name"]
@@ -2089,14 +2087,16 @@ class exporter(object):
                                     (now - tm["date_start"]).total_seconds() / 60
                                 )
 
-                    yield '<suboperation><operation name=%s type="operation_fixed_time" duration="%s"><location name=%s/><flows>' % (
+                    yield '<suboperation><operation name=%s priority="%s" type="operation_fixed_time" duration="%s"><location name=%s/><flows>' % (
                         quoteattr(suboperation),
+                        idx,
                         self.convert_float_time(
                             max(time_left, 1),  # Miniminum 1 minute remaining :-)
                             units="minutes",
                         ),
                         quoteattr(self.map_locations[i["location_dest_id"][0]]),
                     )
+                    idx += 10
                     for mv in mv_list:
                         item = (
                             self.product_product[mv["product_id"][0]]
@@ -2112,7 +2112,6 @@ class exporter(object):
                                 continue
                         elif not first_wo:
                             continue
-                        first_wo = False
 
                         qty_flow = self.convert_qty_uom(
                             max(
@@ -2139,9 +2138,8 @@ class exporter(object):
                         yield "<loads><load><resource name=%s/></load></loads>" % quoteattr(
                             self.map_workcenters[wo["workcenter_id"][0]]
                         )
-
-                    yield "</operation><priority>%s</priority></suboperation>" % idx
-                    idx += 1
+                    first_wo = False
+                    yield "</operation></suboperation>"
                 yield "</suboperations></operation></operationplan>"
 
                 # Create operationplans for each WO
