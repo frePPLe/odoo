@@ -52,7 +52,7 @@
             <field name="bom_id" ref="__export__.mrp_bom_11_ed249962" />
         </record>
 
-        <function model="mrp.production" name="_create_workorder">
+        <function model="mrp.production" name="button_plan">
             <value eval="[ref('freppledata.mo2')]" />
         </function>
 

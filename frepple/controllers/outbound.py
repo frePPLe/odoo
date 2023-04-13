@@ -1998,7 +1998,6 @@ class exporter(object):
                             "move_raw_ids",
                             "move_finished_ids",
                             "move_line_ids",
-                            "next_work_order_id",
                             "production_date",
                             "display_name",
                         ],
