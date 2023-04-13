@@ -771,7 +771,10 @@ class exporter(object):
             yield '<resource name=%s maximum="%s" subcategory="%s" efficiency="%s"><location name=%s/>%s%s</resource>\n' % (
                 quoteattr(name),
                 i["capacity"],
-                "tool" if i["tool"] else "",
+                # Use this line if the tool use is independent of the MO quantity
+                # "tool" if i["tool"] else "",
+                # Use this line if the tool usage is proportional to the MO quantity
+                "tool per piece" if i["tool"] else "",
                 i["time_efficiency"],
                 quoteattr(self.mfg_location),
                 ("<owner name=%s/>" % quoteattr(owner[1])) if owner else "",
