@@ -162,9 +162,7 @@ class exporter(object):
             # Default timezone: use the timezone of the connector user (or UTC if not set)
             for i in self.generator.getData(
                 "res.users",
-                ids=[
-                    uid,
-                ],
+                ids=[uid],
                 fields=["tz"],
             ):
                 self.timezone = i["tz"] or "UTC"
@@ -769,10 +767,14 @@ class exporter(object):
             owner = i["owner"]
             available = i["resource_calendar_id"]
             self.map_workcenters[i["id"]] = name
-            yield '<resource name=%s maximum="%s" subcategory="%s" efficiency="%s"><location name=%s/>%s%s</resource>\n' % (
+            yield '<resource name=%s maximum="%s" category="%s" subcategory="%s" efficiency="%s"><location name=%s/>%s%s</resource>\n' % (
                 quoteattr(name),
                 i["default_capacity"],
-                "tool" if i["tool"] else "",
+                i["id"],
+                # Use this line if the tool use is independent of the MO quantity
+                # "tool" if i["tool"] else "",
+                # Use this line if the tool usage is proportional to the MO quantity
+                "tool per piece" if i["tool"] else "",
                 i["time_efficiency"],
                 quoteattr(self.mfg_location),
                 ("<owner name=%s/>" % quoteattr(owner[1])) if owner else "",
@@ -792,7 +794,6 @@ class exporter(object):
         product.product.id , product.product.product_tmpl_id.uom_id -> item.subcategory
 
         If product.product.product_tmpl_id.purchase_ok
-        and product.product.product_tmpl_id.routes contains the buy route
         we collect the suppliers as product.product.product_tmpl_id.seller_ids
         [product.product.code] product.product.name -> itemsupplier.item
         res.partner.id res.partner.name -> itemsupplier.supplier.name
@@ -991,7 +992,6 @@ class exporter(object):
         """
         yield "<!-- bills of material -->\n"
         yield "<operations>\n"
-        self.operations = set()
 
         # Read all active manufacturing routings
         # mrp_routings = {}
@@ -1102,7 +1102,6 @@ class exporter(object):
                             product_buf["name"][: 300 - len(suffix)],
                             suffix,
                         )
-                    self.operations.add(operation)
                     if (
                         not self.manage_work_orders
                         or subcontractor
@@ -1294,7 +1293,7 @@ class exporter(object):
                         # CASE 2: A routing operation is created with a suboperation for each
                         # routing step.
                         #
-                        yield '<operation name=%s size_multiple="1" posttime="P%dD" priority="%s" xsi:type="operation_routing">' "<item name=%s/><location name=%s/>\n" % (
+                        yield '<operation name=%s size_multiple="1" posttime="P%dD" priority="%s" xsi:type="operation_routing"><item name=%s/><location name=%s/>\n' % (
                             quoteattr(operation),
                             self.manufacturing_lead,
                             100 + (i["sequence"] or 1),
@@ -1868,7 +1867,7 @@ class exporter(object):
         """
         Extracting work in progress to frePPLe, using the mrp.production model.
 
-        We extract workorders in the states 'in_production' and 'confirmed', and
+        We extract manufacturing orders in the states 'in_production' and 'confirmed', and
         which have a bom specified.
 
         Mapping:
@@ -1877,6 +1876,7 @@ class exporter(object):
         mrp.production.date_planned -> operationplan.start
         '1' -> operationplan.status = "confirmed"
         """
+        now = datetime.now()
         yield "<!-- manufacturing orders in progress -->\n"
         yield "<operationplans>\n"
         for i in self.generator.getData(
@@ -1892,78 +1892,150 @@ class exporter(object):
                 "date_planned_finished",
                 "name",
                 "state",
+                "qty_producing",
                 "product_qty",
                 "product_uom_id",
                 "location_dest_id",
                 "product_id",
                 "move_raw_ids",
-            ],
+            ]
+            + ["workorder_ids"]
+            if self.manage_work_orders
+            else [],
         ):
-            if i["bom_id"]:
-                # Open orders
-                location = self.map_locations.get(i["location_dest_id"][0], None)
-                item = (
-                    self.product_product[i["product_id"][0]]
-                    if i["product_id"][0] in self.product_product
-                    else None
+            # Filter out irrelevant manufacturing orders
+            location = self.map_locations.get(i["location_dest_id"][0], None)
+            item = (
+                self.product_product[i["product_id"][0]]
+                if i["product_id"][0] in self.product_product
+                else None
+            )
+            if not item or not location:
+                continue
+
+            # Odoo allows the data on the manufacturing orders and work orders to be
+            # edited manually. The data can thus deviate from the information on the bill
+            # materials.
+            # To reflect this flexibility we need a frepple operation specific
+            # to each manufacturing order.
+            operation = i["name"]
+            try:
+                startdate = self.formatDateTime(
+                    i["date_start"] if i["date_start"] else i["date_planned_start"]
                 )
-                if not item or not location:
-                    continue
-                operation = "%s @ %s %d" % (
-                    item["name"],
-                    location,
-                    i["bom_id"][0],
-                )
-                if operation not in self.operations:
-                    continue
-                try:
-                    startdate = self.formatDateTime(
-                        i["date_start"] if i["date_start"] else i["date_planned_start"]
-                    )
-                    # enddate = (
-                    #     i["date_planned_finished"]
-                    #     .astimezone(timezone(self.timezone))
-                    #     .strftime(self.timeformat)
-                    # )
-                except Exception:
-                    continue
-                qty = self.convert_qty_uom(
-                    i["product_qty"],
-                    i["product_uom_id"],
-                    self.product_product[i["product_id"][0]]["template"],
-                )
-                # Option 1: compute MO end date based on the start date
-                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
-                    quoteattr(i["name"]),
-                    startdate,
-                    qty,
-                    # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
-                    "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
-                    quoteattr(operation),
-                )
-                # Option 2: compute MO start date based on the end date
-                # yield '<operationplan type="MO" reference=%s end="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
-                #     quoteattr(i["name"]),
-                #     enddate,
-                #     qty,
-                #     # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
-                #     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
-                #     quoteattr(operation),
+                # enddate = (
+                #     i["date_planned_finished"]
+                #     .astimezone(timezone(self.timezone))
+                #     .strftime(self.timeformat)
                 # )
-                for mv in self.generator.getData(
-                    "stock.move",
-                    ids=i["move_raw_ids"],
-                    fields=[
-                        "product_id",
-                        "product_qty",
-                        "product_uom",
-                        "date",
-                        "reference",
-                        "workorder_id",
-                        "should_consume_qty",
-                        "reserved_availability",
-                    ],
-                ):
+            except Exception:
+                continue
+            qty = self.convert_qty_uom(
+                i["qty_producing"] if i["qty_producing"] else i["product_qty"],
+                i["product_uom_id"],
+                self.product_product[i["product_id"][0]]["template"],
+            )
+            if not qty:
+                continue
+
+            # Create a record for the MO
+            # Option 1: compute MO end date based on the start date
+            yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="%s">\n' % (
+                quoteattr(i["name"]),
+                startdate,
+                qty,
+                "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
+                # "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+                # "approved" if i["status"]  == "confirmed" else "confirmed", # In-progress can't be rescheduled in frepple, but confirmed MOs
+            )
+            # Option 2: compute MO start date based on the end date
+            # yield '<operationplan type="MO" reference=%s end="%s" quantity="%s" status="%s"><operation name=%s/><flowplans>\n' % (
+            #     quoteattr(i["name"]),
+            #     enddate,
+            #     qty,
+            #     # "approved",  # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
+            #     "confirmed",  # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+            #     quoteattr(operation),
+            # )
+
+            # Collect work order info
+            if self.manage_work_orders:
+                wo_list = [
+                    wo
+                    for wo in self.generator.getData(
+                        "mrp.workorder",
+                        ids=i["workorder_ids"],
+                        fields=[
+                            "display_name",
+                            "name",
+                            "product_uom_id",
+                            "working_state",
+                            "state",
+                            "workcenter_id",
+                            "product_id",
+                            "workcenter_id",
+                            "date_planned_start",
+                            "date_planned_finished",
+                            "duration_expected",
+                            "duration_unit",
+                            "product_uom_id",
+                            "production_availability",
+                            "production_state",
+                            "production_bom_id",
+                            "state",
+                            "is_user_working",
+                            "time_ids",
+                            "date_planned_start",
+                            "date_planned_finished",
+                            "date_start",
+                            "date_finished",
+                            "duration_expected",
+                            "duration",
+                            "duration_unit",
+                            "duration_percent",
+                            "progress",
+                            "operation_id",
+                            "move_raw_ids",
+                            "move_finished_ids",
+                            "move_line_ids",
+                            "next_work_order_id",
+                            "production_date",
+                            "display_name",
+                        ],
+                    )
+                ]
+            else:
+                wo_list = []
+
+            # Collect move info
+            if i["move_raw_ids"]:
+                mv_list = [
+                    mv
+                    for mv in self.generator.getData(
+                        "stock.move",
+                        ids=i["move_raw_ids"],
+                        fields=[
+                            "product_id",
+                            "product_qty",
+                            "product_uom",
+                            "date",
+                            "reference",
+                            "workorder_id",
+                            "should_consume_qty",
+                            "reserved_availability",
+                        ],
+                    )
+                ]
+            else:
+                mv_list = []
+
+            if not wo_list:
+                # There are no workorders on the manufacturing order
+                yield '<operation name=%s xsi:type="operation_fixed_time"><location name=%s/><flows>' % (
+                    quoteattr(operation),
+                    quoteattr(self.map_locations[i["location_dest_id"][0]]),
+                )
+                for mv in mv_list:
                     item = (
                         self.product_product[mv["product_id"][0]]
                         if mv["product_id"][0] in self.product_product
@@ -1971,7 +2043,7 @@ class exporter(object):
                     )
                     if not item:
                         continue
-                    qty = self.convert_qty_uom(
+                    qty_flow = self.convert_qty_uom(
                         max(
                             0,
                             mv["product_qty"]
@@ -1984,11 +2056,139 @@ class exporter(object):
                         mv["product_uom"],
                         self.product_product[mv["product_id"][0]]["template"],
                     )
-                    yield '<flowplan status="confirmed" quantity="%s"><item name=%s/></flowplan>\n' % (
-                        -qty,
+                    yield '<flow quantity="%s"><item name=%s/></flow>\n' % (
+                        -qty_flow / qty,
                         quoteattr(item["name"]),
                     )
-                yield "</flowplans></operationplan>\n"
+                yield "</flows></operation></operationplan>"
+            else:
+                # Define an operation for the MO
+                yield '<operation name=%s xsi:type="operation_routing" priority="0"><item name=%s/><location name=%s/><suboperations>' % (
+                    quoteattr(operation),
+                    quoteattr(item["name"]),
+                    quoteattr(self.map_locations[i["location_dest_id"][0]]),
+                )
+                # Define operations for each WO
+                idx = 10
+                first_wo = True
+                for wo in wo_list:
+                    suboperation = wo["display_name"]
+                    if len(suboperation) > 300:
+                        suboperation = suboperation[0:300]
+
+                    # Get remaining duration of the WO
+                    time_left = wo["duration_expected"] - wo["duration_unit"]
+                    if wo["is_user_working"] and wo["time_ids"]:
+                        # The WO is currently being worked on
+                        for tm in self.generator.getData(
+                            "mrp.workcenter.productivity",
+                            ids=wo["time_ids"],
+                            fields=["date_start", "date_end"],
+                        ):
+                            if tm["date_start"] and not tm["date_end"]:
+                                time_left -= round(
+                                    (now - tm["date_start"]).total_seconds() / 60
+                                )
+
+                    yield '<suboperation><operation name=%s priority="%s" type="operation_fixed_time" duration="%s"><location name=%s/><flows>' % (
+                        quoteattr(suboperation),
+                        idx,
+                        self.convert_float_time(
+                            max(time_left, 1),  # Miniminum 1 minute remaining :-)
+                            units="minutes",
+                        ),
+                        quoteattr(self.map_locations[i["location_dest_id"][0]]),
+                    )
+                    idx += 10
+                    for mv in mv_list:
+                        item = (
+                            self.product_product[mv["product_id"][0]]
+                            if mv["product_id"][0] in self.product_product
+                            else None
+                        )
+                        if not item:
+                            continue
+
+                        # Skip moves of other WOs
+                        if mv["workorder_id"]:
+                            if mv["workorder_id"][0] != wo["id"]:
+                                continue
+                        elif not first_wo:
+                            continue
+
+                        qty_flow = self.convert_qty_uom(
+                            max(
+                                0,
+                                mv["product_qty"]
+                                - (
+                                    mv["reserved_availability"]
+                                    if self.respect_reservations
+                                    else 0
+                                ),
+                            ),
+                            mv["product_uom"],
+                            self.product_product[mv["product_id"][0]]["template"],
+                        )
+                        yield '<flow quantity="%s"><item name=%s/></flow>\n' % (
+                            -qty_flow / qty,
+                            quoteattr(item["name"]),
+                        )
+                    yield "</flows>"
+                    if (
+                        wo["workcenter_id"]
+                        and wo["workcenter_id"][0] in self.map_workcenters
+                    ):
+                        yield "<loads><load><resource name=%s/></load></loads>" % quoteattr(
+                            self.map_workcenters[wo["workcenter_id"][0]]
+                        )
+                    first_wo = False
+                    yield "</operation></suboperation>"
+                yield "</suboperations></operation></operationplan>"
+
+                # Create operationplans for each WO
+                idx = 0
+                for wo in wo_list:
+                    idx += 1.0
+                    suboperation = wo["display_name"]
+                    if len(suboperation) > 300:
+                        suboperation = suboperation[0:300]
+
+                    # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
+                    # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
+                    if wo["state"] == "progress":
+                        state = "confirmed"
+                    elif wo["state"] in ("done", "to_close", "cancel"):
+                        state = "completed"
+                    else:
+                        state = "approved"
+                    try:
+                        if wo["date_finished"]:
+                            wo_date = ' end="%s"' % self.formatDateTime(
+                                wo["date_finished"]
+                            )
+                        else:
+                            if wo["is_user_working"]:
+                                dt = now
+                            else:
+                                dt = max(
+                                    wo["date_start"]
+                                    if wo["date_start"]
+                                    else wo["date_planned_start"]
+                                    if wo["date_planned_start"]
+                                    else wo["production_date"],
+                                    now,
+                                )
+                            wo_date = ' start="%s"' % self.formatDateTime(dt)
+                    except Exception as e:
+                        wo_date = ""
+                    yield '<operationplan type="MO" reference=%s%s quantity="%s" status="%s"><operation name=%s/><owner reference=%s/></operationplan>\n' % (
+                        quoteattr(wo["display_name"]),
+                        wo_date,
+                        qty,
+                        state,
+                        quoteattr(suboperation),
+                        quoteattr(i["name"]),
+                    )
         yield "</operationplans>\n"
 
     def export_orderpoints(self):

@@ -12,6 +12,7 @@
         "data/product.template.csv",
         "data/mrp.workcenter.csv",
         "data/mrp.bom.csv",
+        "data/mrp.production.xml",
         "data/sale.order.xml",
         "data/purchase.order.xml",
         "data/stock.warehouse.orderpoint.csv",
