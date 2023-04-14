@@ -2144,9 +2144,9 @@ class exporter(object):
                     yield "</operation></suboperation>"
                 yield "</suboperations></operation></operationplan>"
 
-                # Create operationplans for each WO
+                # Create operationplans for each WO, starting with the last one
                 idx = 0
-                for wo in wo_list:
+                for wo in reversed(wo_list):
                     idx += 1.0
                     suboperation = wo["display_name"]
                     if len(suboperation) > 300:
@@ -2174,7 +2174,7 @@ class exporter(object):
                                     if wo["date_start"]
                                     else wo["date_planned_start"]
                                     if wo["date_planned_start"]
-                                    else wo["production_date"],
+                                    else i["date_planned_start"]
                                     now,
                                 )
                             wo_date = ' start="%s"' % self.formatDateTime(dt)
