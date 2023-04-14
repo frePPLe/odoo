@@ -2176,7 +2176,7 @@ class exporter(object):
                                     if wo["date_start"]
                                     else wo["date_planned_start"]
                                     if wo["date_planned_start"]
-                                    else i["date_planned_start"]
+                                    else i["date_planned_start"],
                                     now,
                                 )
                             wo_date = ' start="%s"' % self.formatDateTime(dt)
