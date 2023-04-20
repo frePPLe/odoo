@@ -246,6 +246,17 @@ class importer(object):
                             ],
                             limit=1,
                         )
+
+                        # update the context with the default picking type
+                        # to set correct src/dest locations
+                        if picking:
+                            self.env.context = dict(self.env.context)
+                            self.env.context.update(
+                                {
+                                    "default_picking_type_id": picking.id,
+                                }
+                            )
+
                         mo = mfg_order.create(
                             {
                                 "product_qty": elem.get("quantity"),
