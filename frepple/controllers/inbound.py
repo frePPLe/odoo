@@ -142,15 +142,18 @@ class importer(object):
                 except Exception:
                     pass
             elif event == "start" and elem.tag == "resource" and wo_data:
-                res = {
-                    "name": elem.get("name"),
-                    "id": int(elem.get("id")),
-                    "quantity": float(elem.get("quantity")),
-                }
-                if "workcenters" in wo_data[-1]:
-                    wo_data[-1]["workcenters"].append(res)
-                else:
-                    wo_data[-1]["workcenters"] = [res]
+                try:
+                    res = {
+                        "name": elem.get("name"),
+                        "id": int(elem.get("id")),
+                        "quantity": float(elem.get("quantity") or 0),
+                    }
+                    if "workcenters" in wo_data[-1]:
+                        wo_data[-1]["workcenters"].append(res)
+                    else:
+                        wo_data[-1]["workcenters"] = [res]
+                except Exception:
+                    pass
             elif event == "end" and elem.tag == "operationplan":
                 uom_id, item_id = elem.get("item_id").split(",")
                 try:
