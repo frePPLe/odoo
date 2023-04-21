@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2022 by frePPLe bv
+# Copyright (C) 2023 by frePPLe bv
 #
 # This library is free software; you can redistribute it and/or modify it
 # under the terms of the GNU Affero General Public License as published
@@ -18,14 +18,14 @@
 from odoo import models, fields
 
 
-class SecondaryWorkcenter(models.Model):
-    _name = "mrp.secondary.workcenter"
-    _description = "List of secondary work centers"
+class WorkorderSecondaryWorkcenter(models.Model):
+    _name = "mrp.workorder.secondary.workcenter"
+    _description = "Secondary workcenter of a work order"
     _rec_name = "workcenter_id"
 
-    routing_workcenter_id = fields.Many2one(
-        "mrp.routing.workcenter",
-        "Parent routing workcenter",
+    workorder_id = fields.Many2one(
+        "mrp.workorder",
+        "Parent work order",
         index=True,
         ondelete="cascade",
         required=True,
@@ -35,26 +35,5 @@ class SecondaryWorkcenter(models.Model):
         "Work Center",
         required=True,
         ondelete="cascade",
-    )
-    skill = fields.Many2one(
-        "mrp.skill",
-        "Skill",
-        required=False,
-        help="Workcenter skill required to perform this operation",
-    )
-    search_mode = fields.Selection(
-        [
-            ("PRIORITY", "priority"),
-            ("MINCOST", "minimum cost"),
-            ("MINPENALTY", "minimum penalty"),
-            ("MINCOSTPENALTY", "minimum cost plus penalty"),
-        ],
-        string="Search Mode",
-        required=False,
-        default="PRIORITY",
-        help="Method to choose a workcenter among alternatives",
-    )
-    priority = fields.Integer(
-        "priority", default=1, help="Priority of this workcenter among alternatives"
     )
     duration = fields.Float("Duration", help="time in minutes")

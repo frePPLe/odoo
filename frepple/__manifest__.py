@@ -17,10 +17,12 @@
         "views/frepple_data.xml",
         "views/res_config_settings_views.xml",
         "views/mrp_skill.xml",
-        "views/mrp_workcenter_inherit.xml",
         "views/mrp_workcenter_skill.xml",
+        "views/mrp_workcenter_inherit.xml",
         "views/mrp_secondary_workcenter.xml",
         "views/mrp_routing_workcenter_inherit.xml",
+        "views/mrp_workorder_inherit.xml",
+        "views/mrp_workorder_secondary_workcenter.xml",
         "views/product_supplierinfo_inherit.xml",
     ],
     # Option 2: for distribution companies not using the MRP module
