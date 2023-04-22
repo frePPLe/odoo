@@ -8,7 +8,7 @@
             <field name="name" position="after">
                 <field name="owner" />
                 <field name="tool" optional="hide" />
-                <field name="skills" string="skills" widget="many2many_tags" optional="hide" />
+                <field name="skill_ids" string="skills" widget="many2many_tags" optional="hide" />
             </field>
         </field>
     </record>
@@ -22,10 +22,17 @@
                 <field name="owner" />
                 <field name="tool" />
             </field>
+        </field>
+    </record>
+
+    <record id="mrp_workcenter_inherit_form_notebook" model="ir.ui.view">
+        <field name="name">mrp.workcenter.inherit.notebook</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
+        <field name="arch" type="xml">
             <notebook position="inside">
                 <page string="Skills" name="Skills">
-                    <field name="skills"
-                        context="{'workcenter_invisible': True, 'default_workcenter': id, 'tree_view_ref': 'mrp.mrp_workcenter_skill_view_tree'}" />
+                    <field name="workcenter_skill_ids" context="{'default_workcenter_id': id}"/>
                 </page>
             </notebook>
         </field>

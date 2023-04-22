@@ -32,9 +32,18 @@ class WorkcenterInherit(models.Model):
         default=False,
         help="Mark workcenters that are tools, fixtures or holders. The same tool needs to accompany a manufacturing order through all its work orders.",
     )
-    skills = fields.Many2one(
+    workcenter_skill_ids = fields.One2many(
         "mrp.workcenter.skill",
-        "Skills",
-        required=False,
+        "workcenter",
+        string="Skills",
         help="Skills the work center has",
     )
+    skill_ids = fields.Many2many("mrp.skill", compute="_get_skills", string="Skills")
+
+    @api.depends("workcenter_skill_ids")
+    def _get_skills(self):
+        records = self.env["mrp.workcenter.skill"].search([])
+        for line in self:
+            line.skill_ids = [
+                r.skill.id for r in records if records.workcenter.id == line.id
+            ]
