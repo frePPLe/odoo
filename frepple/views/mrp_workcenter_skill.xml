@@ -14,7 +14,7 @@
             <form>
                 <group>
                     <group>
-                        <field name="workcenter" />
+                        <field name="workcenter" invisible="context.get('workcenter_invisible', False)"/>
                         <field name="skill" />
                         <field name="priority" />
                     </group>

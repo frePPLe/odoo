@@ -32,7 +32,7 @@
         <field name="arch" type="xml">
             <notebook position="inside">
                 <page string="Skills" name="Skills">
-                    <field name="workcenter_skill_ids" context="{'workcenter_id_invisible': True, 'default_workcenter_id': id, 'tree_view_ref': 'mrp.mrp_workcenter_skill_view_tree'}"/>
+                    <field name="workcenter_skill_ids" context="{'workcenter_invisible': True, 'default_workcenter_id': id, 'tree_view_ref': 'mrp.mrp_workcenter_skill_view_tree'}"/>
                 </page>
             </notebook>
         </field>
