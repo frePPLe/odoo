@@ -6,11 +6,7 @@
         <field name="inherit_id" ref="mrp.mrp_production_workorder_tree_view" />
         <field name="arch" type="xml">
             <field name="production_id" position="after">
-                <field name="secondary_workcenters" string="secondary workcenters"
-                    widget="many2many_tags" optional="hide"
-                    context="{'workorder_id_invisible': True,
-                      'default_workorder_id': id,
-                      'tree_view_ref':'mrp.mrp_production_workorder_tree_view'}" />
+                <field name="secondary_workcenters" string="secondary workcenters" widget="many2many_tags" optional="hide" readonly="1"/>
             </field>
         </field>
     </record>
@@ -21,10 +17,7 @@
         <field name="arch" type="xml">
             <notebook position="inside">
                 <page string="Secondary Workcenters" name="Secondary Workcenters">
-                    <field name="secondary_workcenters"
-                        context="{'routing_workcenter_id_invisible': True,
-                          'default_routing_workcenter_id': id, 'tree_view_ref':
-                          'mrp.mrp_secondary_workcenter_tree_view'}" />
+                    <field name="secondary_workcenters" />
                 </page>
             </notebook>
         </field>
