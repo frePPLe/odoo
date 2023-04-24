@@ -6,9 +6,7 @@
         <field name="type">ir.actions.act_window</field>
         <field name="view_mode">tree,form</field>
     </record>
-    <menuitem name="Work Center Skill" id="workcenter_skill_menu"
-        parent="mrp.menu_mrp_configuration" action="mrp_workcenter_skill_action" sequence="110"
-        groups="base.group_user" />
+    <menuitem name="Work Center Skill" id="workcenter_skill_menu" parent="mrp.menu_mrp_configuration" action="mrp_workcenter_skill_action" sequence="110" groups="base.group_user" />
     <record id="mrp_workcenter_skill_view_form" model="ir.ui.view">
         <field name="name">MRP Work Center Skill Form</field>
         <field name="model">mrp.workcenter.skill</field>
@@ -29,7 +27,7 @@
         <field name="model">mrp.workcenter.skill</field>
         <field name="arch" type="xml">
             <tree>
-                <field name="workcenter" />
+                <field name="workcenter" invisible="context.get('workcenter_invisible', False)"/>
                 <field name="skill" />
                 <field name="priority" />
             </tree>
