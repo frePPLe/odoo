@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public
 # License along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from odoo import models, fields
+from odoo import models, fields, api
 
 
 class WorkorderSecondaryWorkcenter(models.Model):
@@ -37,3 +37,8 @@ class WorkorderSecondaryWorkcenter(models.Model):
         ondelete="cascade",
     )
     duration = fields.Float("Duration", help="time in minutes")
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        return records
