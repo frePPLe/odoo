@@ -15,7 +15,11 @@
 # You should have received a copy of the GNU Affero General Public
 # License along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from odoo import models, fields
+
+import logging
+from odoo import models, fields, api
+
+_logger = logging.getLogger(__name__)
 
 
 class WorkOrderInherit(models.Model):
@@ -28,3 +32,26 @@ class WorkOrderInherit(models.Model):
         copy=True,
         help="Extra workcenters needed for this work order",
     )
+
+    def assign_secondary_work_centers(self):
+        _logger.error(
+            "CALLING IT %s %s %s" % (self, self.production_id, self.operation_id)
+        )
+        for x in self.operation_id.secondary_workcenter:
+            _logger.error(
+                "     secondary %s" % (self.operation_id.secondary_workcenter)
+            )
+            # if no children:
+            #     create wo_sec_line record for this workcenter
+            # elif its a tool and another wo of this mo uses a secondary workcenter already of same group:
+            #     use the same secondary
+            # else:
+            #     find child a child resource that has the correct skill, order by priority
+            # create wo_sec_line record for this workcenter
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        wo_list = super().create(vals_list)
+        for wo in wo_list:
+            self.assign_secondary_work_centers()
+        return wo_list
