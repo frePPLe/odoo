@@ -268,7 +268,19 @@ class importer(object):
 
                         # update the context with the default picking type
                         # to set correct src/dest locations
-                        if picking:
+                        actual_user_context = None
+                        if self.actual_user:
+                            actual_user_context = dict(
+                                self.env["res.users"]
+                                .with_user(self.actual_user)
+                                .context_get()
+                            )
+                            actual_user_context.update(
+                                {
+                                    "default_picking_type_id": picking.id,
+                                }
+                            )
+                        else:
                             self.env.context = dict(self.env.context)
                             self.env.context.update(
                                 {
@@ -276,7 +288,9 @@ class importer(object):
                                 }
                             )
 
-                        mo = mfg_order.create(
+                        mo = mfg_order.with_context(
+                            actual_user_context or self.env.context
+                        ).create(
                             {
                                 "product_qty": elem.get("quantity"),
                                 "date_planned_start": elem.get("start"),
