@@ -37,8 +37,3 @@ class WorkorderSecondaryWorkcenter(models.Model):
         ondelete="cascade",
     )
     duration = fields.Float("Duration", help="time in minutes")
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        records = super().create(vals_list)
-        return records

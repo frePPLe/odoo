@@ -33,15 +33,18 @@ class WorkOrderInherit(models.Model):
         help="Extra workcenters needed for this work order",
     )
 
-    # if no children:
-    #     create wo_sec_line record for this workcenter
-    # elif its a tool and another wo of this mo uses a secondary workcenter already of same group:
-    #     use the same secondary
-    # else:
-    #     find child a child resource that has the correct skill, order by priority
-    # create wo_sec_line record for this workcenter
     def assign_secondary_work_centers(self):
-
+        """
+        Logic to assign secondary work centers:
+        - if the work center has no children:
+            create wo_sec_line record for this workcenter
+        - else if its a tool and another wo of this mo uses a secondary workcenter already of same group:
+            use the same secondary as the other work order
+        - else if a skill is required:
+            find child a child resource that has the correct skill, ordered by priority
+        - else:
+            take the first child, ordered by name
+        """
         for x in self.operation_id.secondary_workcenter:
 
             # store the ids of the workcenters having that secondary workcenter as owner
@@ -52,17 +55,11 @@ class WorkOrderInherit(models.Model):
                 )
             ]
 
-            if len(children) == 0:
-                self.env["mrp.workorder.secondary.workcenter"].create(
-                    [
-                        {
-                            "workorder_id": self.id,
-                            "workcenter_id": x.workcenter_id.id,
-                            "duration": x.duration * self.qty_production,
-                        }
-                    ]
-                )
-            elif (
+            selectedWorkCenter = None
+            if not children:
+                selectedWorkCenter = x.workcenter_id.id
+
+            if not selectedWorkCenter and (
                 x.workcenter_id.tool
                 or self.env["mrp.workcenter"].search_count(
                     [("owner", "=", x.workcenter_id.id), ("tool", "=", True)]
@@ -70,65 +67,19 @@ class WorkOrderInherit(models.Model):
                 > 0
             ):
                 # check if another wo of the same MO already has a tool workcenter
-                tool = None
                 for wo in self.production_id.workorder_ids:
                     if wo.id == self.id:
                         continue
                     for sw in wo.secondary_workcenters:
                         if sw.workcenter_id.id in children:
-                            tool = sw.workcenter_id.id
+                            selectedWorkCenter = sw.workcenter_id.id
                             break
-                if tool:
-                    self.env["mrp.workorder.secondary.workcenter"].create(
-                        [
-                            {
-                                "workorder_id": self.id,
-                                "workcenter_id": tool,
-                                "duration": x.duration * self.qty_production,
-                            }
-                        ]
-                    )
-                else:
-                    if x.skill:
-                        Found = False
-                        for res_skill in self.env["mrp.workcenter.skill"].search(
-                            [("workcenter.id", "in", children)]
-                        ):
-                            if res_skill.skill.id == x.skill.id:
-                                self.env["mrp.workorder.secondary.workcenter"].create(
-                                    [
-                                        {
-                                            "workorder_id": self.id,
-                                            "workcenter_id": res_skill.workcenter.id,
-                                            "duration": x.duration
-                                            * self.qty_production,
-                                        }
-                                    ]
-                                )
-                                Found = True
-                                break
-                        if not Found:
-                            _logger.warning(
-                                "couldn't find a valid secondary work center with %s skill"
-                                % (x.skill.name,)
-                            )
+                    if selectedWorkCenter:
+                        break
 
-                    else:
-                        # no skills, pick the first one
-                        self.env["mrp.workorder.secondary.workcenter"].create(
-                            [
-                                {
-                                    "workorder_id": self.id,
-                                    "workcenter_id": children[0],
-                                    "duration": x.duration * self.qty_production,
-                                }
-                            ]
-                        )
-
-            else:
-                # Does the secondary workcenter require a skill
+            if not selectedWorkCenter:
                 if x.skill and x.skill.id:
-                    # Find workcenters with the same skill
+                    # Find workcenters with the required skill
                     valid_workcenters = (
                         self.env["mrp.workcenter.skill"]
                         .search(
@@ -137,36 +88,30 @@ class WorkOrderInherit(models.Model):
                         )
                         .read(["id", "workcenter"])
                     )
-
-                    # Remove workcenters that are not in the children list
                     for v in valid_workcenters[:]:
-                        if v["workcenter"][0] not in children:
-                            valid_workcenters.remove(v)
-
-                    # add the secondary record with the top priority workcenter
-                    if len(valid_workcenters) > 0:
-                        self.env["mrp.workorder.secondary.workcenter"].create(
-                            [
-                                {
-                                    "workorder_id": self.id,
-                                    "workcenter_id": valid_workcenters[0]["workcenter"][
-                                        0
-                                    ],
-                                    "duration": x.duration * self.qty_production,
-                                }
-                            ]
+                        if v["workcenter"][0] in children:
+                            # add the secondary record with the top priority workcenter
+                            selectedWorkCenter = v["workcenter"][0]
+                            break
+                    if not selectedWorkCenter:
+                        _logger.warning(
+                            "couldn't find a valid secondary work center with %s skill"
+                            % (x.skill.name,)
                         )
                 else:
-                    # no skills, pick the first one
-                    self.env["mrp.workorder.secondary.workcenter"].create(
-                        [
-                            {
-                                "workorder_id": self.id,
-                                "workcenter_id": children[0],
-                                "duration": x.duration * self.qty_production,
-                            }
-                        ]
-                    )
+                    # no skills, pick the first child
+                    selectedWorkCenter = children[0]
+
+            if selectedWorkCenter:
+                self.env["mrp.workorder.secondary.workcenter"].create(
+                    [
+                        {
+                            "workorder_id": self.id,
+                            "workcenter_id": selectedWorkCenter,
+                            "duration": x.duration * self.qty_production,
+                        }
+                    ]
+                )
 
     @api.model_create_multi
     def create(self, vals_list):
