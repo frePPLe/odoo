@@ -21,6 +21,7 @@ from odoo import models, fields
 class WorkcenterSkill(models.Model):
     _name = "mrp.workcenter.skill"
     _description = "List of workcenter skill associations"
+    _rec_name = "skill"
 
     workcenter = fields.Many2one("mrp.workcenter", "Work Center", required=True)
     skill = fields.Many2one("mrp.skill", "Skill", required=True)
