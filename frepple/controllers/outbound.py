@@ -525,7 +525,7 @@ class exporter(object):
                             "1" if j["attendance"] else "0",
                             (2 ** ((int(j["dayofweek"]) + 1) % 7))
                             if "dayofweek" in j
-                            else (2**7) - 1,
+                            else (2 ** 7) - 1,
                             priority_attendance if j["attendance"] else priority_leave,
                             # In odoo, monday = 0. In frePPLe, sunday = 0.
                             ("PT%dM" % round(j["hour_from"] * 60))
@@ -558,7 +558,7 @@ class exporter(object):
                                     "1",
                                     (2 ** ((int(j["dayofweek"]) + 1) % 7))
                                     if "dayofweek" in j
-                                    else (2**7) - 1,
+                                    else (2 ** 7) - 1,
                                     priority_attendance,
                                     # In odoo, monday = 0. In frePPLe, sunday = 0.
                                     ("PT%dM" % round(j["hour_from"] * 60))
@@ -1389,29 +1389,24 @@ class exporter(object):
                                     not in self.map_workcenters
                                 ):
                                     continue
-                                secondary_workcenter_str += (
-                                    '<load quantity="%f" search=%s><resource name=%s/>%s</load>'
-                                    % (
-                                        1
-                                        if not secondary_workcenter["duration"]
-                                        or step["time_cycle"] == 0
-                                        else secondary_workcenter["duration"]
-                                        / step["time_cycle"],
-                                        quoteattr(secondary_workcenter["search_mode"]),
-                                        quoteattr(
-                                            self.map_workcenters[
-                                                secondary_workcenter["workcenter_id"][0]
-                                            ]
-                                        ),
-                                        (
-                                            "<skill name=%s/>"
-                                            % quoteattr(
-                                                secondary_workcenter["skill"][1]
-                                            )
-                                        )
-                                        if secondary_workcenter["skill"]
-                                        else "",
+                                secondary_workcenter_str += '<load quantity="%f" search=%s><resource name=%s/>%s</load>' % (
+                                    1
+                                    if not secondary_workcenter["duration"]
+                                    or step["time_cycle"] == 0
+                                    else secondary_workcenter["duration"]
+                                    / step["time_cycle"],
+                                    quoteattr(secondary_workcenter["search_mode"]),
+                                    quoteattr(
+                                        self.map_workcenters[
+                                            secondary_workcenter["workcenter_id"][0]
+                                        ]
+                                    ),
+                                    (
+                                        "<skill name=%s/>"
+                                        % quoteattr(secondary_workcenter["skill"][1])
                                     )
+                                    if secondary_workcenter["skill"]
+                                    else "",
                                 )
 
                             yield "<suboperation>" '<operation name=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
@@ -2000,6 +1995,7 @@ class exporter(object):
                             "move_line_ids",
                             "production_date",
                             "display_name",
+                            "secondary_workcenters",
                         ],
                     )
                 ]
@@ -2140,6 +2136,31 @@ class exporter(object):
                         yield "<loads><load><resource name=%s/></load></loads>" % quoteattr(
                             self.map_workcenters[wo["workcenter_id"][0]]
                         )
+                    if wo["secondary_workcenters"]:
+                        yield "<loads>"
+                        for secondary in self.generator.getData(
+                            "mrp.workorder.secondary.workcenter",
+                            ids=wo["secondary_workcenters"],
+                            fields=["workcenter_id", "duration"],
+                        ):
+                            if (
+                                secondary["workcenter_id"]
+                                and secondary["workcenter_id"][0]
+                                in self.map_workcenters
+                                and secondary["workcenter_id"][0]
+                                != wo["workcenter_id"][0]
+                            ):
+                                yield '<load quantity="%f"><resource name=%s/></load>' % (
+                                    secondary["duration"] / wo["duration_expected"]
+                                    if secondary["duration"] and wo["duration_expected"]
+                                    else 1,
+                                    quoteattr(
+                                        self.map_workcenters[
+                                            secondary["workcenter_id"][0]
+                                        ]
+                                    ),
+                                )
+                        yield "</loads>"
                     first_wo = False
                     yield "</operation></suboperation>"
                 yield "</suboperations></operation></operationplan>"

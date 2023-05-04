@@ -32,3 +32,9 @@ class WorkcenterInherit(models.Model):
         default=False,
         help="Mark workcenters that are tools, fixtures or holders. The same tool needs to accompany a manufacturing order through all its work orders.",
     )
+    workcenter_skill_ids = fields.One2many(
+        "mrp.workcenter.skill",
+        "workcenter",
+        string="Skills",
+        help="Skills the work center has",
+    )
