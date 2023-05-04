@@ -112,6 +112,7 @@ class WorkOrderInherit(models.Model):
                         }
                     ]
                 )
+        return True
 
     @api.model_create_multi
     def create(self, vals_list):
