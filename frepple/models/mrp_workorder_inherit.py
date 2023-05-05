@@ -117,6 +117,7 @@ class WorkOrderInherit(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         wo_list = super().create(vals_list)
-        for wo in wo_list:
-            wo.assign_secondary_work_centers()
-        return wo_list
+        if not self.env.context.get("ignore_secondary_workcenters", False):
+            for wo in wo_list:
+                wo.assign_secondary_work_centers()
+            return wo_list

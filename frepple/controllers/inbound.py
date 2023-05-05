@@ -307,29 +307,24 @@ class importer(object):
 
                         # update the context with the default picking type
                         # to set correct src/dest locations
-                        actual_user_context = None
-                        if self.actual_user:
-                            actual_user_context = dict(
+                        # Also do not create secondary work center records
+                        context = (
+                            dict(
                                 self.env["res.users"]
                                 .with_user(self.actual_user)
                                 .context_get()
                             )
-                            actual_user_context.update(
-                                {
-                                    "default_picking_type_id": picking.id,
-                                }
-                            )
-                        else:
-                            self.env.context = dict(self.env.context)
-                            self.env.context.update(
-                                {
-                                    "default_picking_type_id": picking.id,
-                                }
-                            )
+                            if self.actual_user
+                            else dict(self.env.context)
+                        )
+                        context.update(
+                            {
+                                "default_picking_type_id": picking.id,
+                                "ignore_secondary_workcenters": True,
+                            }
+                        )
 
-                        mo = mfg_order.with_context(
-                            actual_user_context or self.env.context
-                        ).create(
+                        mo = mfg_order.with_context(context).create(
                             {
                                 "product_qty": elem.get("quantity"),
                                 "date_planned_start": elem.get("start"),
