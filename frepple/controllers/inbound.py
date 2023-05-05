@@ -307,15 +307,24 @@ class importer(object):
 
                         # update the context with the default picking type
                         # to set correct src/dest locations
-                        if picking:
-                            self.env.context = dict(self.env.context)
-                            self.env.context.update(
-                                {
-                                    "default_picking_type_id": picking.id,
-                                }
+                        # Also do not create secondary work center records
+                        context = (
+                            dict(
+                                self.env["res.users"]
+                                .with_user(self.actual_user)
+                                .context_get()
                             )
+                            if self.actual_user
+                            else dict(self.env.context)
+                        )
+                        context.update(
+                            {
+                                "default_picking_type_id": picking.id,
+                                "ignore_secondary_workcenters": True,
+                            }
+                        )
 
-                        mo = mfg_order.create(
+                        mo = mfg_order.with_context(context).create(
                             {
                                 "product_qty": elem.get("quantity"),
                                 "date_planned_start": elem.get("start"),
