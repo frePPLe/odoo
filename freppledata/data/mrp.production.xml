@@ -34,6 +34,8 @@
             <field name="date_planned_start"
                 eval="(datetime.now() + relativedelta(days=5)).strftime('%Y-%m-%d %H:%M:%S')" />
         </record>
+		
+		<delete model="mrp.workorder" search="[('name','=','polishing chair')]"/>
 
         <function model="stock.move" name="create">
             <value model="stock.move"
