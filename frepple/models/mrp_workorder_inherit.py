@@ -38,7 +38,8 @@ class WorkOrderInherit(models.Model):
         Logic to assign secondary work centers:
         - if the work center has no children:
             create wo_sec_line record for this workcenter
-        - else if its a tool and another wo of this mo uses a secondary workcenter already of same group:
+        - else if its a tool and another wo of this mo uses a secondary workcenter already
+          of same group and same skill:
             use the same secondary as the other work order
         - else if a skill is required:
             find child a child resource that has the correct skill, ordered by priority
@@ -66,13 +67,17 @@ class WorkOrderInherit(models.Model):
                 )
                 > 0
             ):
-                # check if another wo of the same MO already has a tool workcenter
+                # check if another wo of the same MO already has already selected a
+                # tool workcenter for the same skill
                 for wo in self.production_id.workorder_ids:
                     if wo.id == self.id:
                         continue
-                    for sw in wo.secondary_workcenters:
-                        if sw.workcenter_id.id in children:
-                            selectedWorkCenter = sw.workcenter_id.id
+                    for y in wo.operation_id.secondary_workcenter:
+                        if x.skill == y.skill and x.workcenter_id == y.workcenter_id:
+                            for sw in wo.secondary_workcenters:
+                                if sw.workcenter_id.id in children:
+                                    selectedWorkCenter = sw.workcenter_id.id
+                                    break
                             break
                     if selectedWorkCenter:
                         break
@@ -112,10 +117,12 @@ class WorkOrderInherit(models.Model):
                         }
                     ]
                 )
+        return True
 
     @api.model_create_multi
     def create(self, vals_list):
         wo_list = super().create(vals_list)
-        for wo in wo_list:
-            wo.assign_secondary_work_centers()
-        return wo_list
+        if not self.env.context.get("ignore_secondary_workcenters", False):
+            for wo in wo_list:
+                wo.assign_secondary_work_centers()
+            return wo_list

@@ -1,3 +1,5 @@
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 Are you still using spreadsheets next to Odoo ?
 Frepple is bringing forecasting, inventory planning and production planning capabilities to Odoo.
 
