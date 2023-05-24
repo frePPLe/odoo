@@ -66,6 +66,7 @@ class importer(object):
             proc_orderline = self.env["purchase.order.line"].with_user(self.actual_user)
             mfg_order = self.env["mrp.production"].with_user(self.actual_user)
             mfg_workorder = self.env["mrp.workorder"].with_user(self.actual_user)
+            mfg_workcenter = self.env["mrp.workcenter"].with_user(self.actual_user)
             stck_picking_type = self.env["stock.picking.type"].with_user(
                 self.actual_user
             )
@@ -77,6 +78,7 @@ class importer(object):
             proc_orderline = self.env["purchase.order.line"]
             mfg_order = self.env["mrp.production"]
             mfg_workorder = self.env["mrp.workorder"]
+            mfg_workcenter = self.env["mrp.workcenter"]
             stck_picking_type = self.env["stock.picking.type"]
             mfg_workorder_secondary = self.env["mrp.workorder.secondary.workcenter"]
         if self.mode == 1:
@@ -357,14 +359,18 @@ class importer(object):
                                     if rec["id"] == wo.operation_id.id:
                                         for res in rec["workcenters"]:
                                             if res["id"] != wo.workcenter_id.id:
-                                                mfg_workorder_secondary.create(
-                                                    {
-                                                        "workcenter_id": res["id"],
-                                                        "workorder_id": wo.id,
-                                                        "duration": res["quantity"]
-                                                        * wo.duration_expected,
-                                                    }
-                                                )
+                                                wc = mfg_workcenter.browse(res["id"])
+                                                if wo.workcenter_id == wc[0].owner:
+                                                    wo.workcenter_id = res["id"]
+                                                else:
+                                                    mfg_workorder_secondary.create(
+                                                        {
+                                                            "workcenter_id": res["id"],
+                                                            "workorder_id": wo.id,
+                                                            "duration": res["quantity"]
+                                                            * wo.duration_expected,
+                                                        }
+                                                    )
 
                         countmfg += 1
                 except Exception as e:
