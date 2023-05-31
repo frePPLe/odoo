@@ -61,7 +61,6 @@ class Odoo_generator:
 
 
 class XMLRPC_generator:
-
     pagesize = 5000
 
     def __init__(self, url, db, username, password):
@@ -432,7 +431,6 @@ class exporter(object):
         cal_tz = {}
         cal_ids = set()
         try:
-
             # Read the timezone
             for i in self.generator.getData(
                 "resource.calendar",
@@ -511,7 +509,7 @@ class exporter(object):
                             "1" if j["attendance"] else "0",
                             (2 ** ((int(j["dayofweek"]) + 1) % 7))
                             if "dayofweek" in j
-                            else (2 ** 7) - 1,
+                            else (2**7) - 1,
                             priority_attendance if j["attendance"] else priority_leave,
                             # In odoo, monday = 0. In frePPLe, sunday = 0.
                             ("PT%dM" % round(j["hour_from"] * 60))
@@ -544,7 +542,7 @@ class exporter(object):
                                     "1",
                                     (2 ** ((int(j["dayofweek"]) + 1) % 7))
                                     if "dayofweek" in j
-                                    else (2 ** 7) - 1,
+                                    else (2**7) - 1,
                                     priority_attendance,
                                     # In odoo, monday = 0. In frePPLe, sunday = 0.
                                     ("PT%dM" % round(j["hour_from"] * 60))
@@ -1060,7 +1058,6 @@ class exporter(object):
                 subcontractors = [{}]
 
             for product_id in product_template["product_variant_ids"]:
-
                 # In the case of variants, the BOM needs to apply to the correct product
                 if i["product_id"] and not (i["product_id"][0] == product_id):
                     continue
@@ -1109,12 +1106,10 @@ class exporter(object):
                                 quoteattr(location),
                             )
                         else:
-                            duration_per = (
-                                self.product_templates[i["product_tmpl_id"][0]][
-                                    "produce_delay"
-                                ]
-                                / 1440.0
-                            )
+                            duration_per = self.product_templates[
+                                i["product_tmpl_id"][0]
+                            ]["produce_delay"]
+
                             yield '<operation name=%s size_multiple="1" duration_per="%s" posttime="P%dD" priority="%s" xsi:type="operation_time_per">\n' "<item name=%s/><location name=%s/>\n" % (
                                 quoteattr(operation),
                                 self.convert_float_time(duration_per)
@@ -1343,7 +1338,6 @@ class exporter(object):
                         steplist = mrp_routing_workcenters[i["id"]]
                         counter = 0
                         for step in steplist:
-
                             counter = counter + 1
                             suboperation = step["name"]
                             name = "%s - %s - %s" % (
@@ -1375,24 +1369,29 @@ class exporter(object):
                                     not in self.map_workcenters
                                 ):
                                     continue
-                                secondary_workcenter_str += '<load quantity="%f" search=%s><resource name=%s/>%s</load>' % (
-                                    1
-                                    if not secondary_workcenter["duration"]
-                                    or step["time_cycle"] == 0
-                                    else secondary_workcenter["duration"]
-                                    / step["time_cycle"],
-                                    quoteattr(secondary_workcenter["search_mode"]),
-                                    quoteattr(
-                                        self.map_workcenters[
-                                            secondary_workcenter["workcenter_id"][0]
-                                        ]
-                                    ),
-                                    (
-                                        "<skill name=%s/>"
-                                        % quoteattr(secondary_workcenter["skill"][1])
+                                secondary_workcenter_str += (
+                                    '<load quantity="%f" search=%s><resource name=%s/>%s</load>'
+                                    % (
+                                        1
+                                        if not secondary_workcenter["duration"]
+                                        or step["time_cycle"] == 0
+                                        else secondary_workcenter["duration"]
+                                        / step["time_cycle"],
+                                        quoteattr(secondary_workcenter["search_mode"]),
+                                        quoteattr(
+                                            self.map_workcenters[
+                                                secondary_workcenter["workcenter_id"][0]
+                                            ]
+                                        ),
+                                        (
+                                            "<skill name=%s/>"
+                                            % quoteattr(
+                                                secondary_workcenter["skill"][1]
+                                            )
+                                        )
+                                        if secondary_workcenter["skill"]
+                                        else "",
                                     )
-                                    if secondary_workcenter["skill"]
-                                    else "",
                                 )
 
                             yield "<suboperation>" '<operation name=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
