@@ -4,7 +4,7 @@
     "summary": "Test data for frepple",
     "description": "This addon loads test and demo data for frepple in odoo.",
     "author": "frePPLe",
-    "license": "AGPL-3",
+    "license": "Other OSI approved licence",
     "category": "Uncategorized",
     "version": "16.0.0",
     "depends": ["mrp_subcontracting"],

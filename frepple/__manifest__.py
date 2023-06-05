@@ -6,7 +6,7 @@
     "summary": "Advanced planning and scheduling",
     "author": "frePPLe",
     "website": "https://frepple.com",
-    "license": "AGPL-3",
+    "license": "Other OSI approved licence",
     "description": "Connector to frePPLe - finite capacity planning and scheduling",
     "external_dependencies": {"python": ["jwt"]},
     # Option 1: for manufacturing companies using MRP module
