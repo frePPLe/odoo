@@ -14,7 +14,7 @@ that needs open public access. Don't even think of deploying this
 module on an actual production environment.
         """,
     "author": "frePPLe",
-    "license": "AGPL-3",
+    "license": "Other OSI approved licence",
     "category": "Uncategorized",
     "version": "15.0.0",
     "depends": ["base", "web"],
