@@ -1160,10 +1160,9 @@ class exporter(object):
                             if len(
                                 j["bom_product_template_attribute_value_ids"]
                             ) > 0 and not all(
-                                elem
-                                in product_buf["product_template_attribute_value_ids"]
-                                for elem in j[
-                                    "bom_product_template_attribute_value_ids"
+                                elem in j["bom_product_template_attribute_value_ids"]
+                                for elem in product_buf[
+                                    "product_template_attribute_value_ids"
                                 ]
                             ):
                                 continue
