@@ -364,6 +364,21 @@ class importer(object):
                             for wo in mo.workorder_ids:
                                 for rec in wo_data:
                                     if rec["id"] == wo.operation_id.id:
+                                        # By default odoo populates the scheduled start date field only when you confirm and plan
+                                        # the manufacturing order.
+                                        # Here we are already updating it earlier
+                                        if "start" in rec:
+                                            wo.date_planned_start = (
+                                                self.timezone.localize(rec["start"])
+                                                .astimezone(UTC)
+                                                .replace(tzinfo=None)
+                                            )
+                                        if "end" in rec:
+                                            wo.date_planned_finished = (
+                                                self.timezone.localize(rec["end"])
+                                                .astimezone(UTC)
+                                                .replace(tzinfo=None)
+                                            )
                                         for res in rec["workcenters"]:
                                             if res["id"] != wo.workcenter_id.id:
                                                 wc = mfg_workcenter.browse(res["id"])
