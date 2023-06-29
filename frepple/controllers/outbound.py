@@ -1503,26 +1503,51 @@ class exporter(object):
             )
         }
 
-        # Get stock moves
-        move_ids = []
-        for i in so_line:
-            if i["move_ids"]:
-                move_ids.extend(i["move_ids"])
-        moves = {
+        # Get all move ids
+        # We need all the so lines stock moves
+        # plus the open ones for recursive purpose
+        open_stock_moves = [
+            i["id"]
+            for i in self.generator.getData(
+                "stock.move",
+                search=[
+                    ("state", "in", ["waiting", "partially_available", "assigned"])
+                ],
+            )
+        ]
+
+        stock_moves_dict = {
             i["id"]: i
             for i in self.generator.getData(
                 "stock.move",
-                ids=move_ids,
+                ids=[
+                    item
+                    for sublist in [j["move_ids"] for j in so_line]
+                    for item in sublist
+                ].extend(open_stock_moves),
                 fields=[
-                    "state",
+                    "id",
+                    "move_orig_ids",
+                    "product_id",
                     "date",
-                    "product_uom_qty",
-                    "quantity_done",
-                    "warehouse_id",
                     "reserved_availability",
+                    "product_uom_qty",
+                    "product_uom",
+                    "state",
                 ],
             )
         }
+
+        def getReservedQuantity(stock_move_id):
+            reserved_quantity = 0
+            if stock_move_id in stock_moves_dict:
+                reserved_quantity = stock_moves_dict[stock_move_id][
+                    "reserved_availability"
+                ]
+
+                for i in stock_moves_dict[stock_move_id]["move_orig_ids"]:
+                    reserved_quantity += getReservedQuantity(i)
+            return reserved_quantity
 
         # Generate the demand records
         yield "<!-- sales order lines -->\n"
@@ -1567,21 +1592,67 @@ class exporter(object):
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "sale":
-                qty = i["product_uom_qty"] - i["qty_delivered"]
-                if qty <= 0:
-                    status = "closed"
-                    qty = self.convert_qty_uom(
-                        i["product_uom_qty"],
-                        i["product_uom"],
-                        self.product_product[i["product_id"][0]]["template"],
-                    )
+                if i["move_ids"]:
+                    for mv_id in i["move_ids"]:
+                        sol_name = (
+                            "%s %s" % (name, mv_id) if len(i["move_ids"]) > 1 else name
+                        )
+                        sm = stock_moves_dict[mv_id]
+                        qty = self.convert_qty_uom(
+                            sm["product_uom_qty"],
+                            sm["product_uom"],
+                            self.product_product[i["product_id"][0]]["template"],
+                        )
+                        reserved_quantity = (
+                            getReservedQuantity(mv_id)
+                            if self.respect_reservations
+                            else 0
+                        )
+
+                        due = due = self.formatDateTime(sm["date"] or j["date_order"])
+
+                        yield (
+                            '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
+                            # Enable only in frepple >= 6.25
+                            # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
+                            "</demand>\n"
+                        ) % (
+                            quoteattr(sol_name),
+                            quoteattr(batch),
+                            qty - reserved_quantity
+                            if sm["state"] != "done" and qty - reserved_quantity > 0
+                            else qty,
+                            due,
+                            priority,
+                            j["picking_policy"] == "one" and qty or 0.0,
+                            "open"
+                            if sm["state"] != "done" and qty - reserved_quantity > 0
+                            else "closed",
+                            quoteattr(product["name"]),
+                            quoteattr(customer),
+                            quoteattr(location),
+                            # Enable only in frepple >= 6.25
+                            # quoteattr(i["order_id"][1]),
+                            # "alltogether" if j["picking_policy"] == "one" else "independent",
+                        )
+                    # we are done with this so line, go to the next one
+                    continue
                 else:
-                    status = "open"
-                    qty = self.convert_qty_uom(
-                        qty,
-                        i["product_uom"],
-                        self.product_product[i["product_id"][0]]["template"],
-                    )
+                    qty = i["product_uom_qty"] - i["qty_delivered"]
+                    if qty <= 0:
+                        status = "closed"
+                        qty = self.convert_qty_uom(
+                            i["product_uom_qty"],
+                            i["product_uom"],
+                            self.product_product[i["product_id"][0]]["template"],
+                        )
+                    else:
+                        status = "open"
+                        qty = self.convert_qty_uom(
+                            qty,
+                            i["product_uom"],
+                            self.product_product[i["product_id"][0]]["template"],
+                        )
             elif state in "done":
                 status = "closed"
                 qty = self.convert_qty_uom(
@@ -1600,71 +1671,26 @@ class exporter(object):
                 logger.warning("Unknown sales order state: %s." % (state,))
                 continue
 
-            if status == "open" and i["move_ids"]:
-                # Use the delivery order info for open orders
-                cnt = 1
-                for mv_id in i["move_ids"]:
-                    if moves[mv_id]["state"] in ("draft", "cancel", "done"):
-                        continue
-                    qty = self.convert_qty_uom(
-                        moves[mv_id]["product_uom_qty"],
-                        i["product_uom"],
-                        self.product_product[i["product_id"][0]]["template"],
-                    )
-                    if self.respect_reservations and moves[mv_id]["state"] in (
-                        "partially_available",
-                        "assigned",
-                    ):
-                        qty -= moves[mv_id]["reserved_availability"]
-                    if moves[mv_id]["date"]:
-                        due = self.formatDateTime(moves[mv_id]["date"])
-                    yield (
-                        '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
-                        # Enable only in frepple >= 6.25
-                        # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
-                        "</demand>\n"
-                    ) % (
-                        quoteattr(
-                            name
-                            if cnt == 1
-                            else "%s %d %d" % (i["order_id"][1], cnt, i["id"])
-                        ),
-                        quoteattr(batch),
-                        qty,
-                        due,
-                        priority,
-                        j["picking_policy"] == "one" and qty or 0.0,
-                        status,
-                        quoteattr(product["name"]),
-                        quoteattr(customer),
-                        quoteattr(location),
-                        # Enable only in frepple >= 6.25
-                        # quoteattr(i["order_id"][1]),
-                        # "alltogether" if j["picking_policy"] == "one" else "independent",
-                    )
-                    cnt += 1
-            else:
-                # Use sales order line info
-                yield (
-                    '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
-                    # Enable only in frepple >= 6.25
-                    # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
-                    "</demand>\n"
-                ) % (
-                    quoteattr(name),
-                    quoteattr(batch),
-                    qty,
-                    due,
-                    priority,
-                    j["picking_policy"] == "one" and qty or 0.0,
-                    status,
-                    quoteattr(product["name"]),
-                    quoteattr(customer),
-                    quoteattr(location),
-                    # Enable only in frepple >= 6.25
-                    # quoteattr(i["order_id"][1]),
-                    # "alltogether" if j["picking_policy"] == "one" else "independent",
-                )
+            yield (
+                '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
+                # Enable only in frepple >= 6.25
+                # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
+                "</demand>\n"
+            ) % (
+                quoteattr(name),
+                quoteattr(batch),
+                qty,
+                due,
+                priority,
+                j["picking_policy"] == "one" and qty or 0.0,
+                status,
+                quoteattr(product["name"]),
+                quoteattr(customer),
+                quoteattr(location),
+                # Enable only in frepple >= 6.25
+                # quoteattr(i["order_id"][1]),
+                # "alltogether" if j["picking_policy"] == "one" else "independent",
+            )
         yield "</demands>\n"
 
     def export_forecasts(self):
