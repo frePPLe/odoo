@@ -2044,17 +2044,18 @@ class exporter(object):
 
             if not wo_list:
                 # There are no workorders on the manufacturing order
-                yield '<operation name=%s xsi:type="operation_fixed_time"><location name=%s/><flows>' % (
+                yield '<operation name=%s xsi:type="operation_fixed_time"><location name=%s/><item name=%s/><flows>' % (
                     quoteattr(operation),
                     quoteattr(self.map_locations[i["location_dest_id"][0]]),
+                    quoteattr(item["name"]),
                 )
                 for mv in mv_list:
-                    item = (
+                    consumed_item = (
                         self.product_product[mv["product_id"][0]]
                         if mv["product_id"][0] in self.product_product
                         else None
                     )
-                    if not item:
+                    if not consumed_item:
                         continue
                     qty_flow = self.convert_qty_uom(
                         max(
@@ -2069,10 +2070,15 @@ class exporter(object):
                         mv["product_uom"],
                         self.product_product[mv["product_id"][0]]["template"],
                     )
-                    yield '<flow quantity="%s"><item name=%s/></flow>\n' % (
-                        -qty_flow / qty,
-                        quoteattr(item["name"]),
-                    )
+                    if qty_flow > 0:
+                        yield '<flow xsi:type="flow_start" quantity="%s"><item name=%s/></flow>\n' % (
+                            -qty_flow,
+                            quoteattr(consumed_item["name"]),
+                        )
+                yield '<flow xsi:type="flow_end" quantity="%s"><item name=%s/></flow>\n' % (
+                    qty,
+                    quoteattr(item["name"]),
+                )
                 yield "</flows></operation></operationplan>"
             else:
                 # Define an operation for the MO
