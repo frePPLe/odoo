@@ -2072,11 +2072,10 @@ class exporter(object):
                     )
                     if qty_flow > 0:
                         yield '<flow xsi:type="flow_start" quantity="%s"><item name=%s/></flow>\n' % (
-                            -qty_flow,
+                            -qty_flow / qty,
                             quoteattr(consumed_item["name"]),
                         )
-                yield '<flow xsi:type="flow_end" quantity="%s"><item name=%s/></flow>\n' % (
-                    qty,
+                yield '<flow xsi:type="flow_end" quantity="1"><item name=%s/></flow>\n' % (
                     quoteattr(item["name"]),
                 )
                 yield "</flows></operation></operationplan>"
