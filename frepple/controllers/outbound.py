@@ -1332,14 +1332,31 @@ class exporter(object):
                                 j["product_uom_id"],
                                 self.product_product[j["product_id"][0]]["template"],
                             )
-                            if j["product_id"][0] in fl:
-                                # If the same component is consumed multiple times in the same BOM
+                            if (
+                                j["product_id"][0],
+                                j["operation_id"][0] if j["operation_id"] else None,
+                            ) in fl:
+                                # If the same component is consumed multiple times in the same BOM step
                                 # we sum up all quantities in a single flow. We assume all of them
                                 # have the same effectivity.
-                                fl[j["product_id"][0]]["qty"] += qty
+                                fl[
+                                    (
+                                        j["product_id"][0],
+                                        j["operation_id"][0]
+                                        if j["operation_id"]
+                                        else None,
+                                    )
+                                ]["qty"] += qty
                             else:
                                 j["qty"] = qty
-                                fl[j["product_id"][0]] = j
+                                fl[
+                                    (
+                                        j["product_id"][0],
+                                        j["operation_id"][0]
+                                        if j["operation_id"]
+                                        else None,
+                                    )
+                                ] = j
 
                         steplist = mrp_routing_workcenters[i["id"]]
                         counter = 0
