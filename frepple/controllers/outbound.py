@@ -2039,6 +2039,7 @@ class exporter(object):
                             "display_name",
                             "secondary_workcenters",
                         ],
+                        order="id",
                     )
                 ]
             else:
@@ -2058,6 +2059,7 @@ class exporter(object):
                             "date",
                             "reference",
                             "workorder_id",
+                            "operation_id",
                             "should_consume_qty",
                             "reserved_availability",
                         ],
@@ -2152,7 +2154,13 @@ class exporter(object):
                             continue
 
                         # Skip moves of other WOs
-                        if mv["workorder_id"]:
+                        # When the odoo bill of material doesn't specify the operation
+                        # where a component is consumed, odoo consumes at the LAST
+                        # work order of the manufacturing order.
+                        # In frePPLe we want to consume them in the *FIRST* work order
+                        # instead. This is a much more correct & realistic representation
+                        # from a planning point of view.
+                        if mv["workorder_id"] and mv["operation_id"]:
                             if mv["workorder_id"][0] != wo["id"]:
                                 continue
                         elif not first_wo:
