@@ -1819,8 +1819,14 @@ class exporter(object):
                 continue
             location = self.mfg_location
             if location and item and i["product_qty"] > i["qty_received"]:
-                start = self.formatDateTime(j["date_order"])
-                end = self.formatDateTime(i["date_planned"])
+                start = j["date_order"]
+                if not isinstance(start, datetime):
+                    start = datetime.fromisoformat(start)
+                end = j["date_planned"]
+                if not isinstance(end, datetime):
+                    end = datetime.fromisoformat(end)
+                start = self.formatDateTime(start if start < end else end)
+                end = self.formatDateTime(end)
                 qty = self.convert_qty_uom(
                     i["product_qty"] - i["qty_received"],
                     i["product_uom"],
@@ -1875,8 +1881,14 @@ class exporter(object):
                 location = self.map_locations.get(i["location_dest_id"][0], None)
                 if not location:
                     continue
-                start = self.formatDateTime(j["date_order"])
-                end = self.formatDateTime(i["date"])
+                start = j["date_order"]
+                if not isinstance(start, datetime):
+                    start = datetime.fromisoformat(start)
+                end = i["date"]
+                if not isinstance(end, datetime):
+                    end = datetime.fromisoformat(end)
+                start = self.formatDateTime(start if start < end else end)
+                end = self.formatDateTime(end)
                 qty = i["product_qty"] - i["quantity_done"]
                 if qty >= 0:
                     yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
