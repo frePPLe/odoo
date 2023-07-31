@@ -1556,9 +1556,9 @@ class exporter(object):
                 reserved_quantity = stock_moves_dict[stock_move_id][
                     "reserved_availability"
                 ]
-
                 for i in stock_moves_dict[stock_move_id]["move_orig_ids"]:
-                    reserved_quantity += getReservedQuantity(i)
+                    if i != stock_move_id:
+                        reserved_quantity += getReservedQuantity(i)
             return reserved_quantity
 
         # Generate the demand records
