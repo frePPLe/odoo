@@ -1609,6 +1609,7 @@ class exporter(object):
                         sol_name = (
                             "%s %s" % (name, mv_id) if len(i["move_ids"]) > 1 else name
                         )
+                        logger.info("%s %s" % (sol_name,mv_id))
                         sm = stock_moves_dict[mv_id]
                         qty = self.convert_qty_uom(
                             sm["product_uom_qty"],
@@ -1617,11 +1618,11 @@ class exporter(object):
                         )
                         reserved_quantity = (
                             getReservedQuantity(mv_id)
-                            if self.respect_reservations
+                            if self.respect_reservations and sm["state"] != "done"
                             else 0
                         )
 
-                        due = due = self.formatDateTime(sm["date"] or j["date_order"])
+                        due = self.formatDateTime(sm["date"] or j["date_order"])
 
                         yield (
                             '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
