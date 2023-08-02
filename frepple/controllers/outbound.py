@@ -1515,28 +1515,14 @@ class exporter(object):
             )
         }
 
-        # Get all move ids
-        # We need all the so lines stock moves
-        # plus the open ones for recursive purpose
-        open_stock_moves = [
-            i["id"]
+        soline_reservation = {}
+        stock_move_dict = {}
+        if self.respect_reservations:
             for i in self.generator.getData(
                 "stock.move",
                 search=[
                     ("state", "in", ["waiting", "partially_available", "assigned"])
                 ],
-            )
-        ]
-
-        stock_moves_dict = {
-            i["id"]: i
-            for i in self.generator.getData(
-                "stock.move",
-                ids=[
-                    item
-                    for sublist in [j["move_ids"] for j in so_line]
-                    for item in sublist
-                ].extend(open_stock_moves),
                 fields=[
                     "id",
                     "move_orig_ids",
@@ -1546,20 +1532,14 @@ class exporter(object):
                     "product_uom_qty",
                     "product_uom",
                     "state",
+                    "sale_line_id",
                 ],
-            )
-        }
-
-        def getReservedQuantity(stock_move_id):
-            reserved_quantity = 0
-            if stock_move_id in stock_moves_dict:
-                reserved_quantity = stock_moves_dict[stock_move_id][
-                    "reserved_availability"
-                ]
-                for i in stock_moves_dict[stock_move_id]["move_orig_ids"]:
-                    if i != stock_move_id:
-                        reserved_quantity += getReservedQuantity(i)
-            return reserved_quantity
+            ):
+                if i["sale_line_id"]:
+                    soline_reservation[i["sale_line_id"][0]] = i[
+                        "reserved_availability"
+                    ] + soline_reservation.get(i["sale_line_id"], 0)
+                stock_move_dict[i["id"]] = i
 
         # Generate the demand records
         yield "<!-- sales order lines -->\n"
@@ -1605,66 +1585,34 @@ class exporter(object):
                 )
             elif state == "sale":
                 if i["move_ids"]:
+                    qty = 0
                     for mv_id in i["move_ids"]:
-                        sol_name = (
-                            "%s %s" % (name, mv_id) if len(i["move_ids"]) > 1 else name
-                        )
-                        sm = stock_moves_dict[mv_id]
-                        qty = self.convert_qty_uom(
-                            sm["product_uom_qty"],
-                            sm["product_uom"],
-                            self.product_product[i["product_id"][0]]["template"],
-                        )
-                        reserved_quantity = (
-                            getReservedQuantity(mv_id)
-                            if self.respect_reservations and sm["state"] != "done"
-                            else 0
-                        )
-
-                        due = self.formatDateTime(sm["date"] or j["date_order"])
-
-                        yield (
-                            '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
-                            # Enable only in frepple >= 6.25
-                            # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
-                            "</demand>\n"
-                        ) % (
-                            quoteattr(sol_name),
-                            quoteattr(batch),
-                            qty - reserved_quantity
-                            if sm["state"] != "done" and qty - reserved_quantity > 0
-                            else qty,
-                            due,
-                            priority,
-                            j["picking_policy"] == "one" and qty or 0.0,
-                            "open"
-                            if sm["state"] != "done" and qty - reserved_quantity > 0
-                            else "closed",
-                            quoteattr(product["name"]),
-                            quoteattr(customer),
-                            quoteattr(location),
-                            # Enable only in frepple >= 6.25
-                            # quoteattr(i["order_id"][1]),
-                            # "alltogether" if j["picking_policy"] == "one" else "independent",
-                        )
-                    # we are done with this so line, go to the next one
-                    continue
+                        mv = stock_move_dict.get(mv_id)
+                        if mv:
+                            qty += self.convert_qty_uom(
+                                mv["product_uom_qty"],
+                                mv["product_uom"],
+                                self.product_product[i["product_id"][0]]["template"],
+                            )
                 else:
                     qty = i["product_uom_qty"] - i["qty_delivered"]
-                    if qty <= 0:
-                        status = "closed"
-                        qty = self.convert_qty_uom(
-                            i["product_uom_qty"],
-                            i["product_uom"],
-                            self.product_product[i["product_id"][0]]["template"],
-                        )
-                    else:
-                        status = "open"
-                        qty = self.convert_qty_uom(
-                            qty,
-                            i["product_uom"],
-                            self.product_product[i["product_id"][0]]["template"],
-                        )
+                if self.respect_reservations:
+                    qty -= soline_reservation.get(i["id"], 0)
+                if qty <= 0:
+                    status = "closed"
+                    qty = self.convert_qty_uom(
+                        i["product_uom_qty"],
+                        i["product_uom"],
+                        self.product_product[i["product_id"][0]]["template"],
+                    )
+                else:
+                    status = "open"
+                    qty = self.convert_qty_uom(
+                        qty,
+                        i["product_uom"],
+                        self.product_product[i["product_id"][0]]["template"],
+                    )
+
             elif state in "done":
                 status = "closed"
                 qty = self.convert_qty_uom(
