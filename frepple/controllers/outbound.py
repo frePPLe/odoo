@@ -516,7 +516,7 @@ class exporter(object):
                             "1" if j["attendance"] else "0",
                             (2 ** ((int(j["dayofweek"]) + 1) % 7))
                             if "dayofweek" in j
-                            else (2 ** 7) - 1,
+                            else (2**7) - 1,
                             priority_attendance if j["attendance"] else priority_leave,
                             # In odoo, monday = 0. In frePPLe, sunday = 0.
                             ("PT%dM" % round(j["hour_from"] * 60))
@@ -549,7 +549,7 @@ class exporter(object):
                                     "1",
                                     (2 ** ((int(j["dayofweek"]) + 1) % 7))
                                     if "dayofweek" in j
-                                    else (2 ** 7) - 1,
+                                    else (2**7) - 1,
                                     priority_attendance,
                                     # In odoo, monday = 0. In frePPLe, sunday = 0.
                                     ("PT%dM" % round(j["hour_from"] * 60))
@@ -1392,24 +1392,29 @@ class exporter(object):
                                     not in self.map_workcenters
                                 ):
                                     continue
-                                secondary_workcenter_str += '<load quantity="%f" search=%s><resource name=%s/>%s</load>' % (
-                                    1
-                                    if not secondary_workcenter["duration"]
-                                    or step["time_cycle"] == 0
-                                    else secondary_workcenter["duration"]
-                                    / step["time_cycle"],
-                                    quoteattr(secondary_workcenter["search_mode"]),
-                                    quoteattr(
-                                        self.map_workcenters[
-                                            secondary_workcenter["workcenter_id"][0]
-                                        ]
-                                    ),
-                                    (
-                                        "<skill name=%s/>"
-                                        % quoteattr(secondary_workcenter["skill"][1])
+                                secondary_workcenter_str += (
+                                    '<load quantity="%f" search=%s><resource name=%s/>%s</load>'
+                                    % (
+                                        1
+                                        if not secondary_workcenter["duration"]
+                                        or step["time_cycle"] == 0
+                                        else secondary_workcenter["duration"]
+                                        / step["time_cycle"],
+                                        quoteattr(secondary_workcenter["search_mode"]),
+                                        quoteattr(
+                                            self.map_workcenters[
+                                                secondary_workcenter["workcenter_id"][0]
+                                            ]
+                                        ),
+                                        (
+                                            "<skill name=%s/>"
+                                            % quoteattr(
+                                                secondary_workcenter["skill"][1]
+                                            )
+                                        )
+                                        if secondary_workcenter["skill"]
+                                        else "",
                                     )
-                                    if secondary_workcenter["skill"]
-                                    else "",
                                 )
 
                             yield "<suboperation>" '<operation name=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
@@ -1515,9 +1520,11 @@ class exporter(object):
             )
         }
 
-        soline_reservation = {}
-        stock_move_dict = {}
-        if self.respect_reservations:
+        # Get all move ids
+        # We only read the open ones
+
+        stock_moves_dict = {
+            i["id"]: i
             for i in self.generator.getData(
                 "stock.move",
                 search=[
@@ -1532,14 +1539,21 @@ class exporter(object):
                     "product_uom_qty",
                     "product_uom",
                     "state",
-                    "sale_line_id",
+                    "origin_returned_move_id",
                 ],
-            ):
-                if i["sale_line_id"]:
-                    soline_reservation[i["sale_line_id"][0]] = i[
-                        "reserved_availability"
-                    ] + soline_reservation.get(i["sale_line_id"], 0)
-                stock_move_dict[i["id"]] = i
+            )
+        }
+
+        def getReservedQuantity(stock_move_id):
+            reserved_quantity = 0
+            if stock_move_id in stock_moves_dict:
+                reserved_quantity = stock_moves_dict[stock_move_id][
+                    "reserved_availability"
+                ]
+                for i in stock_moves_dict[stock_move_id]["move_orig_ids"]:
+                    if i != stock_move_id:
+                        reserved_quantity += getReservedQuantity(i)
+            return reserved_quantity
 
         # Generate the demand records
         yield "<!-- sales order lines -->\n"
@@ -1584,36 +1598,71 @@ class exporter(object):
                     self.product_product[i["product_id"][0]]["template"],
                 )
             elif state == "sale":
-                if i["move_ids"]:
-                    qty = 0
+                if i["move_ids"] and any(
+                    [mv_id in stock_moves_dict for mv_id in i["move_ids"]]
+                ):
                     for mv_id in i["move_ids"]:
-                        mv = stock_move_dict.get(mv_id)
-                        if mv:
-                            qty += self.convert_qty_uom(
-                                mv["product_uom_qty"],
-                                mv["product_uom"],
+                        sol_name = (
+                            "%s %s" % (name, mv_id) if len(i["move_ids"]) > 1 else name
+                        )
+                        sm = stock_moves_dict.get(mv_id)
+                        if sm:
+                            qty = self.convert_qty_uom(
+                                sm["product_uom_qty"],
+                                sm["product_uom"],
                                 self.product_product[i["product_id"][0]]["template"],
                             )
+                            reserved_quantity = (
+                                getReservedQuantity(mv_id)
+                                if self.respect_reservations
+                                else 0
+                            )
+
+                            logger.info("%s %s %s" % (sol_name, qty, reserved_quantity))
+
+                            due = self.formatDateTime(sm["date"] or j["date_order"])
+
+                            yield (
+                                '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
+                                # Enable only in frepple >= 6.25
+                                # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
+                                "</demand>\n"
+                            ) % (
+                                quoteattr(sol_name),
+                                quoteattr(batch),
+                                qty - reserved_quantity
+                                if qty - reserved_quantity > 0
+                                else qty,
+                                due,
+                                priority,
+                                j["picking_policy"] == "one" and qty or 0.0,
+                                "open" if qty - reserved_quantity > 0 else "closed",
+                                quoteattr(product["name"]),
+                                quoteattr(customer),
+                                quoteattr(location),
+                                # Enable only in frepple >= 6.25
+                                # quoteattr(i["order_id"][1]),
+                                # "alltogether" if j["picking_policy"] == "one" else "independent",
+                            )
+                    # We are done with this line, move to the next one
+                    continue
                 else:
                     qty = i["product_uom_qty"] - i["qty_delivered"]
-                if self.respect_reservations:
-                    qty -= soline_reservation.get(i["id"], 0)
-                if qty <= 0:
-                    status = "closed"
-                    qty = self.convert_qty_uom(
-                        i["product_uom_qty"],
-                        i["product_uom"],
-                        self.product_product[i["product_id"][0]]["template"],
-                    )
-                else:
-                    status = "open"
-                    qty = self.convert_qty_uom(
-                        qty,
-                        i["product_uom"],
-                        self.product_product[i["product_id"][0]]["template"],
-                    )
-
-            elif state in "done":
+                    if qty <= 0:
+                        status = "closed"
+                        qty = self.convert_qty_uom(
+                            i["product_uom_qty"],
+                            i["product_uom"],
+                            self.product_product[i["product_id"][0]]["template"],
+                        )
+                    else:
+                        status = "open"
+                        qty = self.convert_qty_uom(
+                            qty,
+                            i["product_uom"],
+                            self.product_product[i["product_id"][0]]["template"],
+                        )
+            elif state == "done":
                 status = "closed"
                 qty = self.convert_qty_uom(
                     i["product_uom_qty"],
