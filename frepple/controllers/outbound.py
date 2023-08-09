@@ -1617,9 +1617,6 @@ class exporter(object):
                                 if self.respect_reservations
                                 else 0
                             )
-
-                            logger.info("%s %s %s" % (sol_name, qty, reserved_quantity))
-
                             due = self.formatDateTime(sm["date"] or j["date_order"])
 
                             yield (
