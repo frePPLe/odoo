@@ -152,6 +152,7 @@ class exporter(object):
         timezone=None,
         singlecompany=False,
         version="0.0.0.unknown",
+        delta=999,
     ):
         self.database = database
         self.company = company
@@ -177,6 +178,7 @@ class exporter(object):
                 self.timezone = i["tz"] or "UTC"
         self.timeformat = "%Y-%m-%dT%H:%M:%S"
         self.singlecompany = singlecompany
+        self.delta = delta
 
         # The mode argument defines different types of runs:
         #  - Mode 1:
@@ -1422,9 +1424,21 @@ class exporter(object):
         (if sale.order.picking_policy = 'one' then same as demand.quantity else 1) -> demand.minshipment
         """
         # Get all sales order lines
+        search = (
+            [("product_id", "!=", False)]
+            if self.delta >= 999
+            else [
+                ("product_id", "!=", False),
+                (
+                    "write_date",
+                    ">=",
+                    datetime.now() - timedelta(days=self.delta),
+                ),
+            ]
+        )
         so_line = self.generator.getData(
             "sale.order.line",
-            search=[("product_id", "!=", False)],
+            search=search,
             fields=[
                 "qty_delivered",
                 "state",
