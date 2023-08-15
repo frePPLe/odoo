@@ -628,6 +628,7 @@ class exporter(object):
         for loc_object in self.generator.getData(
             "stock.location",
             ids=loc_ids,
+            fields=["warehouse_id"],
         ):
             if (
                 loc_object.get("warehouse_id", False)
