@@ -52,6 +52,18 @@ class WorkOrderInherit(models.Model):
         - else:
             take the first child, ordered by name
         """
+        # if secondary workcenters are already set, assure the duration is correct
+        if self.secondary_workcenters:
+            for i in self.secondary_workcenters:
+                for x in self.operation_id.secondary_workcenter:
+                    if (
+                        x.workcenter_id.id == i.workcenter_id.id
+                        or x.workcenter_id.id == i.workcenter_id.owner.id
+                    ):
+                        i.write({"duration": x.duration * self.qty_production})
+                        break
+            return True
+
         for x in self.operation_id.secondary_workcenter:
 
             # store the ids of the workcenters having that secondary workcenter as owner
