@@ -53,6 +53,7 @@ class WorkOrderInherit(models.Model):
             take the first child, ordered by name
         """
         # if secondary workcenters are already set, assure the duration is correct
+        secondary_workcenters_values = []
         if self.secondary_workcenters:
             for i in self.secondary_workcenters:
                 for x in self.operation_id.secondary_workcenter:
@@ -60,8 +61,12 @@ class WorkOrderInherit(models.Model):
                         x.workcenter_id.id == i.workcenter_id.id
                         or x.workcenter_id.id == i.workcenter_id.owner.id
                     ):
-                        i.write({"duration": x.duration * self.qty_production})
+                        secondary_workcenters_values.append(
+                            [(0, 0, {"duration", x.duration * self.qty_production})]
+                        )
                         break
+            if secondary_workcenters_values:
+                self.secondary_workcenters = secondary_workcenters_values
             return True
 
         for x in self.operation_id.secondary_workcenter:
@@ -126,15 +131,19 @@ class WorkOrderInherit(models.Model):
                     selectedWorkCenter = children[0]
 
             if selectedWorkCenter:
-                self.env["mrp.workorder.secondary.workcenter"].create(
-                    [
+                secondary_workcenters_values.append(
+                    (
+                        0,
+                        0,
                         {
                             "workorder_id": self.id,
                             "workcenter_id": selectedWorkCenter,
                             "duration": x.duration * self.qty_production,
-                        }
-                    ]
+                        },
+                    )
                 )
+        if secondary_workcenters_values:
+            self.secondary_workcenters = secondary_workcenters_values
         return True
 
     @api.model_create_multi
@@ -144,3 +153,13 @@ class WorkOrderInherit(models.Model):
             for wo in wo_list:
                 wo.assign_secondary_work_centers()
             return wo_list
+
+    def _get_duration_expected(self, alternative_workcenter=False, ratio=1):
+        duration = super()._get_duration_expected(alternative_workcenter, ratio)
+        # get the max duration of all secondary workcenters, because this is used for top-level planning
+        if self.secondary_workcenters:
+            return max(
+                secondary_wc.duration for secondary_wc in self.secondary_workcenters
+            )
+        else:
+            return duration
