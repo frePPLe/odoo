@@ -19,16 +19,60 @@ import logging
 from xml.sax.saxutils import quoteattr
 from datetime import datetime, timedelta
 from operator import itemgetter
-
+import pytz
+from pytz import timezone
 import odoo
 
 logger = logging.getLogger(__name__)
 
 
+class Odoo_generator:
+    def __init__(self, env):
+        self.env = env
+
+    def setContext(self, **kwargs):
+        t = dict(self.env.context)
+        t.update(kwargs)
+        self.env = self.env(
+            user=self.env.user,
+            context=t,
+        )
+
+    def callMethod(self, model, id, method, args=[]):
+        for obj in self.env[model].browse(id):
+            return getattr(obj, method)(*args)
+        return None
+
+    def getData(self, model, search=[], order=None, fields=[], ids=None):
+        if ids is not None:
+            return self.env[model].browse(ids).read(fields) if ids else []
+        if order:
+            return self.env[model].search(search, order=order).read(fields)
+        else:
+            return self.env[model].search(search).read(fields)
+
 class exporter(object):
     def __init__(self, req, uid, database=None, company=None, mode=1):
         self.database = database
         self.company = company
+        self.generator = Odoo_generator(req.env)
+        self.timezone = timezone
+        if timezone:
+            if timezone not in pytz.all_timezones:
+                logger.warning("Invalid timezone URL argument: %s." % (timezone,))
+                self.timezone = None
+            else:
+                # Valid timezone override in the url
+                self.timezone = timezone
+        if not self.timezone:
+            # Default timezone: use the timezone of the connector user (or UTC if not set)
+            for i in self.generator.getData(
+                "res.users",
+                ids=[uid],
+                fields=["tz"],
+            ):
+                self.timezone = i["tz"] or "UTC"
+        self.timeformat = "%Y-%m-%dT%H:%M:%S"
 
         # The mode argument defines different types of runs:
         #  - Mode 1:
@@ -216,92 +260,162 @@ class exporter(object):
 
     def export_calendar(self):
         """
-        Build a calendar with a) holidays and b) working hours.
+        Reads all calendars from resource.calendar model and creates a calendar in frePPLe.
+        Attendance times are read from resource.calendar.attendance
+        Leave times are read from resource.calendar.leaves
 
-        The holidays are obtained from the hr.holidays.public.line model.
-        If the hr module isn't installed, no public holidays will be defined.
+        resource.calendar.name -> calendar.name (default value is 0)
+        resource.calendar.attendance.date_from -> calendar bucket start date (or 2020-01-01 if unspecified)
+        resource.calendar.attendance.date_to -> calendar bucket end date (or 2030-01-01 if unspecified)
+        resource.calendar.attendance.hour_from -> calendar bucket start time
+        resource.calendar.attendance.hour_to -> calendar bucket end time
+        resource.calendar.attendance.dayofweek -> calendar bucket day
 
-        The working hours are extracted from a resource.calendar model.
-        The calendar to use is configured with the company parameter "calendar".
-        If left unspecified we assume 24*7 working hours.
+        resource.calendar.leaves.date_from -> calendar bucket start date
+        resource.calendar.leaves.date_to -> calendar bucket end date
 
-        The odoo model is not ideal and nice for frePPLe, and the current mapping
-        is an as-good-as-it-gets workaround.
+        For two-week calendars all weeks between the calendar start and
+        calendar end dates are added in frepple as calendar buckets.
+        The week number is using the iso standard (first week of the
+        year is the one containing the first Thursday of the year).
 
-        Mapping:
-        res.company.calendar  -> calendar.name
-        (if no working hours are defined then 1 else 0) -> calendar.default_value
-
-        resource.calendar.attendance.date_from -> calendar_bucket.start
-        '1' -> calendar_bucket.value
-        resource.calendar.attendance.dayofweek -> calendar_bucket.days
-        resource.calendar.attendance.hour_from -> calendar_bucket.startime
-        resource.calendar.attendance.hour_to -> calendar_bucket.endtime
-        computed -> calendar_bucket.priority
-
-        hr.holidays.public.line.start -> calendar_bucket.start
-        hr.holidays.public.line.start + 1 day -> calendar_bucket.end
-        '0' -> calendar_bucket.value
-        '1' -> calendar_bucket.priority
         """
         yield "<!-- calendar -->\n"
         yield "<calendars>\n"
+
+        calendars = {}
+        cal_tz = {}
+        cal_ids = set()
         try:
-            m = self.env["resource.calendar"]
-            recs = m.search([("name", "=", self.calendar)])
-            rec = recs.read(["attendance_ids"], limit=1)
-            fields = ["dayofweek", "date_from", "hour_from", "hour_to"]
-            buckets = []
-            for i in rec["attendance_ids"].read(fields):
-                strt = datetime.strptime(i["date_from"] or "2000-01-01", "%Y-%m-%d")
-                buckets.append(
-                    (
-                        strt,
-                        '<bucket start="%sT00:00:00" value="1" days="%s" priority="%%s" starttime="%s" endtime="%s"/>\n'
-                        % (
-                            strt.strftime("%Y-%m-%d"),
-                            2 ** ((int(i["dayofweek"]) + 1) % 7),
-                            # In odoo, monday = 0. In frePPLe, sunday = 0.
-                            "PT%dM" % round(i["hour_from"] * 60),
-                            "PT%dM" % round(i["hour_to"] * 60),
-                        ),
+            # Read the timezone
+            for i in self.generator.getData(
+                "resource.calendar",
+                fields=[
+                    "name",
+                    "tz",
+                ],
+            ):
+                cal_tz[i["name"]] = i["tz"]
+                cal_ids.add(i["id"])
+
+            # Read the attendance for all calendars
+            for i in self.generator.getData(
+                "resource.calendar.attendance",
+                fields=[
+                    "dayofweek",
+                    "date_from",
+                    "date_to",
+                    "hour_from",
+                    "hour_to",
+                    "calendar_id",
+                ],
+            ):
+                if i["calendar_id"] and i["calendar_id"][0] in cal_ids:
+                    if i["calendar_id"][1] not in calendars:
+                        calendars[i["calendar_id"][1]] = []
+                    i["attendance"] = True
+                    calendars[i["calendar_id"][1]].append(i)
+
+            # Read the leaves for all calendars
+            for i in self.generator.getData(
+                "resource.calendar.leaves",
+                search=[("time_type", "=", "leave")],
+                fields=[
+                    "date_from",
+                    "date_to",
+                    "calendar_id",
+                ],
+            ):
+                if i["calendar_id"] and i["calendar_id"][0] in cal_ids:
+                    if i["calendar_id"][1] not in calendars:
+                        calendars[i["calendar_id"][1]] = []
+                    i["attendance"] = False
+                    calendars[i["calendar_id"][1]].append(i)
+
+            # Iterate over the results:
+            for i in calendars:
+                priority_attendance = 1000
+                priority_leave = 10
+                if cal_tz[i] != self.timezone:
+                    logger.warning(
+                        "timezone is different on workcenter %s and connector user. Working hours will not be synced correctly to frepple."
+                        % i
                     )
-                )
-            if len(buckets) > 0:
-                # Sort by start date.
-                # Required to assure that records with a later start date get a
-                # lower priority in frePPLe.
-                buckets.sort(key=itemgetter(0))
-                priority = 1000
-                yield '<calendar name=%s default="0"><buckets>\n' % quoteattr(
-                    self.calendar
-                )
-                for i in buckets:
-                    yield i[1] % priority
-                    priority -= 1
-            else:
-                # No entries. We'll assume 24*7 availability.
-                yield '<calendar name=%s default="1"><buckets>\n' % quoteattr(
-                    self.calendar
-                )
-        except Exception:
-            # Exception happens if the resource module isn't installed.
-            yield "<!-- Working hours are assumed to be 24*7. -->\n"
-            yield '<calendar name=%s default="1"><buckets>\n' % quoteattr(self.calendar)
-        try:
-            m = self.env["hr.holidays.public.line"]
-            recs = m.search([])
-            fields = ["date"]
-            for i in recs.read(fields):
-                nd = datetime.strptime(i["date"], "%Y-%m-%d") + timedelta(days=1)
-                yield '<bucket start="%sT00:00:00" end="%sT00:00:00" value="0" priority="1"/>\n' % (
-                    i["date"],
-                    nd.strftime("%Y-%m-%d"),
-                )
-        except Exception:
-            # Exception happens if the hr module is not installed
-            yield "<!-- No holidays since the HR module is not installed -->\n"
-        yield "</buckets></calendar></calendars>\n"
+                yield '<calendar name=%s default="0"><buckets>\n' % quoteattr(i)
+                for j in calendars[i]:
+                    if j.get("week_type", False) == False:
+                        # ONE-WEEK CALENDAR
+                        yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
+                            self.formatDateTime(j["date_from"], cal_tz[i])
+                            if not j["attendance"]
+                            else (
+                                j["date_from"].strftime("%Y-%m-%dT00:00:00")
+                                if j["date_from"]
+                                else "2020-01-01T00:00:00"
+                            ),
+                            self.formatDateTime(j["date_to"], cal_tz[i])
+                            if not j["attendance"]
+                            else (
+                                j["date_to"].strftime("%Y-%m-%dT00:00:00")
+                                if j["date_to"]
+                                else "2030-01-01T00:00:00"
+                            ),
+                            "1" if j["attendance"] else "0",
+                            (2 ** ((int(j["dayofweek"]) + 1) % 7))
+                            if "dayofweek" in j
+                            else (2**7) - 1,
+                            priority_attendance if j["attendance"] else priority_leave,
+                            # In odoo, monday = 0. In frePPLe, sunday = 0.
+                            ("PT%dM" % round(j["hour_from"] * 60))
+                            if "hour_from" in j
+                            else "PT0M",
+                            ("PT%dM" % round(j["hour_to"] * 60))
+                            if "hour_to" in j
+                            else "PT1440M",
+                        )
+                        if j["attendance"]:
+                            priority_attendance += 1
+                        else:
+                            priority_leave += 1
+                    else:
+                        # TWO-WEEKS CALENDAR
+                        start = j["date_from"] or datetime(2020, 1, 1)
+                        end = j["date_to"] or datetime(2030, 1, 1)
+
+                        t = start
+                        while t < end:
+                            if int(t.isocalendar()[1] % 2) == int(j["week_type"]):
+                                if j["hour_to"] == 0:
+                                    logger.info(j)
+                                yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
+                                    self.formatDateTime(t, cal_tz[i]),
+                                    self.formatDateTime(
+                                        min(t + timedelta(7 - t.weekday()), end),
+                                        cal_tz[i],
+                                    ),
+                                    "1",
+                                    (2 ** ((int(j["dayofweek"]) + 1) % 7))
+                                    if "dayofweek" in j
+                                    else (2**7) - 1,
+                                    priority_attendance,
+                                    # In odoo, monday = 0. In frePPLe, sunday = 0.
+                                    ("PT%dM" % round(j["hour_from"] * 60))
+                                    if "hour_from" in j
+                                    else "PT0M",
+                                    ("PT%dM" % round(j["hour_to"] * 60))
+                                    if "hour_to" in j
+                                    else "PT1440M",
+                                )
+                                priority_attendance += 1
+                            dow = t.weekday()
+                            t += timedelta(7 - dow)
+
+                yield "</buckets></calendar>\n"
+
+            yield "</calendars>\n"
+        except Exception as e:
+            logger.error(e)
+            yield "</calendars>\n"
 
     def export_locations(self):
         """
@@ -439,16 +553,20 @@ class exporter(object):
         self.map_workcenters = {}
         m = self.env["mrp.workcenter"]
         recs = m.search([])
-        fields = ["name"]
+        fields = ["name", "capacity", "resource_calendar_id", "time_efficiency"]
         if recs:
             yield "<!-- workcenters -->\n"
             yield "<resources>\n"
             for i in recs.read(fields):
                 name = i["name"]
                 self.map_workcenters[i["id"]] = name
-                yield '<resource name=%s maximum="%s"><location name=%s/></resource>\n' % (
+                yield '<resource name=%s maximum="%s" efficiency="%s">%s<location name=%s/></resource>\n' % (
                     quoteattr(name),
-                    1,
+                    i["capacity"],
+                    i["time_efficiency"],
+                    ("<available name=%s/>" % quoteattr(i["resource_calendar_id"][1]))
+                    if i["resource_calendar_id"]
+                    else "",
                     quoteattr(self.mfg_location),
                 )
             yield "</resources>\n"
@@ -1354,7 +1472,7 @@ class exporter(object):
                 if i["product_max_qty"] - i["product_min_qty"] > 0:
                     yield """
                     <calendar name=%s default="0"><buckets>
-                    <bucket start="2000-01-01T00:00:00" end="2030-01-01T00:00:00" value="%s" days="127" priority="998" starttime="PT0M" endtime="PT1440M"/>
+                    <bucket start="2000-01-01T00:00:00" end="2030-12-31T00:00:00" value="%s" days="127" priority="998" starttime="PT0M" endtime="PT1440M"/>
                     </buckets>
                     </calendar>\n
                     """ % (
