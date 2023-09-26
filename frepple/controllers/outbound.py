@@ -51,6 +51,7 @@ class Odoo_generator:
         else:
             return self.env[model].search(search).read(fields)
 
+
 class exporter(object):
     def __init__(self, req, uid, database=None, company=None, mode=1):
         self.database = database
@@ -363,7 +364,7 @@ class exporter(object):
                             "1" if j["attendance"] else "0",
                             (2 ** ((int(j["dayofweek"]) + 1) % 7))
                             if "dayofweek" in j
-                            else (2**7) - 1,
+                            else (2 ** 7) - 1,
                             priority_attendance if j["attendance"] else priority_leave,
                             # In odoo, monday = 0. In frePPLe, sunday = 0.
                             ("PT%dM" % round(j["hour_from"] * 60))
@@ -396,7 +397,7 @@ class exporter(object):
                                     "1",
                                     (2 ** ((int(j["dayofweek"]) + 1) % 7))
                                     if "dayofweek" in j
-                                    else (2**7) - 1,
+                                    else (2 ** 7) - 1,
                                     priority_attendance,
                                     # In odoo, monday = 0. In frePPLe, sunday = 0.
                                     ("PT%dM" % round(j["hour_from"] * 60))
