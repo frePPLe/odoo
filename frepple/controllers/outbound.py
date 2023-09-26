@@ -1374,6 +1374,7 @@ class exporter(object):
             "product_uom_id",
             "location_dest_id",
             "product_id",
+            "move_raw_ids",
         ]
         for i in recs.read(fields):
             if i["bom_id"]:
@@ -1389,7 +1390,7 @@ class exporter(object):
                 operation = u"%d %s @ %s" % (
                     i["bom_id"][0],
                     item["name"],
-                    i["location_dest_id"][1],
+                    location,
                 )
                 try:
                     startdate = str(i["date_start"] or i["date_planned_start"]).replace(
@@ -1412,12 +1413,47 @@ class exporter(object):
                     )
                     / factor
                 )
-                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="confirmed"><operation name=%s/></operationplan>\n' % (
+                yield '<operationplan type="MO" reference=%s start="%s" quantity="%s" status="confirmed"><operation name=%s/><flowplans>\n' % (
                     quoteattr(i["name"]),
                     startdate,
                     qty,
                     quoteattr(operation),
                 )
+
+                if i["move_raw_ids"]:
+                    for mv in self.generator.getData(
+                        "stock.move",
+                        ids=i["move_raw_ids"],
+                        fields=[
+                            "product_id",
+                            "product_qty",
+                            "product_uom",
+                            # "date",
+                            # "reference",
+                            # "workorder_id",
+                            # "operation_id",
+                            "reserved_availability",
+                            "quantity_done",
+                        ],
+                    ):
+                        consumed_item = (
+                            self.product_product[mv["product_id"][0]]
+                            if mv["product_id"][0] in self.product_product
+                            else None
+                        )
+                        if not consumed_item:
+                            continue
+                        qty_flow = self.convert_qty_uom(
+                            max(0, mv["product_qty"] - mv["reserved_availability"]),
+                            mv["product_uom"][0],
+                            self.product_product[mv["product_id"][0]]["template"],
+                        )
+                        if qty_flow > 0:
+                            yield '<flowplan status="confirmed" quantity="%s"><item name=%s/></flowplan>\n' % (
+                                -qty_flow,
+                                quoteattr(consumed_item["name"]),
+                            )
+                yield "</flowplans></operationplan>\n"
         yield "</operationplans>\n"
 
     def export_orderpoints(self):
@@ -1496,7 +1532,7 @@ class exporter(object):
         yield "<!-- inventory -->\n"
         yield "<buffers>\n"
         self.env.cr.execute(
-            "SELECT product_id, location_id, sum(quantity) "
+            "SELECT product_id, location_id, sum(quantity), sum(reserved_quantity) "
             "FROM stock_quant "
             "WHERE quantity > 0 "
             "GROUP BY product_id, location_id "
@@ -1507,8 +1543,9 @@ class exporter(object):
             item = self.product_product.get(i[0], None)
             location = self.map_locations.get(i[1], None)
             if item and location:
-                inventory[(item["name"], location)] = i[2] + inventory.get(
-                    (item["name"], location), 0
+                # Remove "- i[3]" to ignore material reservations in the onhand
+                inventory[(item["name"], location)] = (
+                    i[2] - i[3] + inventory.get((item["name"], location), 0)
                 )
         for key, val in inventory.items():
             buf = "%s @ %s" % (key[0], key[1])
