@@ -518,7 +518,7 @@ class exporter(object):
                             "1" if j["attendance"] else "0",
                             (2 ** ((int(j["dayofweek"]) + 1) % 7))
                             if "dayofweek" in j
-                            else (2**7) - 1,
+                            else (2 ** 7) - 1,
                             priority_attendance if j["attendance"] else priority_leave,
                             # In odoo, monday = 0. In frePPLe, sunday = 0.
                             ("PT%dM" % round(j["hour_from"] * 60))
@@ -551,7 +551,7 @@ class exporter(object):
                                     "1",
                                     (2 ** ((int(j["dayofweek"]) + 1) % 7))
                                     if "dayofweek" in j
-                                    else (2**7) - 1,
+                                    else (2 ** 7) - 1,
                                     priority_attendance,
                                     # In odoo, monday = 0. In frePPLe, sunday = 0.
                                     ("PT%dM" % round(j["hour_from"] * 60))
@@ -1045,6 +1045,7 @@ class exporter(object):
                 "type",
                 "bom_line_ids",
                 "sequence",
+                "code",
             ],
         ):
             # Determine the location
@@ -1105,8 +1106,9 @@ class exporter(object):
                         # All routing steps are collapsed in a single operation.
                         #
                         if subcontractor:
-                            yield '<operation name=%s size_multiple="1" category="subcontractor" subcategory=%s duration="P%dD" posttime="P%dD" xsi:type="operation_fixed_time" priority="%s" size_minimum="%s">\n' "<item name=%s/><location name=%s/>\n" % (
+                            yield '<operation name=%s %ssize_multiple="1" category="subcontractor" subcategory=%s duration="P%dD" posttime="P%dD" xsi:type="operation_fixed_time" priority="%s" size_minimum="%s">\n' "<item name=%s/><location name=%s/>\n" % (
                                 quoteattr(operation),
+                                ("description=%s " % quoteattr(i["code"])) if i["code"] else "",
                                 quoteattr(subcontractor["name"]),
                                 subcontractor.get("delay", 0),
                                 self.po_lead,
@@ -1120,8 +1122,9 @@ class exporter(object):
                                 i["product_tmpl_id"][0]
                             ]["produce_delay"]
 
-                            yield '<operation name=%s size_multiple="1" duration_per="%s" posttime="P%dD" priority="%s" xsi:type="operation_time_per">\n' "<item name=%s/><location name=%s/>\n" % (
+                            yield '<operation name=%s %ssize_multiple="1" duration_per="%s" posttime="P%dD" priority="%s" xsi:type="operation_time_per">\n' "<item name=%s/><location name=%s/>\n" % (
                                 quoteattr(operation),
+                                ("description=%s " % quoteattr(i["code"])) if i["code"] else ""
                                 self.convert_float_time(duration_per)
                                 if duration_per and duration_per > 0
                                 else "P0D",
@@ -1283,8 +1286,9 @@ class exporter(object):
                         # CASE 2: A routing operation is created with a suboperation for each
                         # routing step.
                         #
-                        yield '<operation name=%s size_multiple="1" posttime="P%dD" priority="%s" xsi:type="operation_routing"><item name=%s/><location name=%s/>\n' % (
+                        yield '<operation name=%s %ssize_multiple="1" posttime="P%dD" priority="%s" xsi:type="operation_routing"><item name=%s/><location name=%s/>\n' % (
                             quoteattr(operation),
+                            ("description=%s " % quoteattr(i["code"])) if i["code"] else "",
                             self.manufacturing_lead,
                             100 + (i["sequence"] or 1),
                             quoteattr(product_buf["name"]),
@@ -1395,33 +1399,29 @@ class exporter(object):
                                     not in self.map_workcenters
                                 ):
                                     continue
-                                secondary_workcenter_str += (
-                                    '<load quantity="%f" search=%s><resource name=%s/>%s</load>'
-                                    % (
-                                        1
-                                        if not secondary_workcenter["duration"]
-                                        or step["time_cycle"] == 0
-                                        else secondary_workcenter["duration"]
-                                        / step["time_cycle"],
-                                        quoteattr(secondary_workcenter["search_mode"]),
-                                        quoteattr(
-                                            self.map_workcenters[
-                                                secondary_workcenter["workcenter_id"][0]
-                                            ]
-                                        ),
-                                        (
-                                            "<skill name=%s/>"
-                                            % quoteattr(
-                                                secondary_workcenter["skill"][1]
-                                            )
-                                        )
-                                        if secondary_workcenter["skill"]
-                                        else "",
+                                secondary_workcenter_str += '<load quantity="%f" search=%s><resource name=%s/>%s</load>' % (
+                                    1
+                                    if not secondary_workcenter["duration"]
+                                    or step["time_cycle"] == 0
+                                    else secondary_workcenter["duration"]
+                                    / step["time_cycle"],
+                                    quoteattr(secondary_workcenter["search_mode"]),
+                                    quoteattr(
+                                        self.map_workcenters[
+                                            secondary_workcenter["workcenter_id"][0]
+                                        ]
+                                    ),
+                                    (
+                                        "<skill name=%s/>"
+                                        % quoteattr(secondary_workcenter["skill"][1])
                                     )
+                                    if secondary_workcenter["skill"]
+                                    else "",
                                 )
 
-                            yield "<suboperation>" '<operation name=%s priority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
+                            yield "<suboperation>" '<operation name=%s %spriority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
                                 quoteattr(name),
+                                ("description=%s " % quoteattr(i["code"])) if i["code"] else "",
                                 counter * 10,
                                 self.convert_float_time(step["time_cycle"] / 1440.0)
                                 if step["time_cycle"] and step["time_cycle"] > 0
