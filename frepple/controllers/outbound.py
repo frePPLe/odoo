@@ -237,6 +237,7 @@ class exporter(object):
                 yield from self.export_calendar()
         logger.debug("Exporting locations.")
         yield from self.export_locations()
+        self.load_operation_types()
         logger.debug("Exporting customers.")
         yield from self.export_customers()
         if self.mode == 1:
@@ -342,13 +343,51 @@ class exporter(object):
                 "name": i["name"],
             }
 
+    def load_operation_types(self):
+        """
+        Loading operation types into a dictionary for fast lookups.
+        """
+        self.operation_types = {}
+        for i in self.generator.getData(
+            "stock.picking.type",
+            # We also need to load INactive types
+            search=["|", ("active", "=", 1), ("active", "=", 0)],
+            fields=[
+                "name",
+                "sequence_code",
+                "code",
+                "default_location_src_id",
+                "default_location_dest_id",
+                "warehouse_id",
+            ],
+        ):
+            self.operation_types[i["id"]] = {
+                "id": i["id"],
+                "name": i["name"],
+                "code": i["code"],
+                "sequence_code": i["sequence_code"],
+                "default_location_src_id": self.map_locations.get(
+                    i["default_location_src_id"][0], None
+                )
+                if i["default_location_src_id"]
+                else None,
+                "default_location_dest_id": self.map_locations.get(
+                    i["default_location_dest_id"][0], None
+                )
+                if i["default_location_dest_id"]
+                else None,
+                "warehouse_id": self.warehouses[i["warehouse_id"][0]]
+                if i["warehouse_id"]
+                else None,
+            }
+
     def convert_qty_uom(self, qty, uom_id, product_template_id=None):
         """
         Convert a quantity to the reference uom of the product template.
         """
         try:
             uom_id = uom_id[0]
-        except Exception as e:
+        except Exception:
             pass
         if not uom_id:
             return qty
@@ -1772,6 +1811,7 @@ class exporter(object):
         'PO' -> operationplan.ordertype
         'confirmed' -> operationplan.status
         """
+        self.subcontracting_mo_po_mapping = {}
         po_line = {
             i["id"]: i
             for i in self.generator.getData(
@@ -1874,6 +1914,8 @@ class exporter(object):
                     "picking_id",
                     "date",
                     "purchase_line_id",
+                    "is_subcontract",
+                    "move_orig_ids",
                 ],
             ):
                 if (
@@ -1882,6 +1924,23 @@ class exporter(object):
                     or not i["location_dest_id"]
                     or i["state"] in ("draft", "cancel", "done")
                 ):
+                    continue
+                po_line_reference = "%s - %s - %s" % (
+                    j["name"],
+                    i["picking_id"][1],
+                    i["id"],
+                )
+                if i["is_subcontract"]:
+                    # PO lines on a subcontracting BOM are mapped as a MO in frepple
+                    for k in self.generator.getData(
+                        "stock.move",
+                        ids=i["move_orig_ids"],
+                        fields=["production_id"],
+                    ):
+                        if k["production_id"]:
+                            self.subcontracting_mo_po_mapping[
+                                k["production_id"][0]
+                            ] = po_line_reference
                     continue
                 item = self.product_product.get(i["product_id"][0], None)
                 if not item:
@@ -1904,9 +1963,7 @@ class exporter(object):
                 qty = i["product_qty"] - i["quantity_done"]
                 if qty >= 0:
                     yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
-                        quoteattr(
-                            "%s - %s - %s" % (j["name"], i["picking_id"][1], i["id"])
-                        ),
+                        quoteattr(po_line_reference),
                         start,
                         end,
                         qty,
@@ -1951,6 +2008,7 @@ class exporter(object):
                 "location_dest_id",
                 "product_id",
                 "move_raw_ids",
+                "picking_type_id",
             ]
             + ["workorder_ids"]
             if self.manage_work_orders
@@ -1958,6 +2016,15 @@ class exporter(object):
         ):
             # Filter out irrelevant manufacturing orders
             location = self.map_locations.get(i["location_dest_id"][0], None)
+            if not location and i["picking_type_id"]:
+                # For subcontracting MO we find the warehouse on the operation type
+                operation_type = self.operation_types.get(i["picking_type_id"][0], None)
+                if operation_type:
+                    location = operation_type["warehouse_id"]
+                    if location:
+                        code = self.subcontracting_mo_po_mapping.get(i["id"], None)
+                        if code:
+                            i["name"] = code
             item = (
                 self.product_product[i["product_id"][0]]
                 if i["product_id"][0] in self.product_product
@@ -2089,7 +2156,7 @@ class exporter(object):
                 # There are no workorders on the manufacturing order
                 yield '<operation name=%s xsi:type="operation_fixed_time"><location name=%s/><item name=%s/><flows>' % (
                     quoteattr(operation),
-                    quoteattr(self.map_locations[i["location_dest_id"][0]]),
+                    quoteattr(location),
                     quoteattr(item["name"]),
                 )
                 for mv in mv_list:
@@ -2127,7 +2194,7 @@ class exporter(object):
                 yield '<operation name=%s xsi:type="operation_routing" priority="0"><item name=%s/><location name=%s/><suboperations>' % (
                     quoteattr(operation),
                     quoteattr(item["name"]),
-                    quoteattr(self.map_locations[i["location_dest_id"][0]]),
+                    quoteattr(location),
                 )
                 # Define operations for each WO
                 idx = 10
@@ -2158,7 +2225,7 @@ class exporter(object):
                             max(time_left, 1),  # Miniminum 1 minute remaining :-)
                             units="minutes",
                         ),
-                        quoteattr(self.map_locations[i["location_dest_id"][0]]),
+                        quoteattr(location),
                     )
                     idx += 10
                     for mv in mv_list:
@@ -2271,7 +2338,7 @@ class exporter(object):
                                     now,
                                 )
                             wo_date = ' start="%s"' % self.formatDateTime(dt)
-                    except Exception as e:
+                    except Exception:
                         wo_date = ""
                     yield '<operationplan type="MO" reference=%s%s quantity="%s" status="%s"><operation name=%s/><owner reference=%s/></operationplan>\n' % (
                         quoteattr(wo["display_name"]),
