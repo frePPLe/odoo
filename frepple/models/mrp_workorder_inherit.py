@@ -152,7 +152,13 @@ class WorkOrderInherit(models.Model):
         if not self.env.context.get("ignore_secondary_workcenters", False):
             for wo in wo_list:
                 wo.assign_secondary_work_centers()
-            return wo_list
+        return wo_list
+
+    @api.onchange("qty_producing")
+    def _onchange_qty_producing(self):
+        if self.secondary_workcenters:
+            self.assign_secondary_work_centers()
+            self.duration_expected = self._get_duration_expected()
 
     def _get_duration_expected(self, alternative_workcenter=False, ratio=1):
         duration = super()._get_duration_expected(alternative_workcenter, ratio)
