@@ -42,7 +42,11 @@ logger = logging.getLogger(__name__)
 
 
 def quoteattr(str):
-    return quoteattr_generic(str.encode(encoding="UTF-8", errors="ignore"))
+    return quoteattr_generic(
+        str.encode(encoding="UTF-8", errors="ignore").decode(
+            encoding="UTF-8", errors="ignore"
+        )
+    )
 
 
 class Odoo_generator:
