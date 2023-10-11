@@ -22,9 +22,6 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-import json
-from lxml import etree
-
 from odoo import models, fields
 
 

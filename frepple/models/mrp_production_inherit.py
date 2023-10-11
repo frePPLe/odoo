@@ -22,29 +22,18 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from odoo import models, fields, api
+import logging
+from odoo import models
+
+_logger = logging.getLogger(__name__)
 
 
-class WorkorderSecondaryWorkcenter(models.Model):
-    _name = "mrp.workorder.secondary.workcenter"
-    _description = "Secondary workcenter of a work order"
-    _rec_name = "workcenter_id"
+class MrpProductionInherit(models.Model):
+    _inherit = "mrp.production"
 
-    workorder_id = fields.Many2one(
-        "mrp.workorder",
-        "Parent work order",
-        index=True,
-        ondelete="cascade",
-        required=True,
-    )
-    workcenter_id = fields.Many2one(
-        "mrp.workcenter",
-        "Work Center",
-        required=True,
-        ondelete="cascade",
-    )
-    duration = fields.Float("Duration", help="time in minutes")
-
-    @api.onchange("duration")
-    def _onchange_duration(self):
-        self.workorder_id.duration_expected = self.workorder_id._get_duration_expected()
+    def _create_workorder(self):
+        super(MrpProductionInherit, self)._create_workorder()
+        for workorder in self.workorder_ids:
+            if workorder.operation_id.secondary_workcenter:
+                workorder.assign_secondary_work_centers()
+                workorder.duration_expected = workorder._get_duration_expected()
