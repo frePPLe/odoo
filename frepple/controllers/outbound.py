@@ -26,7 +26,7 @@ import json
 import logging
 import pytz
 import xmlrpc.client
-from xml.sax.saxutils import quoteattr
+from xml.sax.saxutils import quoteattr as quoteattr_generic
 from datetime import datetime, timedelta
 from pytz import timezone
 import ssl
@@ -39,6 +39,10 @@ except ImportError:
     pass
 
 logger = logging.getLogger(__name__)
+
+
+def quoteattr(str):
+    return quoteattr_generic(str.encode(encoding="UTF-8", errors="ignore"))
 
 
 class Odoo_generator:
