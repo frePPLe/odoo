@@ -45,6 +45,11 @@ class importer(object):
         #  - Mode 2:
         #    Incremental export of some proposed transactions from frePPLe.
         #    In this mode mode we are not erasing any previous proposals.
+        #  - Mode 3:
+        #    odoo_export command will use that mode starting from the second page.
+        #    In this mode, we make sure that no aggregation of exported quantities
+        #    is made.
+        #    In this mode mode we are not erasing any previous proposals.
         self.mode = int(mode)
 
         # Pick up the timezone of the connector user (or UTC if not set)
@@ -256,8 +261,10 @@ class importer(object):
                                     "name": elem.get("item"),
                                 }
                             )
-                            product_supplier_dict[(item_id, supplier_id)] = po_line
-
+                            # Aggregation of quantities under the same PO line
+                            # only happens in incremental export
+                            if self.mode == 2:
+                                product_supplier_dict[(item_id, supplier_id)] = po_line
                         else:
                             po_line = product_supplier_dict[(item_id, supplier_id)]
                             po_line.date_planned = min(
