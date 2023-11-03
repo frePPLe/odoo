@@ -119,7 +119,7 @@ class XMLController(odoo.http.Controller):
             database = odoo.http.db_monodb(httprequest=req.httprequest)
         company_name = kwargs.get("company", req.httprequest.form.get("company", None))
         company = None
-        if company_name:
+        if company_name and req.env:
             for i in req.env["res.company"].search(
                 [("name", "=", company_name)], limit=1
             ):
