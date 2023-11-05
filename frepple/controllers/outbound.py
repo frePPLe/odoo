@@ -2159,6 +2159,8 @@ class exporter(object):
                     quoteattr(location),
                     quoteattr(item["name"]),
                 )
+                # dictionary needed as BOM in Odoo might have multiple lines with the same product
+                operation_materials = {}
                 for mv in mv_list:
                     consumed_item = (
                         self.product_product[mv["product_id"][0]]
@@ -2181,10 +2183,16 @@ class exporter(object):
                         self.product_product[mv["product_id"][0]]["template"],
                     )
                     if qty_flow > 0:
-                        yield '<flow xsi:type="flow_start" quantity="%s"><item name=%s/></flow>\n' % (
-                            -qty_flow / qty,
-                            quoteattr(consumed_item["name"]),
+                        operation_materials[
+                            consumed_item["name"]
+                        ] = operation_materials.get(consumed_item["name"], 0) + (
+                            -qty_flow / qty
                         )
+                for key in operation_materials:
+                    yield '<flow xsi:type="flow_start" quantity="%s"><item name=%s/></flow>\n' % (
+                        operation_materials[key],
+                        quoteattr(key),
+                    )
                 yield '<flow xsi:type="flow_end" quantity="1"><item name=%s/></flow>\n' % (
                     quoteattr(item["name"]),
                 )
@@ -2228,6 +2236,8 @@ class exporter(object):
                         quoteattr(location),
                     )
                     idx += 10
+                    # dictionary needed as BOM in Odoo might have multiple lines with the same product
+                    operation_materials = {}
                     for mv in mv_list:
                         item = (
                             self.product_product[mv["product_id"][0]]
@@ -2263,9 +2273,13 @@ class exporter(object):
                             mv["product_uom"],
                             self.product_product[mv["product_id"][0]]["template"],
                         )
+                        operation_materials[item["name"]] = operation_materials.get(
+                            item["name"], 0
+                        ) + (-qty_flow / qty)
+                    for key in operation_materials:
                         yield '<flow quantity="%s"><item name=%s/></flow>\n' % (
-                            -qty_flow / qty,
-                            quoteattr(item["name"]),
+                            operation_materials[key],
+                            quoteattr(key),
                         )
                     yield "</flows>"
                     if (
