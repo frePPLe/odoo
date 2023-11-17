@@ -6,7 +6,7 @@
       <field name="priority" eval="5" />
       <field name="inherit_id" ref="base.res_config_settings_view_form"/>
       <field name="arch" type="xml">
-         <xpath expr="//div[hasclass('settings')]" position="inside">
+	     <xpath expr="//form" position="inside">
             <div class="app_settings_block" data-string="FrePPLe" string="Frepple" data-key="frepple">
                <h2>FrePPLe</h2>
                <div class="row mt16 o_settings_container">
