@@ -719,16 +719,12 @@ class exporter(object):
         res.partner.id res.partner.name -> supplier.name
         """
         first = True
-        for i in self.generator.getData(
-            "res.partner",
-            search=[("is_company", "=", True)],
-            fields=["name"],
-        ):
+        for i in self.map_customers:
             if first:
                 yield "<!-- suppliers -->\n"
                 yield "<suppliers>\n"
                 first = False
-            yield "<supplier name=%s/>\n" % quoteattr("%d %s" % (i["id"], i["name"]))
+            yield "<supplier name=%s/>\n" % quoteattr(self.map_customers[i])
         if not first:
             yield "</suppliers>\n"
 
@@ -948,7 +944,7 @@ class exporter(object):
                     )
                 suppliers = {}
                 for sup in results:
-                    name = "%d %s" % (sup["name"][0], sup["name"][1])
+                    name = self.map_customers.get(sup["name"][0])
                     if sup.get("is_subcontractor", False):
                         if not hasattr(tmpl, "subcontractors"):
                             tmpl["subcontractors"] = []
@@ -1885,7 +1881,7 @@ class exporter(object):
                     qty,
                     quoteattr(item["name"]),
                     quoteattr(location),
-                    quoteattr("%d %s" % (j["partner_id"][0], j["partner_id"][1])),
+                    quoteattr(self.map_customers.get(j["partner_id"][0])),
                 )
         yield "</operationplans>\n"
 
@@ -1963,7 +1959,7 @@ class exporter(object):
                         qty,
                         quoteattr(item["name"]),
                         quoteattr(location),
-                        quoteattr("%d %s" % (j["partner_id"][0], j["partner_id"][1])),
+                        quoteattr(self.map_customers.get(j["partner_id"][0])),
                     )
             yield "</operationplans>\n"
 
