@@ -691,16 +691,22 @@ class exporter(object):
         first = True
         for i in self.generator.getData(
             "res.partner",
-            search=[("is_company", "=", True)],
-            fields=["name"],
+            search=[],
+            fields=["name", "parent_id"],
+            order="id",
         ):
             if first:
                 yield "<!-- customers -->\n"
                 yield "<customers>\n"
                 first = False
-            name = "%s %s" % (i["name"], i["id"])
-            yield "<customer name=%s/>\n" % quoteattr(name)
-            self.map_customers[i["id"]] = name
+            if not i["parent_id"] or i["id"] == i["parent_id"][0]:
+                name = "%s %s" % (i["name"], i["id"])
+                yield "<customer name=%s/>\n" % quoteattr(name)
+            self.map_customers[i["id"]] = (
+                name
+                if not i["parent_id"] or i["id"] == i["parent_id"][0]
+                else self.map_customers[i["parent_id"][0]]
+            )
         if not first:
             yield "</customers>\n"
 
@@ -1628,19 +1634,7 @@ class exporter(object):
             j = so[i["order_id"][0]]
             location = j["warehouse_id"][1]
             customer = self.map_customers.get(j["partner_id"][0], None)
-            if not customer:
-                # The customer may be an individual.
-                # We check whether his/her company is in the map.
-                for c in self.generator.getData(
-                    "res.partner",
-                    ids=[j["partner_id"][0]],
-                    fields=["commercial_partner_id"],
-                ):
-                    customer = self.map_customers.get(
-                        c["commercial_partner_id"][0], None
-                    )
-                    if customer:
-                        break
+
             if not customer or not location or not product:
                 # Not interested in this sales order...
                 continue
