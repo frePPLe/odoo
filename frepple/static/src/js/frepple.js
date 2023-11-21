@@ -1,128 +1,85 @@
-odoo.define('frepple', function (require) {
-  'use strict';
+/** @odoo-module **/
 
-  var core = require('web.core');
-  var AbstractAction = require('web.AbstractAction');
+import { registry } from "@web/core/registry";
+import { Component, xml, onWillStart } from "@odoo/owl";
+import { useService } from "@web/core/utils/hooks";
 
-  /* Forecast editor page. */
-  var ForecastEditor = AbstractAction.extend({
-    start: function () {
-      this._super.apply(this, arguments);
+class ForecastEditor extends Component {
+  setup() {
+    this.orm = useService("orm");
+    onWillStart(async () => {
+      this.freppleURL = await this.orm.call(
+        "res.company", "getFreppleURL", [false, '/forecast/editor/']
+      );
+    });
+  }
 
-      var el = this.$el;
-      this._rpc({
-        model: 'res.company',
-        method: 'getFreppleURL',
-        args: [false, '/forecast/editor/'],
-      })
-        .then(function (result) {
-          el.html('<iframe src="' + result
-            + '" width="100%" height="100%" marginwidth="0" marginheight="0" frameborder="no" '
-            + ' scrolling="yes" style="border-width:0px;"/>');
-        });
-    },
-    getTitle: function () {
-      return "Forecast Editor";
-    }
-  });
-  core.action_registry.add('frepple.forecasteditor', ForecastEditor);
+  static template = xml`<iframe t-att-src="freppleURL" width="100%"
+     height="100%" marginwidth="0" marginheight="0" frameborder="no"
+     scrolling="yes" style="border-width:0px;"/>`;
+}
+registry.category("actions").add('frepple.forecasteditor', ForecastEditor);
 
-  /* Quotes page. */
-  var Quotes = AbstractAction.extend({
-    start: function () {
-      this._super.apply(this, arguments);
+class Quotes extends Component {
+  setup() {
+    this.orm = useService("orm");
+    onWillStart(async () => {
+      this.freppleURL = await this.orm.call(
+        "res.company", "getFreppleURL", [false, '/quote/']
+      );
+    });
+  }
 
-      var el = this.$el;
-      this._rpc({
-        model: 'res.company',
-        method: 'getFreppleURL',
-        args: [false, '/quote/'],
-      })
-        .then(function (result) {
-          el.html('<iframe src="' + result
-            + '" width="100%" height="100%" marginwidth="0" marginheight="0" frameborder="no" '
-            + ' scrolling="yes" style="border-width:0px;"/>');
-        });
-    },
-    getTitle: function () {
-      return "Quotes";
-    }
-  });
-  core.action_registry.add('frepple.quotes', Quotes);
+  static template = xml`<iframe t-att-src="freppleURL" width="100%"
+     height="100%" marginwidth="0" marginheight="0" frameborder="no"
+     scrolling="yes" style="border-width:0px;"/>`;
+}
+registry.category("actions").add('frepple.quotes', Quotes);
 
-  /* Inventory planning page. */
-  var InventoryPlanning = AbstractAction.extend({
-    start: function () {
-      this._super.apply(this, arguments);
+class InventoryPlanning extends Component {
+  setup() {
+    this.orm = useService("orm");
+    onWillStart(async () => {
+      this.freppleURL = await this.orm.call(
+        "res.company", "getFreppleURL", [false, "/inventoryplanning/drp/"]
+      );
+    });
+  }
 
-      var el = this.$el;
-      this._rpc({
-        model: 'res.company',
-        method: 'getFreppleURL',
-        args: [false, '/inventoryplanning/drp/'],
-      })
-        .then(function (result) {
-          el.html('<iframe src="' + result
-            + '" width="100%" height="100%" marginwidth="0" marginheight="0" frameborder="no" '
-            + ' scrolling="yes" style="border-width:0px;"/>');
-        });
-    },
-    getTitle: function () {
-      return "Inventory Planning";
-    }
-  });
-  core.action_registry.add('frepple.inventoryplanning', InventoryPlanning);
+  static template = xml`<iframe t-att-src="freppleURL" width="100%"
+     height="100%" marginwidth="0" marginheight="0" frameborder="no"
+     scrolling="yes" style="border-width:0px;"/>`;
+}
+registry.category("actions").add('frepple.inventoryplanning', InventoryPlanning);
 
-  /* Plan editor page. */
-  var PlanEditor = AbstractAction.extend({
-    start: function () {
-      this._super.apply(this, arguments);
+class PlanEditor extends Component {
+  setup() {
+    this.orm = useService("orm");
+    onWillStart(async () => {
+      this.freppleURL = await this.orm.call(
+        "res.company", "getFreppleURL", [false, "/planningboard/"]
+      );
+    });
+  }
 
-      var el = this.$el;
-      this._rpc({
-        model: 'res.company',
-        method: 'getFreppleURL',
-        args: [false, '/planningboard/'],
-      })
-        .then(function (result) {
-          el.html('<iframe src="' + result
-            + '" width="100%" height="100%" marginwidth="0" marginheight="0" frameborder="no" '
-            + ' scrolling="yes" style="border-width:0px;"/>');
-        });
-    },
-    getTitle: function () {
-      return "Plan Editor";
-    }
-  });
-  core.action_registry.add('frepple.planeditor', PlanEditor);
+  static template = xml`<iframe t-att-src="freppleURL" width="100%"
+     height="100%" marginwidth="0" marginheight="0" frameborder="no"
+     scrolling="yes" style="border-width:0px;"/>`;
+}
+registry.category("actions").add('frepple.planeditor', PlanEditor);
 
-  /* Full user interface page. */
-  var HomePage = AbstractAction.extend({
-    start: function () {
-      this._super.apply(this, arguments);
+class HomePage extends Component {
+  setup() {
+    this.orm = useService("orm");
+    onWillStart(async () => {
+      this.freppleURL = await this.orm.call(
+        "res.company", "getFreppleURL", [true, "/"]
+      );
+    });
+  }
 
-      var el = this.$el;
-      this._rpc({
-        model: 'res.company',
-        method: 'getFreppleURL',
-        args: [true, '/'],
-      })
-        .then(function (result) {
-          el.html('<iframe src="' + result
-            + '" width="100%" height="100%" marginwidth="0" marginheight="0" frameborder="no" '
-            + ' scrolling="yes" style="border-width:0px;"/>');
-        });
-    },
-    getTitle: function () {
-      return "frePPLe";
-    }
-  });
-  core.action_registry.add('frepple.homepage', HomePage);
-
-  return {
-    'frepple.forecasteditor': ForecastEditor,
-    'frepple.inventoryplanning': InventoryPlanning,
-    'frepple.planeditor': PlanEditor,
-    'frepple.homepage': HomePage,
-  };
-});
+  static template = xml`<iframe t-att-src="freppleURL" width="100%"
+     height="100%" marginwidth="0" marginheight="0" frameborder="no"
+     scrolling="yes" style="border-width:0px;"/>`;
+}
+registry.category("actions").add('frepple.homepage', HomePage);

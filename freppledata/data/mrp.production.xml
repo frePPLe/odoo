@@ -19,7 +19,7 @@
             <field name="product_uom_id" ref="uom.product_uom_unit" />
             <field name="duration_expected">135</field>
             <field name="workcenter_id" ref="__export__.mrp_workcenter_7_6072a422" />
-            <field name="date_planned_start"
+            <field name="date_start"
                 eval="(datetime.now() + relativedelta(days=5)).strftime('%Y-%m-%d %H:%M:%S')" />
         </record>
 
@@ -31,11 +31,11 @@
             <field name="product_uom_id" ref="uom.product_uom_unit" />
             <field name="duration_expected">60</field>
             <field name="workcenter_id" ref="__export__.mrp_workcenter_7_6072a422" />
-            <field name="date_planned_start"
+            <field name="date_start"
                 eval="(datetime.now() + relativedelta(days=5)).strftime('%Y-%m-%d %H:%M:%S')" />
         </record>
-		
-		<delete model="mrp.workorder" search="[('name','=','polishing chair')]"/>
+
+        <delete model="mrp.workorder" search="[('name','=','polishing chair')]" />
 
         <function model="stock.move" name="create">
             <value model="stock.move"

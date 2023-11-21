@@ -1997,8 +1997,7 @@ class exporter(object):
             fields=[
                 "bom_id",
                 "date_start",
-                "date_planned_start",
-                "date_planned_finished",
+                "date_finished",
                 "name",
                 "state",
                 "qty_producing",
@@ -2039,14 +2038,8 @@ class exporter(object):
             # to each manufacturing order.
             operation = i["name"]
             try:
-                startdate = self.formatDateTime(
-                    i["date_start"] if i["date_start"] else i["date_planned_start"]
-                )
-                # enddate = (
-                #     i["date_planned_finished"]
-                #     .astimezone(timezone(self.timezone))
-                #     .strftime(self.timeformat)
-                # )
+                startdate = self.formatDateTime(i["date_start"])
+                # enddate = self.formatDateTime(i["date_end"])
             except Exception:
                 continue
             qty = self.convert_qty_uom(
@@ -2093,8 +2086,8 @@ class exporter(object):
                             "workcenter_id",
                             "product_id",
                             "workcenter_id",
-                            "date_planned_start",
-                            "date_planned_finished",
+                            "date_start",
+                            "date_finished",
                             "duration_expected",
                             "duration_unit",
                             "product_uom_id",
@@ -2104,8 +2097,8 @@ class exporter(object):
                             "state",
                             "is_user_working",
                             "time_ids",
-                            "date_planned_start",
-                            "date_planned_finished",
+                            "date_start",
+                            "date_finished",
                             "date_start",
                             "date_finished",
                             "duration_expected",
@@ -2330,9 +2323,7 @@ class exporter(object):
                                 dt = max(
                                     wo["date_start"]
                                     if wo["date_start"]
-                                    else wo["date_planned_start"]
-                                    if wo["date_planned_start"]
-                                    else i["date_planned_start"],
+                                    else i["date_start"],
                                     now,
                                 )
                             wo_date = ' start="%s"' % self.formatDateTime(dt)

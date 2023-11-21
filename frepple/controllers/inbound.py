@@ -412,7 +412,7 @@ class importer(object):
                                 if wo:
                                     wo.write(
                                         {
-                                            "date_planned_start": self.timezone.localize(
+                                            "date_start": self.timezone.localize(
                                                 datetime.strptime(
                                                     elem.get("start"),
                                                     "%Y-%m-%d %H:%M:%S",
@@ -420,7 +420,7 @@ class importer(object):
                                             )
                                             .astimezone(UTC)
                                             .replace(tzinfo=None),
-                                            "date_planned_finished": self.timezone.localize(
+                                            "date_finished": self.timezone.localize(
                                                 datetime.strptime(
                                                     elem.get("end"),
                                                     "%Y-%m-%d %H:%M:%S",
@@ -465,8 +465,8 @@ class importer(object):
                         mo = mfg_order.with_context(context).create(
                             {
                                 "product_qty": elem.get("quantity"),
-                                "date_planned_start": elem.get("start"),
-                                "date_planned_finished": elem.get("end"),
+                                "date_start": elem.get("start"),
+                                "date_finished": elem.get("end"),
                                 "product_id": int(item_id),
                                 "company_id": self.company.id,
                                 "product_uom_id": int(uom_id),
@@ -495,13 +495,13 @@ class importer(object):
                                         # the manufacturing order.
                                         # Here we are already updating it earlier
                                         if "start" in rec:
-                                            wo.date_planned_start = (
+                                            wo.date_start = (
                                                 self.timezone.localize(rec["start"])
                                                 .astimezone(UTC)
                                                 .replace(tzinfo=None)
                                             )
                                         if "end" in rec:
-                                            wo.date_planned_finished = (
+                                            wo.date_finished = (
                                                 self.timezone.localize(rec["end"])
                                                 .astimezone(UTC)
                                                 .replace(tzinfo=None)
