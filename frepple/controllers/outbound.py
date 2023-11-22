@@ -847,7 +847,6 @@ class exporter(object):
             fields=[
                 "sale_ok",
                 "purchase_ok",
-                "produce_delay",
                 "list_price",
                 "standard_price",
                 "uom_id",
@@ -1082,6 +1081,8 @@ class exporter(object):
                 "product_id",
                 "type",
                 "bom_line_ids",
+                "produce_delay",
+                "days_to_prepare_mo",
                 "sequence",
                 "code",
             ],
@@ -1158,9 +1159,7 @@ class exporter(object):
                                 quoteattr(location),
                             )
                         else:
-                            duration_per = self.product_templates[
-                                i["product_tmpl_id"][0]
-                            ]["produce_delay"]
+                            duration_per = (i["produce_delay"] or 0) + (i["days_to_prepare_mo"] or 0)
 
                             yield '<operation name=%s %ssize_multiple="1" duration_per="%s" posttime="P%dD" priority="%s" xsi:type="operation_time_per">\n' "<item name=%s/><location name=%s/>\n" % (
                                 quoteattr(operation),
@@ -1596,7 +1595,8 @@ class exporter(object):
                     "move_orig_ids",
                     "product_id",
                     "date",
-                    "reserved_availability",
+                    "quantity",
+                    "picked",
                     "product_uom_qty",
                     "product_uom",
                     "state",
@@ -1608,9 +1608,7 @@ class exporter(object):
         def getReservedQuantity(stock_move_id):
             reserved_quantity = 0
             if stock_move_id in stock_moves_dict:
-                reserved_quantity = stock_moves_dict[stock_move_id][
-                    "reserved_availability"
-                ]
+                reserved_quantity = stock_moves_dict[stock_move_id]["quantity"]
                 for i in stock_moves_dict[stock_move_id]["move_orig_ids"]:
                     if i != stock_move_id:
                         reserved_quantity += getReservedQuantity(i)
@@ -1905,7 +1903,8 @@ class exporter(object):
                     "state",
                     "product_id",
                     "product_qty",
-                    "quantity_done",
+                    "quantity",
+                    "picked",
                     "reference",
                     "product_uom",
                     "location_dest_id",
@@ -1959,7 +1958,9 @@ class exporter(object):
                     end = datetime.fromisoformat(end)
                 start = self.formatDateTime(start if start < end else end)
                 end = self.formatDateTime(end)
-                qty = i["product_qty"] - i["quantity_done"]
+                qty = i["product_qty"]
+                if i["picked"]:
+                    qty -= i["quantity"]
                 if qty >= 0:
                     yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
                         quoteattr(po_line_reference),
@@ -2136,7 +2137,7 @@ class exporter(object):
                             "workorder_id",
                             "operation_id",
                             "should_consume_qty",
-                            "reserved_availability",
+                            "quantity",
                         ],
                     )
                 ]
@@ -2163,7 +2164,7 @@ class exporter(object):
                             0,
                             mv["product_qty"]
                             - (
-                                mv["reserved_availability"]
+                                mv["quantity"]
                                 if self.respect_reservations
                                 else 0
                             ),
@@ -2246,7 +2247,7 @@ class exporter(object):
                                 0,
                                 mv["product_qty"]
                                 - (
-                                    mv["reserved_availability"]
+                                    mv["quantity"]
                                     if self.respect_reservations
                                     else 0
                                 ),

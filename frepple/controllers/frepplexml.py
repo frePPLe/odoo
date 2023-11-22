@@ -51,6 +51,10 @@ class XMLController(odoo.http.Controller):
     def authenticate(self, req, database, language, company, version):
         """
         Implements HTTP authentication using either "basic" or "bearer" JWT token.
+
+        TODO Bearer token not working yet. We have a chicken and egg problem here.
+        Reading the secret token requires reading the company model, but we can only
+        do that after authentication.
         """
         if "authorization" not in req.httprequest.headers:
             raise Exception("No authentication header")
@@ -123,13 +127,6 @@ class XMLController(odoo.http.Controller):
                 return Response("Missing database name argument", 401)
         company_name = kwargs.get("company", req.httprequest.form.get("company", None))
         company = None
-        if company_name and req.env:
-            for i in req.env["res.company"].search(
-                [("name", "=", company_name)], limit=1
-            ):
-                company = i
-            if not company:
-                return Response("Invalid company name argument", 401)
 
         # Login
         req.session.db = database
@@ -142,6 +139,15 @@ class XMLController(odoo.http.Controller):
                 401,
                 headers=[("WWW-Authenticate", 'Basic realm="odoo"')],
             )
+
+        # Validate company name
+        if company_name and req.env:
+            for i in req.env["res.company"].search(
+                [("name", "=", company_name)], limit=1
+            ):
+                company = i
+            if not company:
+                return Response("Invalid company name argument", 401)
 
         if req.httprequest.method == "GET":
             # Generate data
