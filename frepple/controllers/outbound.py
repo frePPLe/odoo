@@ -689,24 +689,29 @@ class exporter(object):
         """
         self.map_customers = {}
         first = True
+        individual_inserted = False
         for i in self.generator.getData(
             "res.partner",
             search=[],
-            fields=["name", "parent_id"],
+            fields=["name", "parent_id", "is_company"],
             order="id",
         ):
             if first:
                 yield "<!-- customers -->\n"
                 yield "<customers>\n"
                 first = False
-            if not i["parent_id"] or i["id"] == i["parent_id"][0]:
+            if i["is_company"]:
                 name = "%s %s" % (i["name"], i["id"])
                 yield "<customer name=%s/>\n" % quoteattr(name)
-            self.map_customers[i["id"]] = (
-                name
-                if not i["parent_id"] or i["id"] == i["parent_id"][0]
-                else self.map_customers[i["parent_id"][0]]
-            )
+            elif i["parent_id"] == False or i["id"] == i["parent_id"][0]:
+                name = "Individuals"
+                if not individual_inserted:
+                    yield "<customer name=%s/>\n" % quoteattr(name)
+                    individual_inserted = True
+            else:
+                name = self.map_customers[i["parent_id"][0]]
+
+            self.map_customers[i["id"]] = name
         if not first:
             yield "</customers>\n"
 
