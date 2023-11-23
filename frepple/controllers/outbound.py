@@ -375,7 +375,7 @@ class exporter(object):
                 )
                 if i["default_location_dest_id"]
                 else None,
-                "warehouse_id": self.warehouses[i["warehouse_id"][0]]
+                "warehouse_id": self.warehouses.get(i["warehouse_id"][0], None)
                 if i["warehouse_id"]
                 else None,
             }
