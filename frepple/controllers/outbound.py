@@ -2152,7 +2152,7 @@ class exporter(object):
 
             if not wo_list:
                 # There are no workorders on the manufacturing order
-                yield '<operation name=%s xsi:type="operation_fixed_time"><location name=%s/><item name=%s/><flows>' % (
+                yield '<operation name=%s xsi:type="operation_fixed_time" priority="0"><location name=%s/><item name=%s/><flows>' % (
                     quoteattr(operation),
                     quoteattr(location),
                     quoteattr(item["name"]),
