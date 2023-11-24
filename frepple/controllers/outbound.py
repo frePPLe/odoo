@@ -493,7 +493,7 @@ class exporter(object):
             # Read the attendance for all calendars
             for i in self.generator.getData(
                 "resource.calendar.attendance",
-                search=[("display_type", "=", False)],
+                search=[("display_type", "=", False), ("resource_id", "=", False)],
                 fields=[
                     "dayofweek",
                     "date_from",
@@ -513,7 +513,7 @@ class exporter(object):
             # Read the leaves for all calendars
             for i in self.generator.getData(
                 "resource.calendar.leaves",
-                search=[("time_type", "=", "leave")],
+                search=[("time_type", "=", "leave"), ("resource_id", "=", False)],
                 fields=[
                     "date_from",
                     "date_to",
