@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 {
     "name": "frepple",
-    "version": "16.0.0",
+    "version": "17.0.0.0",
     "category": "Manufacturing",
     "summary": "Advanced planning and scheduling",
     "author": "frePPLe",
     "website": "https://frepple.com",
     "license": "Other OSI approved licence",
     "description": "Connector to frePPLe - finite capacity planning and scheduling",
-    "external_dependencies": {"python": ["jwt"]},
+    "external_dependencies": {"python": ["PyJWT"]},
     # Option 1: for manufacturing companies using MRP module
     "depends": ["product", "purchase", "sale", "resource", "mrp"],
     "data": [
