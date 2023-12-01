@@ -1987,6 +1987,36 @@ class exporter(object):
         '1' -> operationplan.status = "confirmed"
         """
         now = datetime.now()
+
+        # Retrieve reserved quantities from stock moves
+        if self.respect_reservations:
+            # a first call to get all confirmed MO IDs
+            confirmed_mos = [
+                i["name"]
+                for i in self.generator.getData(
+                    "mrp.production",
+                    # Option 1: import only the odoo status from "confirmed" onwards
+                    search=[("state", "in", ["progress", "confirmed"])],
+                    fields=["name"],
+                )
+            ]
+            # a second call to get the reserved quantities
+            reserved_quantity = {}
+            for i in self.generator.getData(
+                "stock.move",
+                search=[
+                    ("state", "in", ["partially_available", "assigned"]),
+                    ("production_id", "=", False),
+                    ("workorder_id", "=", False),
+                    ("origin", "in", confirmed_mos),
+                ],
+                fields=["origin", "product_id", "quantity"],
+            ):
+                reserved_quantity[(i["origin"], i["product_id"][0])] = (
+                    reserved_quantity.get((i["origin"], i["product_id"][0]), 0)
+                    + i["quantity"]
+                )
+
         yield "<!-- manufacturing orders in progress -->\n"
         yield "<operationplans>\n"
         for i in self.generator.getData(
@@ -2164,13 +2194,21 @@ class exporter(object):
                             0,
                             mv["product_qty"]
                             - (
-                                mv["quantity"]
+                                reserved_quantity.get(
+                                    (i["name"], mv["product_id"][0]), 0
+                                )
                                 if self.respect_reservations
                                 else 0
                             ),
                         ),
                         mv["product_uom"],
                         self.product_product[mv["product_id"][0]]["template"],
+                    )
+                    # subtract the reserved quantity if product is twice in the BOM
+                    reserved_quantity[(i["name"], mv["product_id"][0])] = max(
+                        0,
+                        reserved_quantity.get((i["name"], mv["product_id"][0]), 0)
+                        - mv["product_qty"],
                     )
                     if qty_flow > 0:
                         yield '<flow xsi:type="flow_start" quantity="%s"><item name=%s/></flow>\n' % (
@@ -2247,7 +2285,9 @@ class exporter(object):
                                 0,
                                 mv["product_qty"]
                                 - (
-                                    mv["quantity"]
+                                    reserved_quantity.get(
+                                        (i["name"], mv["product_id"][0]), 0
+                                    )
                                     if self.respect_reservations
                                     else 0
                                 ),
@@ -2255,10 +2295,17 @@ class exporter(object):
                             mv["product_uom"],
                             self.product_product[mv["product_id"][0]]["template"],
                         )
-                        yield '<flow quantity="%s"><item name=%s/></flow>\n' % (
-                            -qty_flow / qty,
-                            quoteattr(item["name"]),
+                        # subtract the reserved quantity if product is twice in the BOM
+                        reserved_quantity[(i["name"], mv["product_id"][0])] = max(
+                            0,
+                            reserved_quantity.get((i["name"], mv["product_id"][0]), 0)
+                            - mv["product_qty"],
                         )
+                        if qty_flow > 0:
+                            yield '<flow quantity="%s"><item name=%s/></flow>\n' % (
+                                -qty_flow / qty,
+                                quoteattr(item["name"]),
+                            )
                     yield "</flows>"
                     if (
                         wo["workcenter_id"]
