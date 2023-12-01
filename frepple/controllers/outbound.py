@@ -1582,28 +1582,33 @@ class exporter(object):
 
         # Get all move ids
         # We only read the open ones
-
-        stock_moves_dict = {
-            i["id"]: i
-            for i in self.generator.getData(
-                "stock.move",
-                search=[
-                    ("state", "in", ["waiting", "partially_available", "assigned"])
-                ],
-                fields=[
-                    "id",
-                    "move_orig_ids",
-                    "product_id",
-                    "date",
-                    "quantity",
-                    "picked",
-                    "product_uom_qty",
-                    "product_uom",
+        stock_moves_dict = {}
+        stock_moves_dict_confirmed = []  # needed for the so line status
+        for i in self.generator.getData(
+            "stock.move",
+            search=[
+                (
                     "state",
-                    "origin_returned_move_id",
-                ],
-            )
-        }
+                    "in",
+                    ["waiting", "partially_available", "assigned", "confirmed"],
+                )
+            ],
+            fields=[
+                "id",
+                "move_orig_ids",
+                "product_id",
+                "date",
+                "quantity",
+                "picked",
+                "product_uom_qty",
+                "product_uom",
+                "state",
+                "origin_returned_move_id",
+            ],
+        ):
+            if i["state"] != "confirmed":
+                stock_moves_dict[i["id"]] = i
+            stock_moves_dict_confirmed.append(i["id"])
 
         def getReservedQuantity(stock_move_id):
             reserved_quantity = 0
@@ -1647,7 +1652,17 @@ class exporter(object):
             priority = 1  # We give all customer orders the same default priority
 
             # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
+
+            # if no stock_move if that SO line is still open, we can consider the line closed
             state = j.get("state", "sale")
+            if state == "sale" and not any(
+                x in stock_moves_dict_confirmed for x in i["move_ids"]
+            ):
+                state = "done"
+            logger.error(
+                "%s %s %s %s"
+                % (name, state, i["move_ids"], [x for x in stock_moves_dict])
+            )
             if state in ("draft", "sent"):
                 # status = "inquiry"  # Inquiries don't reserve capacity and materials
                 status = "quote"  # Quotes do reserve capacity and materials
