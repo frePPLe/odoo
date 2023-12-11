@@ -490,10 +490,47 @@ class exporter(object):
                 cal_tz[i["name"]] = i["tz"]
                 cal_ids.add(i["id"])
 
+            # Read the resource calendar association
+            calendar_resource = {}
+            for i in self.generator.getData(
+                "mrp.workcenter",
+                search=[("resource_calendar_id", "!=", False)],
+                fields=[
+                    "id",
+                    "resource_calendar_id",
+                ],
+            ):
+                if i["resource_calendar_id"][0] not in calendar_resource:
+                    calendar_resource[i["resource_calendar_id"][0]] = set()
+                calendar_resource[i["resource_calendar_id"][0]].add(i["id"])
+
+            # Read from the attendance/leaves which resource has specific entries
+            self.resources_with_specific_calendars = {}
+            for i in self.generator.getData(
+                "resource.calendar.attendance",
+                search=[("resource_id", "!=", False)],
+                fields=[
+                    "resource_id",
+                ],
+            ):
+                self.resources_with_specific_calendars[i["resource_id"][0]] = i[
+                    "resource_id"
+                ][1]
+            for i in self.generator.getData(
+                "resource.calendar.leaves",
+                search=[("resource_id", "!=", False), ("time_type", "=", "leave")],
+                fields=[
+                    "resource_id",
+                ],
+            ):
+                self.resources_with_specific_calendars[i["resource_id"][0]] = i[
+                    "resource_id"
+                ][1]
+
             # Read the attendance for all calendars
             for i in self.generator.getData(
                 "resource.calendar.attendance",
-                search=[("display_type", "=", False), ("resource_id", "=", False)],
+                search=[("display_type", "=", False)],
                 fields=[
                     "dayofweek",
                     "date_from",
@@ -502,29 +539,81 @@ class exporter(object):
                     "hour_to",
                     "calendar_id",
                     "week_type",
+                    "resource_id",
                 ],
             ):
                 if i["calendar_id"] and i["calendar_id"][0] in cal_ids:
-                    if i["calendar_id"][1] not in calendars:
-                        calendars[i["calendar_id"][1]] = []
-                    i["attendance"] = True
-                    calendars[i["calendar_id"][1]].append(i)
+                    if not i["resource_id"]:
+                        if i["calendar_id"][1] not in calendars:
+                            calendars[i["calendar_id"][1]] = []
+                        i["attendance"] = True
+                        calendars[i["calendar_id"][1]].append(i)
+
+                    if calendar_resource.get(i["calendar_id"][0]):
+                        for res in calendar_resource.get(i["calendar_id"][0]):
+                            if i["resource_id"] and res != i["resource_id"][0]:
+                                continue
+                            if res in self.resources_with_specific_calendars:
+                                if (
+                                    "calendar for %s"
+                                    % (self.resources_with_specific_calendars[res],)
+                                    not in calendars
+                                ):
+                                    calendars[
+                                        "calendar for %s"
+                                        % (self.resources_with_specific_calendars[res],)
+                                    ] = []
+                                    cal_tz[
+                                        "calendar for %s"
+                                        % (self.resources_with_specific_calendars[res],)
+                                    ] = cal_tz[i["calendar_id"][1]]
+                                i["attendance"] = True
+                                calendars[
+                                    "calendar for %s"
+                                    % (self.resources_with_specific_calendars[res],)
+                                ].append(i)
 
             # Read the leaves for all calendars
             for i in self.generator.getData(
                 "resource.calendar.leaves",
-                search=[("time_type", "=", "leave"), ("resource_id", "=", False)],
+                search=[("time_type", "=", "leave")],
                 fields=[
                     "date_from",
                     "date_to",
                     "calendar_id",
+                    "resource_id",
                 ],
             ):
                 if i["calendar_id"] and i["calendar_id"][0] in cal_ids:
-                    if i["calendar_id"][1] not in calendars:
-                        calendars[i["calendar_id"][1]] = []
-                    i["attendance"] = False
-                    calendars[i["calendar_id"][1]].append(i)
+                    if not i["resource_id"]:
+                        if i["calendar_id"][1] not in calendars:
+                            calendars[i["calendar_id"][1]] = []
+                        i["attendance"] = False
+                        calendars[i["calendar_id"][1]].append(i)
+
+                    if calendar_resource.get(i["calendar_id"][0]):
+                        for res in calendar_resource.get(i["calendar_id"][0]):
+                            if i["resource_id"] and res != i["resource_id"][0]:
+                                continue
+                            if res in self.resources_with_specific_calendars:
+                                if (
+                                    "calendar for %s"
+                                    % (self.resources_with_specific_calendars[res],)
+                                    not in calendars
+                                ):
+                                    calendars[
+                                        "calendar for %s"
+                                        % (self.resources_with_specific_calendars[res],)
+                                    ] = []
+                                    cal_tz[
+                                        "calendar for %s"
+                                        % (self.resources_with_specific_calendars[res],)
+                                    ] = cal_tz[i["calendar_id"][1]]
+                                i["attendance"] = False
+                                calendars[
+                                    "calendar for %s"
+                                    % (self.resources_with_specific_calendars[res],)
+                                ].append(i)
 
             # Iterate over the results:
             for i in calendars:
@@ -805,7 +894,14 @@ class exporter(object):
                 first = False
             name = i["name"]
             owner = i["owner"]
-            available = i["resource_calendar_id"]
+            available = (
+                i["resource_calendar_id"]
+                if not self.resources_with_specific_calendars.get(i["id"])
+                else (
+                    0,
+                    "calendar for %s" % (name,),
+                )
+            )
             self.map_workcenters[i["id"]] = name
             yield '<resource name=%s maximum="%s" category="%s" subcategory="%s" efficiency="%s"><location name=%s/>%s%s</resource>\n' % (
                 quoteattr(name),
