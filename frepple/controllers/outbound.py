@@ -645,7 +645,7 @@ class exporter(object):
                             "1" if j["attendance"] else "0",
                             (2 ** ((int(j["dayofweek"]) + 1) % 7))
                             if "dayofweek" in j
-                            else (2 ** 7) - 1,
+                            else (2**7) - 1,
                             priority_attendance if j["attendance"] else priority_leave,
                             # In odoo, monday = 0. In frePPLe, sunday = 0.
                             ("PT%dM" % round(j["hour_from"] * 60))
@@ -678,7 +678,7 @@ class exporter(object):
                                     "1",
                                     (2 ** ((int(j["dayofweek"]) + 1) % 7))
                                     if "dayofweek" in j
-                                    else (2 ** 7) - 1,
+                                    else (2**7) - 1,
                                     priority_attendance,
                                     # In odoo, monday = 0. In frePPLe, sunday = 0.
                                     ("PT%dM" % round(j["hour_from"] * 60))
@@ -944,6 +944,13 @@ class exporter(object):
         self.product_product = {}
         self.product_template_product = {}
         self.product_templates = {}
+        self.routes = {
+            i["id"]: i for i in self.generator.getData("stock.route", fields=["name"])
+        }
+        self.route_mto = None
+        for k, v in self.routes.items():
+            if v["name"] == "Replenish on Order (MTO)":
+                self.route_mto = k
         for i in self.generator.getData(
             "product.template",
             search=[("type", "not in", ("service", "consu"))],
@@ -956,6 +963,7 @@ class exporter(object):
                 "uom_id",
                 "categ_id",
                 "product_variant_ids",
+                "route_ids",
             ],
         ):
             self.product_templates[i["id"]] = i
@@ -1010,8 +1018,7 @@ class exporter(object):
             }
             self.product_product[i["id"]] = prod_obj
             self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
-            # For make-to-order items the next line needs to XML snippet ' type="item_mto"'.
-            yield '<item name=%s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s">\n' % (
+            yield '<item name=%s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s" %s>\n' % (
                 quoteattr(name),
                 quoteattr(tmpl["uom_id"][1]) if tmpl["uom_id"] else "",
                 i["volume"] or 0,
@@ -1024,6 +1031,7 @@ class exporter(object):
                 quoteattr(tmpl["categ_id"][1]) if tmpl["categ_id"] else '""',
                 self.uom_categories[self.uom[tmpl["uom_id"][0]]["category"]],
                 i["id"],
+                ' type="item_mto"' if self.route_mto in tmpl["route_ids"] else ""
             )
             # Export suppliers for the item, if the item is allowed to be purchased
             if tmpl["purchase_ok"]:
@@ -1546,24 +1554,29 @@ class exporter(object):
                                     not in self.map_workcenters
                                 ):
                                     continue
-                                secondary_workcenter_str += '<load quantity="%f" search=%s><resource name=%s/>%s</load>' % (
-                                    1
-                                    if not secondary_workcenter["duration"]
-                                    or step["time_cycle"] == 0
-                                    else secondary_workcenter["duration"]
-                                    / step["time_cycle"],
-                                    quoteattr(secondary_workcenter["search_mode"]),
-                                    quoteattr(
-                                        self.map_workcenters[
-                                            secondary_workcenter["workcenter_id"][0]
-                                        ]
-                                    ),
-                                    (
-                                        "<skill name=%s/>"
-                                        % quoteattr(secondary_workcenter["skill"][1])
+                                secondary_workcenter_str += (
+                                    '<load quantity="%f" search=%s><resource name=%s/>%s</load>'
+                                    % (
+                                        1
+                                        if not secondary_workcenter["duration"]
+                                        or step["time_cycle"] == 0
+                                        else secondary_workcenter["duration"]
+                                        / step["time_cycle"],
+                                        quoteattr(secondary_workcenter["search_mode"]),
+                                        quoteattr(
+                                            self.map_workcenters[
+                                                secondary_workcenter["workcenter_id"][0]
+                                            ]
+                                        ),
+                                        (
+                                            "<skill name=%s/>"
+                                            % quoteattr(
+                                                secondary_workcenter["skill"][1]
+                                            )
+                                        )
+                                        if secondary_workcenter["skill"]
+                                        else "",
                                     )
-                                    if secondary_workcenter["skill"]
-                                    else "",
                                 )
 
                             yield "<suboperation>" '<operation name=%s %spriority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
