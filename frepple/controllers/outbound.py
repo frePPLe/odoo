@@ -1802,7 +1802,12 @@ class exporter(object):
                 if qty >= 0:
                     yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
                         quoteattr(
-                            "%s - %s - %s" % (j["name"], i["picking_id"][1], i["id"])
+                            "%s - %s - %s"
+                            % (
+                                j["name"],
+                                i["picking_id"][1] if i["picking_id"] else "no picking",
+                                i["id"],
+                            )
                         ),
                         start,
                         end,
