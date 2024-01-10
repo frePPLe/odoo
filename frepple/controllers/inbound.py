@@ -205,6 +205,9 @@ class importer(object):
                                     "origin": "frePPLe",
                                 }
                             )
+                            po.payment_term_id = (
+                                po.partner_id.property_supplier_payment_term_id.id
+                            )
                             supplier_reference[supplier_id] = {
                                 "id": po.id,
                                 "min_planned": date_planned,
