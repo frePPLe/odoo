@@ -182,7 +182,7 @@ class importer(object):
                     ordertype = elem.get("ordertype")
                     if ordertype == "PO":
                         # Create purchase order
-                        supplier_id = int(elem.get("supplier").split(" ", 1)[0])
+                        supplier_id = int(elem.get("supplier").rsplit(" ", 1)[-1])
                         quantity = elem.get("quantity")
                         date_planned = elem.get("end")
                         if date_planned:
@@ -198,14 +198,15 @@ class importer(object):
                             po = proc_order.create(
                                 {
                                     "company_id": self.company.id,
-                                    "partner_id": int(
-                                        elem.get("supplier").split(" ", 1)[0]
-                                    ),
+                                    "partner_id": supplier_id,
                                     # TODO Odoo has no place to store the location and criticality
                                     # int(elem.get('location_id')),
                                     # elem.get('criticality'),
                                     "origin": "frePPLe",
                                 }
+                            )
+                            po.payment_term_id = (
+                                po.partner_id.property_supplier_payment_term_id.id
                             )
                             supplier_reference[supplier_id] = {
                                 "id": po.id,
