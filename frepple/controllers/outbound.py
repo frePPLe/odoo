@@ -499,13 +499,13 @@ class exporter(object):
                 "mrp.workcenter",
                 search=[("resource_calendar_id", "!=", False)],
                 fields=[
-                    "id",
+                    "resource_id",
                     "resource_calendar_id",
                 ],
             ):
                 if i["resource_calendar_id"][0] not in calendar_resource:
                     calendar_resource[i["resource_calendar_id"][0]] = set()
-                calendar_resource[i["resource_calendar_id"][0]].add(i["id"])
+                calendar_resource[i["resource_calendar_id"][0]].add(i["resource_id"][0])
 
             # Read from the attendance/leaves which resource has specific entries
             self.resources_with_specific_calendars = {}
@@ -884,6 +884,7 @@ class exporter(object):
             "mrp.workcenter",
             fields=[
                 "name",
+                "resource_id",
                 "owner",
                 "resource_calendar_id",
                 "time_efficiency",
@@ -899,10 +900,10 @@ class exporter(object):
             owner = i["owner"]
             available = (
                 i["resource_calendar_id"]
-                if not self.resources_with_specific_calendars.get(i["id"])
+                if not self.resources_with_specific_calendars.get(i["resource_id"][0])
                 else (
                     0,
-                    "calendar for %s" % (name,),
+                    "calendar for %s" % (i["resource_id"][1],),
                 )
             )
             self.map_workcenters[i["id"]] = name
