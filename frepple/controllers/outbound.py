@@ -979,29 +979,28 @@ class exporter(object):
         ):
             self.product_templates[i["id"]] = i
 
-        # Check if we should use short names
-        # "[internal reference] name" will become "internal reference"
-        # and the frepple description will contain the odoo name
-        # To use short names, we have 2 conditions to check
-        # 1) The list of item names must contain a string which is more than 200 chars
-        # 2) The internal reference needs to be unique
-        product_codes = []
-        use_short_names = False
-        max_name_length = 0
-        for i in self.generator.getData(
-            "product.product",
-            search=[("product_tmpl_id.id", "in", list(self.product_templates))],
-            fields=[
-                "name",
-                "code",
-            ],
-        ):
-            if len(i["name"]) > max_name_length:
-                max_name_length = len(i["name"])
-            product_codes.append(i["code"] or i["name"])
+        # Check if we can use short names
+        # To use short names, the internal reference (or the name when no internal reference is defined)
+        # needs to be unique
+        use_short_names = True
 
-        if max_name_length > 200 and len(product_codes) == len(set(product_codes)):
-            use_short_names = True
+        self.generator.env.cr.execute(
+            """
+            select count(*) from
+            (
+            select coalesce(product_product.default_code, product_template.name), count(*)
+            from product_product
+            inner join product_template on product_product.product_tmpl_id = product_template.id
+            where product_template.type not in ('service', 'consu')
+            group by coalesce(product_product.default_code, product_template.name)
+            having count(*) > 1
+            ) t
+                """
+        )
+        for i in self.generator.env.cr.fetchall():
+            if i[0] > 0:
+                use_short_names = False
+                break
 
         # Read the products
         supplierinfo_fields = [
