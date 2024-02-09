@@ -57,13 +57,22 @@ class Odoo_generator:
             return getattr(obj, method)(*args)
         return None
 
-    def getData(self, model, search=[], order=None, fields=[], ids=None):
+    def getData(self, model, search=[], order=None, fields=[], ids=None, object=False):
         if ids is not None:
-            return self.env[model].browse(ids).read(fields) if ids else []
+            if object:
+                return self.env[model].browse(ids) if ids else []
+            else:
+                return self.env[model].browse(ids).read(fields) if ids else []
         if order:
-            return self.env[model].search(search, order=order).read(fields)
+            if object:
+                return self.env[model].search(search, order=order)
+            else:
+                return self.env[model].search(search, order=order).read(fields)
         else:
-            return self.env[model].search(search).read(fields)
+            if object:
+                return self.env[model].search(search)
+            else:
+                return self.env[model].search(search).read(fields)
 
 
 class XMLRPC_generator:
@@ -372,19 +381,21 @@ class exporter(object):
                 "name": i["name"],
                 "code": i["code"],
                 "sequence_code": i["sequence_code"],
-                "default_location_src_id": self.map_locations.get(
-                    i["default_location_src_id"][0], None
-                )
-                if i["default_location_src_id"]
-                else None,
-                "default_location_dest_id": self.map_locations.get(
-                    i["default_location_dest_id"][0], None
-                )
-                if i["default_location_dest_id"]
-                else None,
-                "warehouse_id": self.warehouses.get(i["warehouse_id"][0], None)
-                if i["warehouse_id"]
-                else None,
+                "default_location_src_id": (
+                    self.map_locations.get(i["default_location_src_id"][0], None)
+                    if i["default_location_src_id"]
+                    else None
+                ),
+                "default_location_dest_id": (
+                    self.map_locations.get(i["default_location_dest_id"][0], None)
+                    if i["default_location_dest_id"]
+                    else None
+                ),
+                "warehouse_id": (
+                    self.warehouses.get(i["warehouse_id"][0], None)
+                    if i["warehouse_id"]
+                    else None
+                ),
             }
 
     def convert_qty_uom(self, qty, uom_id, product_template_id=None):
@@ -639,32 +650,42 @@ class exporter(object):
                     if j.get("week_type", False) == False:
                         # ONE-WEEK CALENDAR
                         yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
-                            self.formatDateTime(j["date_from"], cal_tz[i])
-                            if not j["attendance"]
-                            else (
-                                j["date_from"].strftime("%Y-%m-%dT00:00:00")
-                                if j["date_from"]
-                                else "2020-01-01T00:00:00"
+                            (
+                                self.formatDateTime(j["date_from"], cal_tz[i])
+                                if not j["attendance"]
+                                else (
+                                    j["date_from"].strftime("%Y-%m-%dT00:00:00")
+                                    if j["date_from"]
+                                    else "2020-01-01T00:00:00"
+                                )
                             ),
-                            self.formatDateTime(j["date_to"], cal_tz[i])
-                            if not j["attendance"]
-                            else (
-                                j["date_to"].strftime("%Y-%m-%dT00:00:00")
-                                if j["date_to"]
-                                else "2030-12-31T00:00:00"
+                            (
+                                self.formatDateTime(j["date_to"], cal_tz[i])
+                                if not j["attendance"]
+                                else (
+                                    j["date_to"].strftime("%Y-%m-%dT00:00:00")
+                                    if j["date_to"]
+                                    else "2030-12-31T00:00:00"
+                                )
                             ),
                             "1" if j["attendance"] else "0",
-                            (2 ** ((int(j["dayofweek"]) + 1) % 7))
-                            if "dayofweek" in j
-                            else (2**7) - 1,
+                            (
+                                (2 ** ((int(j["dayofweek"]) + 1) % 7))
+                                if "dayofweek" in j
+                                else (2**7) - 1
+                            ),
                             priority_attendance if j["attendance"] else priority_leave,
                             # In odoo, monday = 0. In frePPLe, sunday = 0.
-                            ("PT%dM" % round(j["hour_from"] * 60))
-                            if "hour_from" in j
-                            else "PT0M",
-                            ("PT%dM" % round(j["hour_to"] * 60))
-                            if "hour_to" in j
-                            else "PT1440M",
+                            (
+                                ("PT%dM" % round(j["hour_from"] * 60))
+                                if "hour_from" in j
+                                else "PT0M"
+                            ),
+                            (
+                                ("PT%dM" % round(j["hour_to"] * 60))
+                                if "hour_to" in j
+                                else "PT1440M"
+                            ),
                         )
                         if j["attendance"]:
                             priority_attendance += 1
@@ -685,17 +706,23 @@ class exporter(object):
                                         cal_tz[i],
                                     ),
                                     "1",
-                                    (2 ** ((int(j["dayofweek"]) + 1) % 7))
-                                    if "dayofweek" in j
-                                    else (2**7) - 1,
+                                    (
+                                        (2 ** ((int(j["dayofweek"]) + 1) % 7))
+                                        if "dayofweek" in j
+                                        else (2**7) - 1
+                                    ),
                                     priority_attendance,
                                     # In odoo, monday = 0. In frePPLe, sunday = 0.
-                                    ("PT%dM" % round(j["hour_from"] * 60))
-                                    if "hour_from" in j
-                                    else "PT0M",
-                                    ("PT%dM" % round(j["hour_to"] * 60))
-                                    if "hour_to" in j
-                                    else "PT1440M",
+                                    (
+                                        ("PT%dM" % round(j["hour_from"] * 60))
+                                        if "hour_from" in j
+                                        else "PT0M"
+                                    ),
+                                    (
+                                        ("PT%dM" % round(j["hour_to"] * 60))
+                                        if "hour_to" in j
+                                        else "PT1440M"
+                                    ),
                                 )
                                 priority_attendance += 1
                             dow = t.weekday()
@@ -1049,7 +1076,7 @@ class exporter(object):
                 quoteattr(tmpl["categ_id"][1]) if tmpl["categ_id"] else '""',
                 self.uom_categories[self.uom[tmpl["uom_id"][0]]["category"]],
                 i["id"],
-                ' type="item_mto"' if self.route_mto in tmpl["route_ids"] else ""
+                ' type="item_mto"' if self.route_mto in tmpl["route_ids"] else "",
             )
             # Export suppliers for the item, if the item is allowed to be purchased
             if tmpl["purchase_ok"]:
@@ -1130,13 +1157,18 @@ class exporter(object):
                             v["batching_window"] or 0,
                             v["min_qty"],
                             max(0, v["price"]),
-                            ' effective_end="%sT00:00:00"'
-                            % v["date_end"].strftime("%Y-%m-%d")
-                            if v["date_end"]
-                            else "",
-                            ' effective_start="%sT00:00:00"' % k[1].strftime("%Y-%m-%d")
-                            if k[1]
-                            else "",
+                            (
+                                ' effective_end="%sT00:00:00"'
+                                % v["date_end"].strftime("%Y-%m-%d")
+                                if v["date_end"]
+                                else ""
+                            ),
+                            (
+                                ' effective_start="%sT00:00:00"'
+                                % k[1].strftime("%Y-%m-%d")
+                                if k[1]
+                                else ""
+                            ),
                             quoteattr(k[0]),
                         )
                     yield "</itemsuppliers>\n"
@@ -1275,9 +1307,11 @@ class exporter(object):
                         if subcontractor:
                             yield '<operation name=%s %ssize_multiple="1" category="subcontractor" subcategory=%s duration="P%dD" posttime="P%dD" xsi:type="operation_fixed_time" priority="%s" size_minimum="%s">\n' "<item name=%s/><location name=%s/>\n" % (
                                 quoteattr(operation),
-                                ("description=%s " % quoteattr(i["code"]))
-                                if i["code"]
-                                else "",
+                                (
+                                    ("description=%s " % quoteattr(i["code"]))
+                                    if i["code"]
+                                    else ""
+                                ),
                                 quoteattr(subcontractor["name"]),
                                 subcontractor.get("delay", 0),
                                 self.po_lead,
@@ -1293,12 +1327,16 @@ class exporter(object):
 
                             yield '<operation name=%s %ssize_multiple="1" duration_per="%s" posttime="P%dD" priority="%s" xsi:type="operation_time_per">\n' "<item name=%s/><location name=%s/>\n" % (
                                 quoteattr(operation),
-                                ("description=%s " % quoteattr(i["code"]))
-                                if i["code"]
-                                else "",
-                                self.convert_float_time(duration_per)
-                                if duration_per and duration_per > 0
-                                else "P0D",
+                                (
+                                    ("description=%s " % quoteattr(i["code"]))
+                                    if i["code"]
+                                    else ""
+                                ),
+                                (
+                                    self.convert_float_time(duration_per)
+                                    if duration_per and duration_per > 0
+                                    else "P0D"
+                                ),
                                 self.manufacturing_lead,
                                 100 + (i["sequence"] or 1),
                                 quoteattr(product_buf["name"]),
@@ -1386,9 +1424,11 @@ class exporter(object):
                                 if not product:
                                     continue
                                 yield '<flow xsi:type="%s" quantity="%f"><item name=%s/></flow>\n' % (
-                                    "flow_fixed_end"
-                                    if j["subproduct_type"] == "fixed"
-                                    else "flow_end",
+                                    (
+                                        "flow_fixed_end"
+                                        if j["subproduct_type"] == "fixed"
+                                        else "flow_end"
+                                    ),
                                     self.convert_qty_uom(
                                         j["product_qty"],
                                         j["product_uom"],
@@ -1417,9 +1457,11 @@ class exporter(object):
                                     quoteattr(
                                         self.map_workcenters[j["workcenter_id"][0]]
                                     ),
-                                    ("<skill name=%s/>" % quoteattr(j["skill"][1]))
-                                    if j["skill"]
-                                    else "",
+                                    (
+                                        ("<skill name=%s/>" % quoteattr(j["skill"][1]))
+                                        if j["skill"]
+                                        else ""
+                                    ),
                                 )
                                 # create a load for secondary workcenters
                                 # prepare the secondary workcenter xml string upfront
@@ -1429,11 +1471,13 @@ class exporter(object):
                                         sw_id
                                     ]
                                     yield '<load quantity="%f" search=%s><resource name=%s/>%s</load>' % (
-                                        1
-                                        if not secondary_workcenter["duration"]
-                                        or j["time_cycle"] == 0
-                                        else secondary_workcenter["duration"]
-                                        / j["time_cycle"],
+                                        (
+                                            1
+                                            if not secondary_workcenter["duration"]
+                                            or j["time_cycle"] == 0
+                                            else secondary_workcenter["duration"]
+                                            / j["time_cycle"]
+                                        ),
                                         quoteattr(secondary_workcenter["search_mode"]),
                                         quoteattr(
                                             self.map_workcenters[
@@ -1441,13 +1485,15 @@ class exporter(object):
                                             ]
                                         ),
                                         (
-                                            "<skill name=%s/>"
-                                            % quoteattr(
-                                                secondary_workcenter["skill"][1]
+                                            (
+                                                "<skill name=%s/>"
+                                                % quoteattr(
+                                                    secondary_workcenter["skill"][1]
+                                                )
                                             )
-                                        )
-                                        if secondary_workcenter["skill"]
-                                        else "",
+                                            if secondary_workcenter["skill"]
+                                            else ""
+                                        ),
                                     )
 
                             if exists:
@@ -1459,9 +1505,11 @@ class exporter(object):
                         #
                         yield '<operation name=%s %ssize_multiple="1" posttime="P%dD" priority="%s" xsi:type="operation_routing"><item name=%s/><location name=%s/>\n' % (
                             quoteattr(operation),
-                            ("description=%s " % quoteattr(i["code"]))
-                            if i["code"]
-                            else "",
+                            (
+                                ("description=%s " % quoteattr(i["code"]))
+                                if i["code"]
+                                else ""
+                            ),
                             self.manufacturing_lead,
                             100 + (i["sequence"] or 1),
                             quoteattr(product_buf["name"]),
@@ -1522,9 +1570,11 @@ class exporter(object):
                                 fl[
                                     (
                                         j["product_id"][0],
-                                        j["operation_id"][0]
-                                        if j["operation_id"]
-                                        else None,
+                                        (
+                                            j["operation_id"][0]
+                                            if j["operation_id"]
+                                            else None
+                                        ),
                                     )
                                 ]["qty"] += qty
                             else:
@@ -1532,9 +1582,11 @@ class exporter(object):
                                 fl[
                                     (
                                         j["product_id"][0],
-                                        j["operation_id"][0]
-                                        if j["operation_id"]
-                                        else None,
+                                        (
+                                            j["operation_id"][0]
+                                            if j["operation_id"]
+                                            else None
+                                        ),
                                     )
                                 ] = j
 
@@ -1575,11 +1627,13 @@ class exporter(object):
                                 secondary_workcenter_str += (
                                     '<load quantity="%f" search=%s><resource name=%s/>%s</load>'
                                     % (
-                                        1
-                                        if not secondary_workcenter["duration"]
-                                        or step["time_cycle"] == 0
-                                        else secondary_workcenter["duration"]
-                                        / step["time_cycle"],
+                                        (
+                                            1
+                                            if not secondary_workcenter["duration"]
+                                            or step["time_cycle"] == 0
+                                            else secondary_workcenter["duration"]
+                                            / step["time_cycle"]
+                                        ),
                                         quoteattr(secondary_workcenter["search_mode"]),
                                         quoteattr(
                                             self.map_workcenters[
@@ -1587,34 +1641,42 @@ class exporter(object):
                                             ]
                                         ),
                                         (
-                                            "<skill name=%s/>"
-                                            % quoteattr(
-                                                secondary_workcenter["skill"][1]
+                                            (
+                                                "<skill name=%s/>"
+                                                % quoteattr(
+                                                    secondary_workcenter["skill"][1]
+                                                )
                                             )
-                                        )
-                                        if secondary_workcenter["skill"]
-                                        else "",
+                                            if secondary_workcenter["skill"]
+                                            else ""
+                                        ),
                                     )
                                 )
 
                             yield "<suboperation>" '<operation name=%s %spriority="%s" duration_per="%s" xsi:type="operation_time_per">\n' "<location name=%s/>\n" '<loads><load quantity="%f" search=%s><resource name=%s/>%s</load>%s</loads>\n' % (
                                 quoteattr(name),
-                                ("description=%s " % quoteattr(i["code"]))
-                                if i["code"]
-                                else "",
+                                (
+                                    ("description=%s " % quoteattr(i["code"]))
+                                    if i["code"]
+                                    else ""
+                                ),
                                 counter * 10,
-                                self.convert_float_time(step["time_cycle"] / 1440.0)
-                                if step["time_cycle"] and step["time_cycle"] > 0
-                                else "P0D",
+                                (
+                                    self.convert_float_time(step["time_cycle"] / 1440.0)
+                                    if step["time_cycle"] and step["time_cycle"] > 0
+                                    else "P0D"
+                                ),
                                 quoteattr(location),
                                 1,
                                 quoteattr(step["search_mode"]),
                                 quoteattr(
                                     self.map_workcenters[step["workcenter_id"][0]]
                                 ),
-                                ("<skill name=%s/>" % quoteattr(step["skill"][1]))
-                                if step["skill"]
-                                else "",
+                                (
+                                    ("<skill name=%s/>" % quoteattr(step["skill"][1]))
+                                    if step["skill"]
+                                    else ""
+                                ),
                                 secondary_workcenter_str,
                             )
                             first_flow = True
@@ -1810,9 +1872,11 @@ class exporter(object):
                             ) % (
                                 quoteattr(sol_name),
                                 quoteattr(batch),
-                                qty - reserved_quantity
-                                if qty - reserved_quantity > 0
-                                else qty,
+                                (
+                                    qty - reserved_quantity
+                                    if qty - reserved_quantity > 0
+                                    else qty
+                                ),
                                 due,
                                 priority,
                                 j["picking_policy"] == "one" and qty or 0.0,
@@ -2059,9 +2123,9 @@ class exporter(object):
                         fields=["production_id"],
                     ):
                         if k["production_id"]:
-                            self.subcontracting_mo_po_mapping[
-                                k["production_id"][0]
-                            ] = po_line_reference
+                            self.subcontracting_mo_po_mapping[k["production_id"][0]] = (
+                                po_line_reference
+                            )
                     continue
                 item = self.product_product.get(i["product_id"][0], None)
                 if not item:
@@ -2116,24 +2180,26 @@ class exporter(object):
             search=[("state", "in", ["progress", "confirmed", "to_close"])],
             # Option 2: Also import draft manufacturing order from odoo (to avoid that frepple reproposes it another time)
             # search=[("state", "in", ["draft", "progress", "confirmed", "to_close"])],
-            fields=[
-                "bom_id",
-                "date_start",
-                "date_planned_start",
-                "date_planned_finished",
-                "name",
-                "state",
-                "qty_producing",
-                "product_qty",
-                "product_uom_id",
-                "location_dest_id",
-                "product_id",
-                "move_raw_ids",
-                "picking_type_id",
-            ]
-            + ["workorder_ids"]
-            if self.manage_work_orders
-            else [],
+            fields=(
+                [
+                    "bom_id",
+                    "date_start",
+                    "date_planned_start",
+                    "date_planned_finished",
+                    "name",
+                    "state",
+                    "qty_producing",
+                    "product_qty",
+                    "product_uom_id",
+                    "location_dest_id",
+                    "product_id",
+                    "move_raw_ids",
+                    "picking_type_id",
+                ]
+                + ["workorder_ids"]
+                if self.manage_work_orders
+                else []
+            ),
         ):
             # Filter out irrelevant manufacturing orders
             location = self.map_locations.get(i["location_dest_id"][0], None)
@@ -2206,43 +2272,7 @@ class exporter(object):
                     for wo in self.generator.getData(
                         "mrp.workorder",
                         ids=i["workorder_ids"],
-                        fields=[
-                            "display_name",
-                            "name",
-                            "product_uom_id",
-                            "working_state",
-                            "state",
-                            "workcenter_id",
-                            "product_id",
-                            "workcenter_id",
-                            "date_planned_start",
-                            "date_planned_finished",
-                            "duration_expected",
-                            "duration_unit",
-                            "product_uom_id",
-                            "production_availability",
-                            "production_state",
-                            "production_bom_id",
-                            "state",
-                            "is_user_working",
-                            "time_ids",
-                            "date_planned_start",
-                            "date_planned_finished",
-                            "date_start",
-                            "date_finished",
-                            "duration_expected",
-                            "duration",
-                            "duration_unit",
-                            "duration_percent",
-                            "progress",
-                            "operation_id",
-                            "move_raw_ids",
-                            "move_finished_ids",
-                            "move_line_ids",
-                            "production_date",
-                            "display_name",
-                            "secondary_workcenters",
-                        ],
+                        object=True,
                         order="id",
                     )
                 ]
@@ -2303,10 +2333,9 @@ class exporter(object):
                         self.product_product[mv["product_id"][0]]["template"],
                     )
                     if qty_flow > 0:
-                        operation_materials[
-                            consumed_item["name"]
-                        ] = operation_materials.get(consumed_item["name"], 0) + (
-                            -qty_flow / qty
+                        operation_materials[consumed_item["name"]] = (
+                            operation_materials.get(consumed_item["name"], 0)
+                            + (-qty_flow / qty)
                         )
                 for key in operation_materials:
                     yield '<flow xsi:type="flow_start" quantity="%s"><item name=%s/></flow>\n' % (
@@ -2403,6 +2432,14 @@ class exporter(object):
                         )
                     yield "</flows>"
                     if (
+                        wo.operation_id
+                        and wo.operation_id.workcenter_id
+                        and wo.operation_id.workcenter_id.id in self.map_workcenters
+                    ):
+                        yield "<loads><load><resource name=%s/></load></loads>" % quoteattr(
+                            self.map_workcenters[wo.operation_id.workcenter_id.id]
+                        )
+                    elif (
                         wo["workcenter_id"]
                         and wo["workcenter_id"][0] in self.map_workcenters
                     ):
@@ -2424,9 +2461,12 @@ class exporter(object):
                                 != wo["workcenter_id"][0]
                             ):
                                 yield '<load quantity="%f"><resource name=%s/></load>' % (
-                                    secondary["duration"] / wo["duration_expected"]
-                                    if secondary["duration"] and wo["duration_expected"]
-                                    else 1,
+                                    (
+                                        secondary["duration"] / wo["duration_expected"]
+                                        if secondary["duration"]
+                                        and wo["duration_expected"]
+                                        else 1
+                                    ),
                                     quoteattr(
                                         self.map_workcenters[
                                             secondary["workcenter_id"][0]
@@ -2464,17 +2504,21 @@ class exporter(object):
                                 dt = now
                             else:
                                 dt = max(
-                                    wo["date_start"]
-                                    if wo["date_start"]
-                                    else wo["date_planned_start"]
-                                    if wo["date_planned_start"]
-                                    else i["date_planned_start"],
+                                    (
+                                        wo["date_start"]
+                                        if wo["date_start"]
+                                        else (
+                                            wo["date_planned_start"]
+                                            if wo["date_planned_start"]
+                                            else i["date_planned_start"]
+                                        )
+                                    ),
                                     now,
                                 )
                             wo_date = ' start="%s"' % self.formatDateTime(dt)
                     except Exception:
                         wo_date = ""
-                    yield '<operationplan type="MO" reference=%s%s quantity="%s" status="%s"><operation name=%s/><owner reference=%s/></operationplan>\n' % (
+                    yield '<operationplan type="MO" reference=%s%s quantity="%s" status="%s"><operation name=%s/><owner reference=%s/>' % (
                         quoteattr(wo["display_name"]),
                         wo_date,
                         qty,
@@ -2482,6 +2526,15 @@ class exporter(object):
                         quoteattr(suboperation),
                         quoteattr(i["name"]),
                     )
+                    if (
+                        wo.operation_id
+                        and wo.workcenter_id
+                        and wo.workcenter_id.id in self.map_workcenters
+                    ):
+                        yield "<loadplans><loadplan><resource name=%s/></loadplan></loadplans>" % quoteattr(
+                            self.map_workcenters[wo.workcenter_id.id]
+                        )
+                    yield "</operationplan>\n"
         yield "</operationplans>\n"
 
     def export_orderpoints(self):
@@ -2623,9 +2676,13 @@ if __name__ == "__main__":
     # This mode of working is not recommended for production use because of performance
     # considerations.
     #
-    #  EXPERIMENTAL FEATURE!!!
+    # DEPRECATED EXPERIMENTAL FEATURE!!!
+    # This feature was always experimental, and we now see it as a dead end.
     #
     import argparse
+    from warnings import warn
+
+    warn("The XMLRPC odoo connector is deprecated", DeprecationWarning)
 
     parser = argparse.ArgumentParser(description="Debug frepple odoo connector")
     parser.add_argument(
