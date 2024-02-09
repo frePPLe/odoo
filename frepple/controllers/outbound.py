@@ -979,6 +979,30 @@ class exporter(object):
         ):
             self.product_templates[i["id"]] = i
 
+        # Check if we should use short names
+        # "[internal reference] name" will become "internal reference"
+        # and the frepple description will contain the odoo name
+        # To use short names, we have 2 conditions to check
+        # 1) The list of item names must contain a string which is more than 200 chars
+        # 2) The internal reference needs to be unique
+        product_codes = []
+        use_short_names = False
+        max_name_length = 0
+        for i in self.generator.getData(
+            "product.product",
+            search=[("product_tmpl_id.id", "in", list(self.product_templates))],
+            fields=[
+                "name",
+                "code",
+            ],
+        ):
+            if len(i["name"]) > max_name_length:
+                max_name_length = len(i["name"])
+            product_codes.append(i["code"] or i["name"])
+
+        if max_name_length > 200 and len(product_codes) == len(set(product_codes)):
+            use_short_names = True
+
         # Read the products
         supplierinfo_fields = [
             "name",
@@ -1013,13 +1037,20 @@ class exporter(object):
                 continue
             tmpl = self.product_templates[i["product_tmpl_id"][0]]
             if i["code"]:
-                name = ("[%s] %s" % (i["code"], i["name"]))[:300]
+                name = (
+                    (("[%s] %s" % (i["code"], i["name"]))[:300])
+                    if not use_short_names
+                    else i["code"][:300]
+                )
+                description = i["name"][:500] if use_short_names else None
             # product is a variant and has no internal reference
             # we use the product id as code
             elif i["product_template_attribute_value_ids"]:
                 name = ("[%s] %s" % (i["id"], i["name"]))[:300]
+                description = i["name"][:500] if use_short_names else None
             else:
                 name = i["name"][:300]
+                description = i["name"][:500] if use_short_names else None
             prod_obj = {
                 "name": name,
                 "template": i["product_tmpl_id"][0],
@@ -1030,8 +1061,13 @@ class exporter(object):
             self.product_product[i["id"]] = prod_obj
             self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
             # For make-to-order items the next line needs to XML snippet ' type="item_mto"'.
-            yield '<item name=%s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s">\n' % (
+            yield '<item name=%s %s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s">\n' % (
                 quoteattr(name),
+                (
+                    ("description=%s" % (quoteattr(description),))
+                    if use_short_names
+                    else ""
+                ),
                 quoteattr(tmpl["uom_id"][1]) if tmpl["uom_id"] else "",
                 i["volume"] or 0,
                 i["weight"] or 0,
