@@ -2433,47 +2433,57 @@ class exporter(object):
                     yield "</flows>"
                     if (
                         wo.operation_id
+                        and wo.workcenter_id
                         and wo.operation_id.workcenter_id
                         and wo.operation_id.workcenter_id.id in self.map_workcenters
+                        and wo.workcenter_id.owner
+                        and wo.workcenter_id.owner == wo.operation_id.workcenter_id
                     ):
+                        # Only send a load definition if the bom specifies a parent pool
                         yield "<loads><load><resource name=%s/></load></loads>" % quoteattr(
                             self.map_workcenters[wo.operation_id.workcenter_id.id]
                         )
                     elif (
-                        wo["workcenter_id"]
-                        and wo["workcenter_id"][0] in self.map_workcenters
+                        wo.workcenter_id and wo.workcenter_id.id in self.map_workcenters
                     ):
                         yield "<loads><load><resource name=%s/></load></loads>" % quoteattr(
-                            self.map_workcenters[wo["workcenter_id"][0]]
+                            self.map_workcenters[wo.workcenter_id.id]
                         )
-                    if wo["secondary_workcenters"]:
-                        yield "<loads>"
-                        for secondary in self.generator.getData(
-                            "mrp.workorder.secondary.workcenter",
-                            ids=wo["secondary_workcenters"],
-                            fields=["workcenter_id", "duration"],
-                        ):
+                    if wo.operation_id:
+                        for wo_sec in wo.secondary_workcenters:
                             if (
-                                secondary["workcenter_id"]
-                                and secondary["workcenter_id"][0]
-                                in self.map_workcenters
-                                and secondary["workcenter_id"][0]
-                                != wo["workcenter_id"][0]
+                                not wo_sec.workcenter_id
+                                or wo_sec.workcenter_id.id not in self.map_workcenters
+                                or wo_sec.workcenter_id == wo.workcenter_id
                             ):
-                                yield '<load quantity="%f"><resource name=%s/></load>' % (
-                                    (
-                                        secondary["duration"] / wo["duration_expected"]
-                                        if secondary["duration"]
-                                        and wo["duration_expected"]
-                                        else 1
-                                    ),
-                                    quoteattr(
-                                        self.map_workcenters[
-                                            secondary["workcenter_id"][0]
-                                        ]
-                                    ),
-                                )
-                        yield "</loads>"
+                                continue
+                            for sec in wo.operation_id.secondary_workcenter:
+                                if (
+                                    wo_sec.workcenter_id.owner
+                                    and wo_sec.workcenter_id.owner == sec.workcenter_id
+                                ):
+                                    yield '<load quantity="%f" search=%s><resource name=%s/>%s</load>' % (
+                                        (
+                                            1
+                                            if not sec.duration
+                                            or wo.operation_id.time_cycle == 0
+                                            else sec.duration
+                                            / wo.operation_idtime_cycle
+                                        ),
+                                        quoteattr(sec.search_mode),
+                                        quoteattr(
+                                            self.map_workcenters[sec.workcenter_id.id]
+                                        ),
+                                        (
+                                            (
+                                                "<skill name=%s/>"
+                                                % quoteattr(sec.skill.name)
+                                            )
+                                            if sec.skill
+                                            else ""
+                                        ),
+                                    )
+                                    break
                     first_wo = False
                     yield "</operation></suboperation>"
                 yield "</suboperations></operation></operationplan>"
@@ -2534,6 +2544,21 @@ class exporter(object):
                         yield "<loadplans><loadplan><resource name=%s/></loadplan></loadplans>" % quoteattr(
                             self.map_workcenters[wo.workcenter_id.id]
                         )
+                    if wo.secondary_workcenters:
+                        yield "<loadplans>"
+                        for secondary in wo.secondary_workcenters:
+                            if (
+                                secondary.workcenter_id
+                                and secondary.workcenter_id.id in self.map_workcenters
+                                and secondary.workcenter_id != wo.workcenter_id
+                            ):
+                                yield "<loadplan><resource name=%s/></loadplan>" % (
+                                    quoteattr(
+                                        self.map_workcenters[secondary.workcenter_id.id]
+                                    ),
+                                )
+                        yield "</loadplans>"
+
                     yield "</operationplan>\n"
         yield "</operationplans>\n"
 

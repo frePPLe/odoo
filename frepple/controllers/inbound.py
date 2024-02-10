@@ -141,7 +141,18 @@ class importer(object):
         mo_references = {}
         wo_data = []
 
+        # Workcenters of a workorder to update
+        resources = []
+
         for event, elem in iterparse(self.datafile, events=("start", "end")):
+            if (
+                elem.tag == "operationplan"
+                and elem.get("ordertype") == "WO"
+                and event == "start"
+            ):
+                resources = []
+            elif elem.tag == "resource" and event == "end":
+                resources.append(elem.get("id"))
             if event == "start" and elem.tag == "workorder" and elem.get("operation"):
                 try:
                     wo = {
@@ -345,17 +356,17 @@ class importer(object):
                         if not hasattr(self, "stock_picking_dict"):
                             self.stock_picking_dict = {}
                         if not self.stock_picking_dict.get((origin, destination)):
-                            self.stock_picking_dict[
-                                (origin, destination)
-                            ] = stck_picking.create(
-                                {
-                                    "picking_type_id": picking_type_id,
-                                    "scheduled_date": date_shipping,
-                                    "location_id": location_id["id"],
-                                    "location_dest_id": location_dest_id["id"],
-                                    "move_type": "direct",
-                                    "origin": "frePPLe",
-                                }
+                            self.stock_picking_dict[(origin, destination)] = (
+                                stck_picking.create(
+                                    {
+                                        "picking_type_id": picking_type_id,
+                                        "scheduled_date": date_shipping,
+                                        "location_id": location_id["id"],
+                                        "location_dest_id": location_dest_id["id"],
+                                        "move_type": "direct",
+                                        "origin": "frePPLe",
+                                    }
+                                )
                             )
                         sp = self.stock_picking_dict.get((origin, destination))
                         if not hasattr(self, "sm_dict"):
@@ -411,26 +422,55 @@ class importer(object):
                                     # Can't filter on the computed display_name field in the search...
                                     continue
                                 if wo:
-                                    wo.write(
-                                        {
-                                            "date_planned_start": self.timezone.localize(
-                                                datetime.strptime(
-                                                    elem.get("start"),
-                                                    "%Y-%m-%d %H:%M:%S",
+                                    data = {
+                                        "date_planned_start": self.timezone.localize(
+                                            datetime.strptime(
+                                                elem.get("start"),
+                                                "%Y-%m-%d %H:%M:%S",
+                                            )
+                                        )
+                                        .astimezone(UTC)
+                                        .replace(tzinfo=None),
+                                        "date_planned_finished": self.timezone.localize(
+                                            datetime.strptime(
+                                                elem.get("end"),
+                                                "%Y-%m-%d %H:%M:%S",
+                                            )
+                                        )
+                                        .astimezone(UTC)
+                                        .replace(tzinfo=None),
+                                    }
+                                    for res_id in resources:
+                                        res = mfg_workcenter.search(
+                                            [("id", "=", res_id)]
+                                        )
+                                        if not res:
+                                            continue
+                                        if (
+                                            not wo.operation_id  # No operation defined
+                                            or (
+                                                wo.operation_id.workcenter_id
+                                                == res  # Same workcenter
+                                                or (
+                                                    # New member of a pool
+                                                    wo.operation_id.workcenter_id
+                                                    and wo.operation_id.workcenter_id
+                                                    == res.owner
                                                 )
                                             )
-                                            .astimezone(UTC)
-                                            .replace(tzinfo=None),
-                                            "date_planned_finished": self.timezone.localize(
-                                                datetime.strptime(
-                                                    elem.get("end"),
-                                                    "%Y-%m-%d %H:%M:%S",
-                                                )
-                                            )
-                                            .astimezone(UTC)
-                                            .replace(tzinfo=None),
-                                        }
-                                    )
+                                        ):
+                                            # Change primary work center
+                                            data["workcenter_id"] = res.id
+                                        else:
+                                            # Check assigned secondary resources
+                                            for sec in wo.secondary_workcenters:
+                                                if sec.workcenter_id.owner == res:
+                                                    break
+                                                if sec.workcenter_id.owner == res.owner:
+                                                    # Change secondary work center
+                                                    sec.write({"workcenter_id": res.id})
+                                                    break
+                                    wo.write(data)
                                     break
                     else:
                         # Create manufacturing order
