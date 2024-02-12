@@ -141,7 +141,18 @@ class importer(object):
         mo_references = {}
         wo_data = []
 
+        # Workcenters of a workorder to update
+        resources = []
+
         for event, elem in iterparse(self.datafile, events=("start", "end")):
+            if (
+                elem.tag == "operationplan"
+                and elem.get("ordertype") == "WO"
+                and event == "start"
+            ):
+                resources = []
+            elif elem.tag == "resource" and event == "end":
+                resources.append(elem.get("id"))
             if event == "start" and elem.tag == "workorder" and elem.get("operation"):
                 try:
                     wo = {
@@ -182,7 +193,7 @@ class importer(object):
                     ordertype = elem.get("ordertype")
                     if ordertype == "PO":
                         # Create purchase order
-                        supplier_id = int(elem.get("supplier").split(" ", 1)[0])
+                        supplier_id = int(elem.get("supplier").rsplit(" ", 1)[-1])
                         quantity = elem.get("quantity")
                         date_planned = elem.get("end")
                         if date_planned:
@@ -198,14 +209,15 @@ class importer(object):
                             po = proc_order.create(
                                 {
                                     "company_id": self.company.id,
-                                    "partner_id": int(
-                                        elem.get("supplier").split(" ", 1)[0]
-                                    ),
+                                    "partner_id": supplier_id,
                                     # TODO Odoo has no place to store the location and criticality
                                     # int(elem.get('location_id')),
                                     # elem.get('criticality'),
                                     "origin": "frePPLe",
                                 }
+                            )
+                            po.payment_term_id = (
+                                po.partner_id.property_supplier_payment_term_id.id
                             )
                             supplier_reference[supplier_id] = {
                                 "id": po.id,
@@ -410,26 +422,55 @@ class importer(object):
                                     # Can't filter on the computed display_name field in the search...
                                     continue
                                 if wo:
-                                    wo.write(
-                                        {
-                                            "date_start": self.timezone.localize(
-                                                datetime.strptime(
-                                                    elem.get("start"),
-                                                    "%Y-%m-%d %H:%M:%S",
+                                    data = {
+                                        "date_start": self.timezone.localize(
+                                            datetime.strptime(
+                                                elem.get("start"),
+                                                "%Y-%m-%d %H:%M:%S",
+                                            )
+                                        )
+                                        .astimezone(UTC)
+                                        .replace(tzinfo=None),
+                                        "date_finished": self.timezone.localize(
+                                            datetime.strptime(
+                                                elem.get("end"),
+                                                "%Y-%m-%d %H:%M:%S",
+                                            )
+                                        )
+                                        .astimezone(UTC)
+                                        .replace(tzinfo=None),
+                                    }
+                                    for res_id in resources:
+                                        res = mfg_workcenter.search(
+                                            [("id", "=", res_id)]
+                                        )
+                                        if not res:
+                                            continue
+                                        if (
+                                            not wo.operation_id  # No operation defined
+                                            or (
+                                                wo.operation_id.workcenter_id
+                                                == res  # Same workcenter
+                                                or (
+                                                    # New member of a pool
+                                                    wo.operation_id.workcenter_id
+                                                    and wo.operation_id.workcenter_id
+                                                    == res.owner
                                                 )
                                             )
-                                            .astimezone(UTC)
-                                            .replace(tzinfo=None),
-                                            "date_finished": self.timezone.localize(
-                                                datetime.strptime(
-                                                    elem.get("end"),
-                                                    "%Y-%m-%d %H:%M:%S",
-                                                )
-                                            )
-                                            .astimezone(UTC)
-                                            .replace(tzinfo=None),
-                                        }
-                                    )
+                                        ):
+                                            # Change primary work center
+                                            data["workcenter_id"] = res.id
+                                        else:
+                                            # Check assigned secondary resources
+                                            for sec in wo.secondary_workcenters:
+                                                if sec.workcenter_id.owner == res:
+                                                    break
+                                                if sec.workcenter_id.owner == res.owner:
+                                                    # Change secondary work center
+                                                    sec.write({"workcenter_id": res.id})
+                                                    break
+                                    wo.write(data)
                                     break
                     else:
                         # Create manufacturing order

@@ -164,6 +164,7 @@ class XMLController(odoo.http.Controller):
                     == "true",
                     version=version,
                     delta=float(kwargs.get("delta", 999)),
+                    language=language,
                 )
                 # last empty double quote is to let python understand frepple is a folder.
                 xml_folder = os.path.join(str(Path.home()), "logs", "frepple", "")
