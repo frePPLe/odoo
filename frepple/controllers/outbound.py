@@ -1013,6 +1013,29 @@ class exporter(object):
         ):
             self.product_templates[i["id"]] = i
 
+        # Check if we can use short names
+        # To use short names, the internal reference (or the name when no internal reference is defined)
+        # needs to be unique
+        use_short_names = True
+
+        self.generator.env.cr.execute(
+            """
+            select count(*) from
+            (
+            select coalesce(product_product.default_code, product_template.name), count(*)
+            from product_product
+            inner join product_template on product_product.product_tmpl_id = product_template.id
+            where product_template.type not in ('service', 'consu')
+            group by coalesce(product_product.default_code, product_template.name)
+            having count(*) > 1
+            ) t
+                """
+        )
+        for i in self.generator.env.cr.fetchall():
+            if i[0] > 0:
+                use_short_names = False
+                break
+
         # Read the products
         supplierinfo_fields = [
             "partner_id",
@@ -1047,13 +1070,20 @@ class exporter(object):
                 continue
             tmpl = self.product_templates[i["product_tmpl_id"][0]]
             if i["code"]:
-                name = ("[%s] %s" % (i["code"], i["name"]))[:300]
+                name = (
+                    (("[%s] %s" % (i["code"], i["name"]))[:300])
+                    if not use_short_names
+                    else i["code"][:300]
+                )
+                description = i["name"][:500] if use_short_names else None
             # product is a variant and has no internal reference
             # we use the product id as code
             elif i["product_template_attribute_value_ids"]:
                 name = ("[%s] %s" % (i["id"], i["name"]))[:300]
+                description = i["name"][:500] if use_short_names else None
             else:
                 name = i["name"][:300]
+                description = i["name"][:500] if use_short_names else None
             prod_obj = {
                 "name": name,
                 "template": i["product_tmpl_id"][0],
@@ -1063,8 +1093,16 @@ class exporter(object):
             }
             self.product_product[i["id"]] = prod_obj
             self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
-            yield '<item name=%s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s" %s>\n' % (
+
+            # For make-to-order items the next line needs to XML snippet ' type="item_mto"'.
+            yield '<item name=%s %s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s">\n' % (
+
                 quoteattr(name),
+                (
+                    ("description=%s" % (quoteattr(description),))
+                    if use_short_names
+                    else ""
+                ),
                 quoteattr(tmpl["uom_id"][1]) if tmpl["uom_id"] else "",
                 i["volume"] or 0,
                 i["weight"] or 0,
