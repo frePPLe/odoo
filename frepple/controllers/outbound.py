@@ -1886,10 +1886,6 @@ class exporter(object):
                 x in stock_moves_dict_confirmed for x in i["move_ids"]
             ):
                 state = "done"
-            logger.error(
-                "%s %s %s %s"
-                % (name, state, i["move_ids"], [x for x in stock_moves_dict])
-            )
             if state in ("draft", "sent"):
                 # status = "inquiry"  # Inquiries don't reserve capacity and materials
                 status = "quote"  # Quotes do reserve capacity and materials
