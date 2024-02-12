@@ -1022,11 +1022,11 @@ class exporter(object):
             """
             select count(*) from
             (
-            select coalesce(product_product.default_code, product_template.name), count(*)
+            select coalesce(product_product.default_code, product_template.name->>'en_US'), count(*)
             from product_product
             inner join product_template on product_product.product_tmpl_id = product_template.id
             where product_template.type not in ('service', 'consu')
-            group by coalesce(product_product.default_code, product_template.name)
+            group by coalesce(product_product.default_code, product_template.name->>'en_US')
             having count(*) > 1
             ) t
                 """
@@ -1095,8 +1095,7 @@ class exporter(object):
             self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
 
             # For make-to-order items the next line needs to XML snippet ' type="item_mto"'.
-            yield '<item name=%s %s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s">\n' % (
-
+            yield '<item name=%s %s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s"%s>\n' % (
                 quoteattr(name),
                 (
                     ("description=%s" % (quoteattr(description),))
