@@ -344,17 +344,17 @@ class importer(object):
                         if not hasattr(self, "stock_picking_dict"):
                             self.stock_picking_dict = {}
                         if not self.stock_picking_dict.get((origin, destination)):
-                            self.stock_picking_dict[
-                                (origin, destination)
-                            ] = stck_picking.create(
-                                {
-                                    "picking_type_id": picking_type_id,
-                                    "scheduled_date": date_shipping,
-                                    "location_id": location_id["id"],
-                                    "location_dest_id": location_dest_id["id"],
-                                    "move_type": "direct",
-                                    "origin": "frePPLe",
-                                }
+                            self.stock_picking_dict[(origin, destination)] = (
+                                stck_picking.create(
+                                    {
+                                        "picking_type_id": picking_type_id,
+                                        "scheduled_date": date_shipping,
+                                        "location_id": location_id["id"],
+                                        "location_dest_id": location_dest_id["id"],
+                                        "move_type": "direct",
+                                        "origin": "frePPLe",
+                                    }
+                                )
                             )
                         sp = self.stock_picking_dict.get((origin, destination))
                         if not hasattr(self, "sm_dict"):
