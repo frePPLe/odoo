@@ -161,6 +161,7 @@ class exporter(object):
         singlecompany=False,
         version="0.0.0.unknown",
         delta=999,
+        language="en_US",
     ):
         self.database = database
         self.company = company
@@ -185,6 +186,7 @@ class exporter(object):
         self.timeformat = "%Y-%m-%dT%H:%M:%S"
         self.singlecompany = singlecompany
         self.delta = delta
+        self.language = language
 
         # The mode argument defines different types of runs:
         #  - Mode 1:
@@ -1022,14 +1024,19 @@ class exporter(object):
             """
             select count(*) from
             (
-            select coalesce(product_product.default_code, product_template.name->>'en_US'), count(*)
+            select coalesce(product_product.default_code,
+            product_template.name->>%s,
+            product_template.name->>'en_US'), count(*)
             from product_product
             inner join product_template on product_product.product_tmpl_id = product_template.id
             where product_template.type not in ('service', 'consu')
-            group by coalesce(product_product.default_code, product_template.name->>'en_US')
+            group by coalesce(product_product.default_code,
+            product_template.name->>%s,
+            product_template.name->>'en_US')
             having count(*) > 1
             ) t
-                """
+                """,
+            (self.language, self.language),
         )
         for i in self.generator.env.cr.fetchall():
             if i[0] > 0:
