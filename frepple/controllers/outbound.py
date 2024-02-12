@@ -2612,7 +2612,6 @@ class exporter(object):
                                     (
                                         wo["date_start"]
                                         if wo["date_start"]
-
                                         else (
                                             wo["date_start"]
                                             if wo["date_start"]
