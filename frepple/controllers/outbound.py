@@ -2124,10 +2124,12 @@ class exporter(object):
                     or i["state"] in ("draft", "cancel", "done")
                 ):
                     continue
-                po_line_reference = "%s - %s - %s" % (
+                j = po[po_line[i["purchase_line_id"][0]]["order_id"][0]]
+                po_line_reference = "%s - %s - %s - %s" % (
                     j["name"],
                     i["picking_id"][1],
                     i["id"],
+                    i["purchase_line_id"][0],
                 )
                 if i["is_subcontract"]:
                     # PO lines on a subcontracting BOM are mapped as a MO in frepple
@@ -2144,7 +2146,7 @@ class exporter(object):
                 item = self.product_product.get(i["product_id"][0], None)
                 if not item:
                     continue
-                j = po[po_line[i["purchase_line_id"][0]]["order_id"][0]]
+
                 # if PO status is done, we should ignore this receipt
                 if j["state"] == "done":
                     continue
