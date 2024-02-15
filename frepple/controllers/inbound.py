@@ -89,6 +89,9 @@ class importer(object):
             stck_move = self.env["stock.move"].with_user(self.actual_user)
             stck_warehouse = self.env["stock.warehouse"].with_user(self.actual_user)
             stck_location = self.env["stock.location"].with_user(self.actual_user)
+            change_product_qty = self.env["change.production.qty"].with_user(
+                self.actual_user
+            )
         else:
             proc_order = self.env["purchase.order"]
             proc_orderline = self.env["purchase.order.line"]
@@ -101,6 +104,7 @@ class importer(object):
             stck_move = self.env["stock.move"]
             stck_warehouse = self.env["stock.warehouse"]
             stck_location = self.env["stock.location"]
+            change_product_qty = self.env["change.production.qty"]
         if self.mode == 1:
             # Cancel previous draft purchase quotations
             m = self.env["purchase.order"]
@@ -547,21 +551,30 @@ class importer(object):
                                     "origin": "frePPLe",
                                 }
                             )
+                            mo_references[elem.get("reference")] = mo
+                            mo._onchange_product_qty()
+                            mo._onchange_workorder_ids()
+                            mo._onchange_move_raw()
+                            mo._create_update_move_finished()
                         else:
                             # MO update
                             mo = mfg_order.with_context(context).search(
                                 [("name", "=", elem.get("reference"))]
                             )[0]
                             if mo:
+                                new_qty = float(elem.get("quantity"))
+                                if mo.product_qty != new_qty:
+                                    cpq = change_product_qty.create(
+                                        {
+                                            "mo_id": mo.id,
+                                            "product_qty": new_qty,
+                                        }
+                                    )
+                                    cpq.change_prod_qty()
                                 mo.write(
                                     {
-                                        "product_qty": elem.get("quantity"),
                                         "date_planned_start": elem.get("start"),
                                         "date_planned_finished": elem.get("end"),
-                                        "product_id": int(item_id),
-                                        "company_id": self.company.id,
-                                        "product_uom_id": int(uom_id),
-                                        "picking_type_id": picking.id,
                                         "origin": "frePPLe",
                                     }
                                 )
@@ -569,14 +582,11 @@ class importer(object):
 
                         # Remember odoo name for the MO reference passed by frepple.
                         # This mapping is later used when importing WO.
-                        if mo:
-                            mo_references[elem.get("reference")] = mo
-                            mo._onchange_workorder_ids()
-                            mo._onchange_move_raw()
-                            mo._create_update_move_finished()
-                            # mo.action_confirm()  # confirm MO
-                            # mo._plan_workorders() # plan MO
-                            # mo.action_assign() # reserve material
+                        # if mo:
+
+                        # mo.action_confirm()  # confirm MO
+                        # mo._plan_workorders() # plan MO
+                        # mo.action_assign() # reserve material
 
                         # Process the workorder information we received
                         if wo_data:
