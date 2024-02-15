@@ -141,7 +141,18 @@ class importer(object):
         mo_references = {}
         wo_data = []
 
+        # Workcenters of a workorder to update
+        resources = []
+
         for event, elem in iterparse(self.datafile, events=("start", "end")):
+            if (
+                elem.tag == "operationplan"
+                and elem.get("ordertype") == "WO"
+                and event == "start"
+            ):
+                resources = []
+            elif elem.tag == "resource" and event == "end":
+                resources.append(elem.get("id"))
             if event == "start" and elem.tag == "workorder" and elem.get("operation"):
                 try:
                     wo = {
@@ -436,26 +447,55 @@ class importer(object):
                                     # Can't filter on the computed display_name field in the search...
                                     continue
                                 if wo:
-                                    wo.write(
-                                        {
-                                            "date_planned_start": self.timezone.localize(
-                                                datetime.strptime(
-                                                    elem.get("start"),
-                                                    "%Y-%m-%d %H:%M:%S",
+                                    data = {
+                                        "date_planned_start": self.timezone.localize(
+                                            datetime.strptime(
+                                                elem.get("start"),
+                                                "%Y-%m-%d %H:%M:%S",
+                                            )
+                                        )
+                                        .astimezone(UTC)
+                                        .replace(tzinfo=None),
+                                        "date_planned_finished": self.timezone.localize(
+                                            datetime.strptime(
+                                                elem.get("end"),
+                                                "%Y-%m-%d %H:%M:%S",
+                                            )
+                                        )
+                                        .astimezone(UTC)
+                                        .replace(tzinfo=None),
+                                    }
+                                    for res_id in resources:
+                                        res = mfg_workcenter.search(
+                                            [("id", "=", res_id)]
+                                        )
+                                        if not res:
+                                            continue
+                                        if (
+                                            not wo.operation_id  # No operation defined
+                                            or (
+                                                wo.operation_id.workcenter_id
+                                                == res  # Same workcenter
+                                                or (
+                                                    # New member of a pool
+                                                    wo.operation_id.workcenter_id
+                                                    and wo.operation_id.workcenter_id
+                                                    == res.owner
                                                 )
                                             )
-                                            .astimezone(UTC)
-                                            .replace(tzinfo=None),
-                                            "date_planned_finished": self.timezone.localize(
-                                                datetime.strptime(
-                                                    elem.get("end"),
-                                                    "%Y-%m-%d %H:%M:%S",
-                                                )
-                                            )
-                                            .astimezone(UTC)
-                                            .replace(tzinfo=None),
-                                        }
-                                    )
+                                        ):
+                                            # Change primary work center
+                                            data["workcenter_id"] = res.id
+                                        else:
+                                            # Check assigned secondary resources
+                                            for sec in wo.secondary_workcenters:
+                                                if sec.workcenter_id.owner == res:
+                                                    break
+                                                if sec.workcenter_id.owner == res.owner:
+                                                    # Change secondary work center
+                                                    sec.write({"workcenter_id": res.id})
+                                                    break
+                                    wo.write(data)
                                     break
                     else:
                         # Create manufacturing order
@@ -487,32 +527,56 @@ class importer(object):
                                 "ignore_secondary_workcenters": True,
                             }
                         )
+                        if (elem.get("status") or "proposed") == "proposed":
+                            # MO creation
+                            mo = mfg_order.with_context(context).create(
+                                {
+                                    "product_qty": elem.get("quantity"),
+                                    "date_planned_start": elem.get("start"),
+                                    "date_planned_finished": elem.get("end"),
+                                    "product_id": int(item_id),
+                                    "company_id": self.company.id,
+                                    "product_uom_id": int(uom_id),
+                                    "picking_type_id": picking.id,
+                                    "bom_id": int(
+                                        elem.get("operation").rsplit(" ", 1)[1]
+                                    ),
+                                    "qty_producing": 0.00,
+                                    # TODO no place to store the criticality
+                                    # elem.get('criticality'),
+                                    "origin": "frePPLe",
+                                }
+                            )
+                        else:
+                            # MO update
+                            mo = mfg_order.with_context(context).search(
+                                [("name", "=", elem.get("reference"))]
+                            )[0]
+                            if mo:
+                                mo.write(
+                                    {
+                                        "product_qty": elem.get("quantity"),
+                                        "date_planned_start": elem.get("start"),
+                                        "date_planned_finished": elem.get("end"),
+                                        "product_id": int(item_id),
+                                        "company_id": self.company.id,
+                                        "product_uom_id": int(uom_id),
+                                        "picking_type_id": picking.id,
+                                        "origin": "frePPLe",
+                                    }
+                                )
+                                mo_references[elem.get("reference")] = mo
 
-                        mo = mfg_order.with_context(context).create(
-                            {
-                                "product_qty": elem.get("quantity"),
-                                "date_planned_start": elem.get("start"),
-                                "date_planned_finished": elem.get("end"),
-                                "product_id": int(item_id),
-                                "company_id": self.company.id,
-                                "product_uom_id": int(uom_id),
-                                "picking_type_id": picking.id,
-                                "bom_id": int(elem.get("operation").rsplit(" ", 1)[1]),
-                                "qty_producing": 0.00,
-                                # TODO no place to store the criticality
-                                # elem.get('criticality'),
-                                "origin": "frePPLe",
-                            }
-                        )
                         # Remember odoo name for the MO reference passed by frepple.
                         # This mapping is later used when importing WO.
-                        mo_references[elem.get("reference")] = mo
-                        mo._onchange_workorder_ids()
-                        mo._onchange_move_raw()
-                        mo._create_update_move_finished()
-                        # mo.action_confirm()  # confirm MO
-                        # mo._plan_workorders() # plan MO
-                        # mo.action_assign() # reserve material
+                        if mo:
+                            mo_references[elem.get("reference")] = mo
+                            mo._onchange_workorder_ids()
+                            mo._onchange_move_raw()
+                            mo._create_update_move_finished()
+                            # mo.action_confirm()  # confirm MO
+                            # mo._plan_workorders() # plan MO
+                            # mo.action_assign() # reserve material
 
                         # Process the workorder information we received
                         if wo_data:
