@@ -527,30 +527,54 @@ class importer(object):
                                 "ignore_secondary_workcenters": True,
                             }
                         )
+                        if (elem.get("status") or "proposed") == "proposed":
+                            # MO creation
+                            mo = mfg_order.with_context(context).create(
+                                {
+                                    "product_qty": elem.get("quantity"),
+                                    "date_planned_start": elem.get("start"),
+                                    "date_planned_finished": elem.get("end"),
+                                    "product_id": int(item_id),
+                                    "company_id": self.company.id,
+                                    "product_uom_id": int(uom_id),
+                                    "picking_type_id": picking.id,
+                                    "bom_id": int(
+                                        elem.get("operation").rsplit(" ", 1)[1]
+                                    ),
+                                    "qty_producing": 0.00,
+                                    # TODO no place to store the criticality
+                                    # elem.get('criticality'),
+                                    "origin": "frePPLe",
+                                }
+                            )
+                        else:
+                            # MO update
+                            mo = mfg_order.with_context(context).search(
+                                [("name", "=", elem.get("reference"))]
+                            )[0]
+                            if mo:
+                                mo.write(
+                                    {
+                                        "product_qty": elem.get("quantity"),
+                                        "date_planned_start": elem.get("start"),
+                                        "date_planned_finished": elem.get("end"),
+                                        "product_id": int(item_id),
+                                        "company_id": self.company.id,
+                                        "product_uom_id": int(uom_id),
+                                        "picking_type_id": picking.id,
+                                        "origin": "frePPLe",
+                                    }
+                                )
+                                mo_references[elem.get("reference")] = mo
 
-                        mo = mfg_order.with_context(context).create(
-                            {
-                                "product_qty": elem.get("quantity"),
-                                "date_planned_start": elem.get("start"),
-                                "date_planned_finished": elem.get("end"),
-                                "product_id": int(item_id),
-                                "company_id": self.company.id,
-                                "product_uom_id": int(uom_id),
-                                "picking_type_id": picking.id,
-                                "bom_id": int(elem.get("operation").rsplit(" ", 1)[1]),
-                                "qty_producing": 0.00,
-                                # TODO no place to store the criticality
-                                # elem.get('criticality'),
-                                "origin": "frePPLe",
-                            }
-                        )
                         # Remember odoo name for the MO reference passed by frepple.
                         # This mapping is later used when importing WO.
-                        mo_references[elem.get("reference")] = mo
-                        mo._compute_workorder_ids()
-                        # mo.action_confirm()  # confirm MO
-                        # mo._plan_workorders() # plan MO
-                        # mo.action_assign() # reserve material
+                        if mo:
+                            mo_references[elem.get("reference")] = mo
+                            mo._compute_workorder_ids()
+                            # mo.action_confirm()  # confirm MO
+                            # mo._plan_workorders() # plan MO
+                            # mo.action_assign() # reserve material
 
                         # Process the workorder information we received
                         if wo_data:
