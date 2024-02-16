@@ -551,11 +551,15 @@ class importer(object):
                                     "origin": "frePPLe",
                                 }
                             )
+                            # Remember odoo name for the MO reference passed by frepple.
+                            # This mapping is later used when importing WO.
                             mo_references[elem.get("reference")] = mo
-                            mo._onchange_product_qty()
                             mo._onchange_workorder_ids()
                             mo._onchange_move_raw()
                             mo._create_update_move_finished()
+                            # mo.action_confirm()  # confirm MO
+                            # mo._plan_workorders() # plan MO
+                            # mo.action_assign() # reserve material
                         else:
                             # MO update
                             mo = mfg_order.with_context(context).search(
@@ -580,7 +584,6 @@ class importer(object):
                                 )
                                 mo_references[elem.get("reference")] = mo
 
-                        
                         # Process the workorder information we received
                         if wo_data:
                             for wo in mo.workorder_ids:
