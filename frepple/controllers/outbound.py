@@ -1111,7 +1111,10 @@ class exporter(object):
                     )
                 suppliers = {}
                 for sup in results:
-                    name = self.map_customers.get(sup["name"][0])
+                    name = self.map_customers.get(sup["name"][0], None)
+                    if not name:
+                        # Skip uninterested suppliers (eg archived ones)
+                        continue
                     if sup.get("is_subcontractor", False):
                         if not hasattr(tmpl, "subcontractors"):
                             tmpl["subcontractors"] = []
