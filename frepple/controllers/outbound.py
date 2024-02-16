@@ -2432,7 +2432,7 @@ class exporter(object):
                                 )
 
                     yield '<suboperation><operation name=%s priority="%s" type="operation_fixed_time" duration="%s"><location name=%s/><flows>' % (
-                        quoteattr(suboperation),
+                        quoteattr("%s - %s" % (suboperation, wo["id"])),
                         idx,
                         self.convert_float_time(
                             max(time_left, 1),  # Miniminum 1 minute remaining :-)
@@ -2567,11 +2567,11 @@ class exporter(object):
                     except Exception:
                         wo_date = ""
                     yield '<operationplan type="MO" reference=%s%s quantity="%s" status="%s"><operation name=%s/><owner reference=%s/></operationplan>\n' % (
-                        quoteattr(wo["display_name"]),
+                        quoteattr("%s - %s" % (wo["display_name"], wo["id"])),
                         wo_date,
                         qty,
                         state,
-                        quoteattr(suboperation),
+                        quoteattr("%s - %s" % (suboperation, wo["id"])),
                         quoteattr(i["name"]),
                     )
         yield "</operationplans>\n"
