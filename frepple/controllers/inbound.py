@@ -588,7 +588,7 @@ class importer(object):
                         if wo_data:
                             for wo in mo.workorder_ids:
                                 for rec in wo_data:
-                                    if rec["id"] == wo.operation_id.id:
+                                    if rec["id"] == wo.id:
                                         # By default odoo populates the scheduled start date field only when you confirm and plan
                                         # the manufacturing order.
                                         # Here we are already updating it earlier
