@@ -74,6 +74,11 @@ class importer(object):
     def run(self):
         msg = []
         if self.actual_user:
+            product_product = self.env["product.product"].with_user(self.actual_user)
+            product_supplierinfo = self.env["product.supplierinfo"].with_user(
+                self.actual_user
+            )
+            uom_uom = self.env["uom.uom"].with_user(self.actual_user)
             proc_order = self.env["purchase.order"].with_user(self.actual_user)
             proc_orderline = self.env["purchase.order.line"].with_user(self.actual_user)
             mfg_order = self.env["mrp.production"].with_user(self.actual_user)
@@ -93,6 +98,9 @@ class importer(object):
                 self.actual_user
             )
         else:
+            product_product = self.env["product.product"]
+            product_supplierinfo = self.env["product.supplierinfo"]
+            uom_uom = self.env["uom.uom"]
             proc_order = self.env["purchase.order"]
             proc_orderline = self.env["purchase.order.line"]
             mfg_order = self.env["mrp.production"]
@@ -271,10 +279,8 @@ class importer(object):
                                 ] = date_ordered
 
                         if (item_id, supplier_id) not in product_supplier_dict:
-                            product = self.env["product.product"].browse(int(item_id))
-                            product_supplierinfo = self.env[
-                                "product.supplierinfo"
-                            ].search(
+                            product = product_product.browse(int(item_id))
+                            supplier = product_supplierinfo.search(
                                 [
                                     ("partner_id", "=", supplier_id),
                                     (
@@ -287,21 +293,30 @@ class importer(object):
                                 limit=1,
                                 order="min_qty desc",
                             )
-                            if product_supplierinfo:
-                                price_unit = product_supplierinfo.price
-                            else:
-                                price_unit = 0
+                            product_uom = uom_uom.browse(int(uom_id))
+                            # first create a minimal PO line
                             po_line = proc_orderline.create(
                                 {
                                     "order_id": supplier_reference[supplier_id]["id"],
                                     "product_id": int(item_id),
                                     "product_qty": quantity,
                                     "product_uom": int(uom_id),
-                                    "date_planned": date_planned,
-                                    "price_unit": price_unit,
-                                    "name": elem.get("item"),
                                 }
                             )
+                            # Then let odoo computes all the fields (taxes, name, description...)
+
+                            d = po_line._prepare_purchase_order_line(
+                                product,
+                                quantity,
+                                product_uom,
+                                self.company,
+                                supplier,
+                                po,
+                            )
+                            d["date_planned"] = date_planned
+                            # Finally update the PO line
+                            po_line.write(d)
+
                             # Aggregation of quantities under the same PO line
                             # only happens in incremental export
                             if self.mode == 2:
@@ -621,6 +636,9 @@ class importer(object):
 
                         countmfg += 1
                 except Exception as e:
+                    import traceback
+
+                    logger.info(traceback.format_exc())
                     logger.error("Exception %s" % e)
                     msg.append(str(e))
                 # Remove the element now to keep the DOM tree small
