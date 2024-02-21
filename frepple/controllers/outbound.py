@@ -1137,7 +1137,10 @@ class exporter(object):
                     )
                 suppliers = {}
                 for sup in results:
-                    name = self.map_customers.get(sup["partner_id"][0])
+                    name = self.map_customers.get(sup["partner_id"][0], None)
+                    if not name:
+                        # Skip uninterested suppliers (eg archived ones)
+                        continue
                     if sup.get("is_subcontractor", False):
                         if not hasattr(tmpl, "subcontractors"):
                             tmpl["subcontractors"] = []
@@ -2464,7 +2467,7 @@ class exporter(object):
                                 )
 
                     yield '<suboperation><operation name=%s priority="%s" type="operation_fixed_time" duration="%s"><location name=%s/><flows>' % (
-                        quoteattr(suboperation),
+                        quoteattr("%s - %s" % (suboperation, wo["id"])),
                         idx,
                         self.convert_float_time(
                             max(time_left, 1),  # Miniminum 1 minute remaining :-)
@@ -2626,7 +2629,7 @@ class exporter(object):
                         wo_date,
                         qty,
                         state,
-                        quoteattr(suboperation),
+                        quoteattr("%s - %s" % (suboperation, wo["id"])),
                         quoteattr(i["name"]),
                     )
                     if (
