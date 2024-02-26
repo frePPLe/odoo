@@ -174,13 +174,31 @@ class importer(object):
                     st = elem.get("start")
                     if st:
                         try:
-                            wo["start"] = datetime.strptime(st, "%Y-%m-%d %H:%M:%S")
+                            wo["start"] = (
+                                self.timezone.localize(
+                                    datetime.strptime(
+                                        st,
+                                        "%Y-%m-%d %H:%M:%S",
+                                    )
+                                )
+                                .astimezone(UTC)
+                                .replace(tzinfo=None)
+                            )
                         except Exception:
                             pass
                     nd = elem.get("end")
                     if st:
                         try:
-                            wo["end"] = datetime.strptime(nd, "%Y-%m-%d %H:%M:%S")
+                            wo["end"] = (
+                                self.timezone.localize(
+                                    datetime.strptime(
+                                        nd,
+                                        "%Y-%m-%d %H:%M:%S",
+                                    )
+                                )
+                                .astimezone(UTC)
+                                .replace(tzinfo=None)
+                            )
                         except Exception:
                             pass
                     wo_data.append(wo)
@@ -209,13 +227,27 @@ class importer(object):
                         quantity = float(elem.get("quantity"))
                         date_planned = elem.get("end")
                         if date_planned:
-                            date_planned = datetime.strptime(
-                                date_planned, "%Y-%m-%d %H:%M:%S"
+                            date_planned = (
+                                self.timezone.localize(
+                                    datetime.strptime(
+                                        date_planned,
+                                        "%Y-%m-%d %H:%M:%S",
+                                    )
+                                )
+                                .astimezone(UTC)
+                                .replace(tzinfo=None)
                             )
                         date_ordered = elem.get("start")
                         if date_ordered:
-                            date_ordered = datetime.strptime(
-                                date_ordered, "%Y-%m-%d %H:%M:%S"
+                            date_ordered = (
+                                self.timezone.localize(
+                                    datetime.strptime(
+                                        date_ordered,
+                                        "%Y-%m-%d %H:%M:%S",
+                                    )
+                                )
+                                .astimezone(UTC)
+                                .replace(tzinfo=None)
                             )
 
                         # Is that an update of an existing PO ?
@@ -390,12 +422,19 @@ class importer(object):
                             continue
 
                         if date_shipping:
-                            date_shipping = datetime.strptime(
-                                date_shipping, "%Y-%m-%d %H:%M:%S"
+                            date_shipping = (
+                                self.timezone.localize(
+                                    datetime.strptime(
+                                        date_shipping,
+                                        "%Y-%m-%d %H:%M:%S",
+                                    )
+                                )
+                                .astimezone(UTC)
+                                .replace(tzinfo=None)
                             )
                         else:
-                            date_shipping = datetime.strptime(
-                                datetime.now(), "%Y-%m-%d %H:%M:%S"
+                            date_shipping = (
+                                datetime.now().astimezone(UTC).replace(tzinfo=None)
                             )
                         if not hasattr(self, "stock_picking_dict"):
                             self.stock_picking_dict = {}
