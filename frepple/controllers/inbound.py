@@ -612,11 +612,16 @@ class importer(object):
                             # mo.action_confirm()  # confirm MO
                             # mo._plan_workorders() # plan MO
                             # mo.action_assign() # reserve material
+                            create = True
                         else:
                             # MO update
-                            mo = mfg_order.with_context(context).search(
-                                [("name", "=", elem.get("reference"))]
-                            )[0]
+                            create = False
+                            try:
+                                mo = mfg_order.with_context(context).search(
+                                    [("name", "=", elem.get("reference"))]
+                                )
+                            except Exception:
+                                continue
                             if mo:
                                 new_qty = float(elem.get("quantity"))
                                 if mo.product_qty != new_qty:
@@ -640,7 +645,9 @@ class importer(object):
                         if wo_data:
                             for wo in mo.workorder_ids:
                                 for rec in wo_data:
-                                    if rec["id"] == wo.id:
+                                    if (create and rec["id"] == wo.operation_id.id) or (
+                                        not create and rec["id"] == wo.id
+                                    ):
                                         # By default odoo populates the scheduled start date field only when you confirm and plan
                                         # the manufacturing order.
                                         # Here we are already updating it earlier
@@ -650,26 +657,78 @@ class importer(object):
                                                 .astimezone(UTC)
                                                 .replace(tzinfo=None)
                                             )
+                                            if not create:
+                                                wo.write(
+                                                    {
+                                                        "date_planned_start": wo.date_planned_start
+                                                    }
+                                                )
                                         if "end" in rec:
                                             wo.date_planned_finished = (
                                                 self.timezone.localize(rec["end"])
                                                 .astimezone(UTC)
                                                 .replace(tzinfo=None)
                                             )
+                                            if not create:
+                                                wo.write(
+                                                    {
+                                                        "date_planned_finished": wo.date_planned_finished
+                                                    }
+                                                )
                                         for res in rec["workcenters"]:
-                                            if res["id"] != wo.workcenter_id.id:
-                                                wc = mfg_workcenter.browse(res["id"])
-                                                if wo.workcenter_id == wc[0].owner:
-                                                    wo.workcenter_id = res["id"]
-                                                else:
-                                                    mfg_workorder_secondary.create(
-                                                        {
-                                                            "workcenter_id": res["id"],
-                                                            "workorder_id": wo.id,
-                                                            "duration": res["quantity"]
-                                                            * wo.duration_expected,
-                                                        }
+                                            wc = mfg_workcenter.browse(res["id"])
+                                            if not wc:
+                                                continue
+                                            if create:
+                                                if res["id"] != wo.workcenter_id.id:
+                                                    if wo.workcenter_id == wc[0].owner:
+                                                        wo.workcenter_id = res["id"]
+                                                    else:
+                                                        mfg_workorder_secondary.create(
+                                                            {
+                                                                "workcenter_id": res[
+                                                                    "id"
+                                                                ],
+                                                                "workorder_id": wo.id,
+                                                                "duration": res[
+                                                                    "quantity"
+                                                                ]
+                                                                * wo.duration_expected,
+                                                            }
+                                                        )
+                                            else:
+                                                if (
+                                                    not wo.operation_id  # No operation defined
+                                                    or (
+                                                        wo.operation_id.workcenter_id
+                                                        == wc  # Same workcenter
+                                                        or (
+                                                            # New member of a pool
+                                                            wo.operation_id.workcenter_id
+                                                            and wo.operation_id.workcenter_id
+                                                            == wc.owner
+                                                        )
                                                     )
+                                                ):
+                                                    # Change primary work center
+                                                    wo.write({"workcenter_id": wc.id})
+                                                else:
+                                                    # Check assigned secondary resources
+                                                    for sec in wo.secondary_workcenters:
+                                                        if (
+                                                            sec.workcenter_id.owner
+                                                            == wc
+                                                        ):
+                                                            break
+                                                        if (
+                                                            sec.workcenter_id.owner
+                                                            == wc.owner
+                                                        ):
+                                                            # Change secondary work center
+                                                            sec.write(
+                                                                {"workcenter_id": wc.id}
+                                                            )
+                                                            break
 
                         countmfg += 1
                 except Exception as e:
