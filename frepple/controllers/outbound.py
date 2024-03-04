@@ -803,7 +803,7 @@ class exporter(object):
         individual_inserted = False
         for i in self.generator.getData(
             "res.partner",
-            search=[],
+            search=["|", ("parent_id", "=", False), ("parent_id.active", "=", True)],
             fields=["name", "parent_id", "is_company"],
             order="parent_id desc",
         ):
@@ -820,7 +820,10 @@ class exporter(object):
                     yield "<customer name=%s/>\n" % quoteattr(name)
                     individual_inserted = True
             else:
-                name = self.map_customers[i["parent_id"][0]]
+                if i["parent_id"][0] in self.map_customers:
+                    name = self.map_customers[i["parent_id"][0]]
+                else:
+                    continue
 
             self.map_customers[i["id"]] = name
         if not first:
