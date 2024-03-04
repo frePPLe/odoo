@@ -805,7 +805,7 @@ class exporter(object):
             "res.partner",
             search=[],
             fields=["name", "parent_id", "is_company"],
-            order="id",
+            order="parent_id desc",
         ):
             if first:
                 yield "<!-- customers -->\n"
