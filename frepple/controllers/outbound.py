@@ -177,6 +177,19 @@ class exporter(object):
         self.timeformat = "%Y-%m-%dT%H:%M:%S"
         self.singlecompany = singlecompany
         self.delta = delta
+        self.has_subcontracting = (
+            len(
+                self.generator.getData(
+                    "ir.module.module",
+                    search=[
+                        ("state", "=", "installed"),
+                        ("name", "=", "mrp_subcontracting"),
+                    ],
+                    fields=["id"],
+                )
+            )
+            > 0
+        )
 
         # The mode argument defines different types of runs:
         #  - Mode 1:
@@ -2102,26 +2115,29 @@ class exporter(object):
 
         # Create purchasing operations from stock moves
         if stock_move_ids:
+            fields = [
+                "state",
+                "product_id",
+                "product_qty",
+                "quantity_done",
+                "reference",
+                "product_uom",
+                "location_dest_id",
+                "origin",
+                "picking_id",
+                "date",
+                "purchase_line_id",
+                "move_orig_ids",
+            ]
+
+            if self.has_subcontracting:
+                fields.append("is_subcontract")
             yield "<!-- open purchase orders from PO receipts-->\n"
             yield "<operationplans>\n"
             for i in self.generator.getData(
                 "stock.move",
                 ids=stock_move_ids,
-                fields=[
-                    "state",
-                    "product_id",
-                    "product_qty",
-                    "quantity_done",
-                    "reference",
-                    "product_uom",
-                    "location_dest_id",
-                    "origin",
-                    "picking_id",
-                    "date",
-                    "purchase_line_id",
-                    "is_subcontract",
-                    "move_orig_ids",
-                ],
+                fields=fields,
             ):
                 if (
                     not i["product_id"]
@@ -2137,7 +2153,7 @@ class exporter(object):
                     i["id"],
                     i["purchase_line_id"][0],
                 )
-                if i["is_subcontract"]:
+                if self.has_subcontracting and i["is_subcontract"]:
                     # PO lines on a subcontracting BOM are mapped as a MO in frepple
                     for k in self.generator.getData(
                         "stock.move",
