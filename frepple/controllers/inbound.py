@@ -56,7 +56,7 @@ class importer(object):
         try:
             usr = self.env["res.users"].browse(ids=[req.uid]).read(["tz"])[0]
             self.timezone = timezone(usr["tz"] or "UTC")
-        except Exception as e:
+        except Exception:
             self.timezone = timezone("UTC")
 
         # User to be set as responsible on new objects in incremental exports
@@ -155,6 +155,12 @@ class importer(object):
 
         # Workcenters of a workorder to update
         resources = []
+
+        context = (
+            dict(self.env["res.users"].with_user(self.actual_user).context_get())
+            if self.actual_user
+            else dict(self.env.context)
+        )
 
         for event, elem in iterparse(self.datafile, events=("start", "end")):
             if (
@@ -501,7 +507,7 @@ class importer(object):
                                 ]
                             )
                             for wo in wo_list:
-                                if wo["display_name"] != elem.get("operation"):
+                                if wo["display_name"] != elem.get("reference"):
                                     # Can't filter on the computed display_name field in the search...
                                     continue
                                 if wo:
@@ -556,7 +562,7 @@ class importer(object):
                                     wo.write(data)
                                     break
                     else:
-                        # Create manufacturing order
+                        # Create or update a manufacturing order
                         warehouse = int(elem.get("location_id"))
                         picking = stck_picking_type.search(
                             [
@@ -570,15 +576,6 @@ class importer(object):
                         # update the context with the default picking type
                         # to set correct src/dest locations
                         # Also do not create secondary work center records
-                        context = (
-                            dict(
-                                self.env["res.users"]
-                                .with_user(self.actual_user)
-                                .context_get()
-                            )
-                            if self.actual_user
-                            else dict(self.env.context)
-                        )
                         context.update(
                             {
                                 "default_picking_type_id": picking.id,
@@ -652,11 +649,7 @@ class importer(object):
                                         # the manufacturing order.
                                         # Here we are already updating it earlier
                                         if "start" in rec:
-                                            wo.date_planned_start = (
-                                                self.timezone.localize(rec["start"])
-                                                .astimezone(UTC)
-                                                .replace(tzinfo=None)
-                                            )
+                                            wo.date_planned_start = rec["start"]
                                             if not create:
                                                 wo.write(
                                                     {
@@ -664,11 +657,7 @@ class importer(object):
                                                     }
                                                 )
                                         if "end" in rec:
-                                            wo.date_planned_finished = (
-                                                self.timezone.localize(rec["end"])
-                                                .astimezone(UTC)
-                                                .replace(tzinfo=None)
-                                            )
+                                            wo.date_planned_finished = rec["end"]
                                             if not create:
                                                 wo.write(
                                                     {

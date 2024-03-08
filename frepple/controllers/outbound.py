@@ -2411,11 +2411,7 @@ class exporter(object):
                     time_left = wo["duration_expected"] - wo["duration_unit"]
                     if wo["is_user_working"] and wo["time_ids"]:
                         # The WO is currently being worked on
-                        for tm in self.generator.getData(
-                            "mrp.workcenter.productivity",
-                            ids=wo["time_ids"],
-                            fields=["date_start", "date_end"],
-                        ):
+                        for tm in wo["time_ids"]:
                             if tm["date_start"] and not tm["date_end"]:
                                 time_left -= round(
                                     (now - tm["date_start"]).total_seconds() / 60
