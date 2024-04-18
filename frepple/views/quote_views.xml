@@ -101,5 +101,5 @@
         </field>
     </record>
 
-    <menuitem name="FrePPLe Quote's" id="frepple_quote_post_menu_action" action="frepple_quote_post_action" groups="frepple_quoting_user"/>
+    <menuitem name="FrePPLe Quotes" id="frepple_quote_post_menu_action" action="frepple_quote_post_action" groups="frepple_quoting_user"/>
 </odoo>
