@@ -91,7 +91,7 @@
     </record>
 
     <record id="frepple_quote_post_action" model="ir.actions.act_window">
-        <field name="name">FrePPLe Quote's</field>
+        <field name="name">FrePPLe Quotes</field>
         <field name="res_model">frepple.quote</field>
         <field name="view_mode">tree,kanban,form</field>
         <field name="help" type="html">

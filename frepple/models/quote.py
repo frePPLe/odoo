@@ -290,9 +290,18 @@ class Quote(models.Model):
                 action = "quote"
                 # action = "inquiry"
 
+                scenario_url = base_url[:-1].rsplit("/", 1)
+                is_scenario = "scenario" in scenario_url[-1].lower()
+
+                if is_scenario:
+                    base_url = scenario_url[0] + "/"
+                    scenario = scenario_url[-1]
+                else:
+                    scenario = "default"
+
                 try:
                     frepple_response = requests.post(
-                        "%ssvc/quote/%s/" % (base_url, action),
+                        "%ssvc/%s/quote/%s/" % (base_url, scenario, action),
                         headers=headers,
                         json=request_body,
                     )
