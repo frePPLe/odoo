@@ -26,7 +26,6 @@ import logging
 import time
 
 from odoo import api, models, fields, exceptions
-from .. import with_mrp
 
 _logger = logging.getLogger(__name__)
 
@@ -42,11 +41,10 @@ class ResCompany(models.Model):
     _name = "res.company"
     _inherit = "res.company"
 
-    if with_mrp:
-        manufacturing_warehouse = fields.Many2one(
-            "stock.warehouse", "Manufacturing warehouse", ondelete="set null"
-        )
-        calendar = fields.Many2one("resource.calendar", "Calendar", ondelete="set null")
+    manufacturing_warehouse = fields.Many2one(
+        "stock.warehouse", "Manufacturing warehouse", ondelete="set null"
+    )
+    calendar = fields.Many2one("resource.calendar", "Calendar", ondelete="set null")
     webtoken_key = fields.Char("Webtoken key", size=128)
     frepple_server = fields.Char("frePPLe web server", size=128)
     disclose_stack_trace = fields.Boolean(

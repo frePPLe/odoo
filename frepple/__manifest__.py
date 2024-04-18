@@ -9,7 +9,6 @@
     "license": "Other OSI approved licence",
     "description": "Connector to frePPLe - finite capacity planning and scheduling",
     "external_dependencies": {"python": ["PyJWT"]},
-    # Option 1: for manufacturing companies using MRP module
     "depends": ["product", "purchase", "sale", "resource", "mrp"],
     "data": [
         "security/frepple_security.xml",
@@ -24,15 +23,9 @@
         "views/mrp_workorder_inherit.xml",
         "views/mrp_workorder_secondary_workcenter.xml",
         "views/product_supplierinfo_inherit.xml",
+        "views/sale_views.xml",
+        "views/quote_views.xml",
     ],
-    # Option 2: for distribution companies not using the MRP module
-    # "depends": ["product", "purchase", "sale"],
-    # "data": [
-    #     "views/frepple_data_no_mrp.xml",
-    #     "views/res_config_settings_views_no_mrp.xml",
-    #     "views/product_supplierinfo_inherit.xml",
-    #     "security/frepple_security.xml",
-    # ],
     "test": [],
     "installable": True,
     "auto_install": False,

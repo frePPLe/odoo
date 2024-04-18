@@ -8,6 +8,14 @@
             <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]" />
         </record>
     </data>
+    <data noupdate="0">
+        <record id="frepple_quoting_user" model="res.groups">
+            <field name="name">frePPLe quoting user</field>
+            <field name="category_id" ref="base.module_category_manufacturing_manufacturing" />
+            <field name="comment">Allow this user to access the frepple quoting module</field>
+            <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]" />
+        </record>
+    </data>
     <!-- Uncomment to grant frepple access by default
     <data noupdate="1">
         <record id="base.default_user" model="res.users">
