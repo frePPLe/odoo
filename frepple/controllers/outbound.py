@@ -1916,8 +1916,8 @@ class exporter(object):
 
                             yield (
                                 '<demand name=%s batch=%s quantity="%s" due="%s" priority="%s" minshipment="%s" status="%s"><item name=%s/><customer name=%s/><location name=%s/>'
-                                # Enable only in frepple >= 6.25
-                                # '<owner name=%s policy="%s" xsi:type="demand_group"/>'
+                                # Disable the next line in frepple < 6.25
+                                '<owner name=%s policy="%s" xsi:type="demand_group"/>'
                                 "</demand>\n"
                             ) % (
                                 quoteattr(sol_name),
@@ -1934,9 +1934,13 @@ class exporter(object):
                                 quoteattr(product["name"]),
                                 quoteattr(customer),
                                 quoteattr(location),
-                                # Enable only in frepple >= 6.25
-                                # quoteattr(i["order_id"][1]),
-                                # "alltogether" if j["picking_policy"] == "one" else "independent",
+                                # Disable the next 2 lines in frepple < 6.25
+                                quoteattr(i["order_id"][1]),
+                                (
+                                    "alltogether"
+                                    if j["picking_policy"] == "one"
+                                    else "independent"
+                                ),
                             )
                     # We are done with this line, move to the next one
                     continue
