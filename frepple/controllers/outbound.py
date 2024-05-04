@@ -817,7 +817,7 @@ class exporter(object):
             "res.partner",
             search=[],
             fields=["name", "parent_id", "is_company"],
-            order="id",
+            order="is_company desc, id",
         ):
             if first:
                 yield "<!-- customers -->\n"
@@ -832,8 +832,9 @@ class exporter(object):
                     yield "<customer name=%s/>\n" % quoteattr(name)
                     individual_inserted = True
             else:
-                name = self.map_customers[i["parent_id"][0]]
-
+                name = self.map_customers.get(i["parent_id"][0], None)
+                if not name:
+                    continue
             self.map_customers[i["id"]] = name
         if not first:
             yield "</customers>\n"
@@ -847,12 +848,12 @@ class exporter(object):
         res.partner.id res.partner.name -> supplier.name
         """
         first = True
-        for i in self.map_customers:
+        for i in self.map_customers.values():
             if first:
                 yield "<!-- suppliers -->\n"
                 yield "<suppliers>\n"
                 first = False
-            yield "<supplier name=%s/>\n" % quoteattr(self.map_customers[i])
+            yield "<supplier name=%s/>\n" % quoteattr(i)
         if not first:
             yield "</suppliers>\n"
 
