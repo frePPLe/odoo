@@ -3,7 +3,9 @@ FROM odoo:16
 USER root
 
 RUN pip3 install --no-cache-dir Pyjwt && \
-    echo "list_db = False" >> /etc/odoo/odoo.conf
+    echo "list_db = False" >> /etc/odoo/odoo.conf && \
+    echo "limit_time_cpu = 600" >> /etc/odoo/odoo.conf && \
+    echo "limit_time_real = 600" >> /etc/odoo/odoo.conf
 
 USER odoo
 
