@@ -22,6 +22,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+from itertools import chain
 import logging
 from odoo import models, fields, api
 
@@ -165,7 +166,14 @@ class WorkOrderInherit(models.Model):
         # get the max duration of all secondary workcenters, because this is used for top-level planning
         if self.secondary_workcenters:
             return max(
-                secondary_wc.duration for secondary_wc in self.secondary_workcenters
+                chain(
+                    [duration],
+                    [
+                        secondary_wc.duration
+                        for secondary_wc in self.secondary_workcenters
+                        if secondary_wc.duration and secondary_wc.duration > 0
+                    ],
+                )
             )
         else:
             return duration
