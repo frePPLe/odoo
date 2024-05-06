@@ -43,129 +43,127 @@ class Quote(models.Model):
         html = """
         <div style="font-family: \'Segoe UI\', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f4f4; color: #333;">"""
 
-        if frepple_json["demands"][0].get("pegging"):
-            html = (
-                html
-                + """
-            <div style="margin-bottom: 40px;">
-                <h2 style="margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 3px solid #3498db; color: #3498db;">Category: Operations</h2>
-                <ul style="list-style-type: none; padding: 0;">
-        """
-            )
-            for i, operation in enumerate(frepple_json["demands"][0]["pegging"]):
-                if (
-                    i != 0
-                    and operation["level"]
-                    <= frepple_json["demands"][0]["pegging"][i - 1]["level"]
-                ):
-                    for _ in range(
-                        frepple_json["demands"][0]["pegging"][i - 1]["level"]
-                        - operation["level"]
-                        + 1
+        for demand in frepple_json["demands"]:
+
+            if demand.get("pegging"):
+                html = (
+                    html
+                    + """
+                <div style="margin-bottom: 40px;">
+                    <h2 style="margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 3px solid #3498db; color: #3498db;">Operations for %s</h2>
+                    <ul style="list-style-type: none; padding: 0;">
+            """
+                    % (demand.get("name"),)
+                )
+                for i, operation in enumerate(demand["pegging"]):
+                    if (
+                        i != 0
+                        and operation["level"] <= demand["pegging"][i - 1]["level"]
                     ):
+                        for _ in range(
+                            demand["pegging"][i - 1]["level"] - operation["level"] + 1
+                        ):
+                            html = (
+                                html
+                                + """
+                                </div>
+            """
+                            )
+                    if i == 0:
                         html = (
                             html
-                            + """
-                            </div>
-        """
+                            + f"""
+                            <li style="background-color: #fff; margin-bottom: 5px; padding: 15px; border-left: 5px solid #3498db;">
+                                {operation["level"]} {operation["operationplan"]["operation"]["name"]}
+                                <br />Quantity: {operation["operationplan"]["quantity"]}
+                                <br />Start Date: {operation["operationplan"]["start"]}
+                                <br />End Date: {operation["operationplan"]["end"]}
+            """
                         )
-                if i == 0:
+
+                    else:
+                        if operation["level"] == 0:
+                            html = (
+                                html
+                                + f"""
+                            </li>
+                            <li style="background-color: #fff; margin-bottom: 5px; padding: 15px; border-left: 5px solid #3498db;">
+                                {operation["level"]} {operation["operationplan"]["operation"]["name"]}
+                                <br />Quantity: {operation["operationplan"]["quantity"]}
+                                <br />Start Date: {operation["operationplan"]["start"]}
+                                <br />End Date: {operation["operationplan"]["end"]}
+            """
+                            )
+                        else:
+                            html = (
+                                html
+                                + f"""
+                            <div style="margin-top: 10px; padding-left: 20px; border-left: 2px dashed #bdc3c7;">
+                                <strong>Sub-operation: {operation["level"]}</strong>
+                                <br>{operation["operationplan"]["operation"]["name"]}
+                                <br>Quantity: {operation["operationplan"]["quantity"]}
+                                <br>Start Date: {operation["operationplan"]["start"]}
+                                <br>End Date: {operation["operationplan"]["end"]}
+            """
+                            )
+
+                for i in range(demand["pegging"][len(demand["pegging"]) - 1]["level"]):
+                    html = html + "</div>"
+                html = (
+                    html
+                    + """
+                        </li>
+                    </ul>
+                </div>
+            """
+                )
+
+            if demand.get("problems"):
+                html = (
+                    html
+                    + """
+                <div style="margin-bottom: 40px;">
+                    <h2 style="margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 3px solid #e74c3c; color: #e74c3c;">Problems for %s</h2>
+                    <ul style="list-style-type: none; padding: 0;">
+            """
+                    % (demand.get("name"),)
+                )
+                for problem in demand["problems"]:
                     html = (
                         html
                         + f"""
-                        <li style="background-color: #fff; margin-bottom: 5px; padding: 15px; border-left: 5px solid #3498db;">
-                            {operation["level"]} {operation["operationplan"]["operation"]["name"]}
-                            <br />Quantity: {operation["operationplan"]["quantity"]}
-                            <br />Start Date: {operation["operationplan"]["start"]}
-                            <br />End Date: {operation["operationplan"]["end"]}
+                        <li style="background-color: #fff; margin-bottom: 5px; padding: 15px; border-left: 5px solid #e74c3c;">
+                        {problem["description"]}
+                        </li>
+            """
+                    )
+                html = (
+                    html
+                    + """
+                    </ul>
+                </div>
+            """
+                )
+
+            if demand.get("constraints"):
+                html = (
+                    html
+                    + """
+                <div style="margin-bottom: 40px;">
+                    <h2 style="margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 3px solid #e74c3c; color: #e74c3c;">Constraints for %s</h2>
+                    <ul style="list-style-type: none; padding: 0;">
+            """
+                    % (demand.get("name"),)
+                )
+                for constraint in demand["constraints"]:
+                    html = (
+                        html
+                        + f"""
+                        <li style="background-color: #fff; margin-bottom: 5px; padding: 15px; border-left: 5px solid #e74c3c;">
+                        {constraint["description"]}
+                        </li>
         """
                     )
-
-                else:
-                    if operation["level"] == 0:
-                        html = (
-                            html
-                            + f"""
-                        </li>
-                        <li style="background-color: #fff; margin-bottom: 5px; padding: 15px; border-left: 5px solid #3498db;">
-                            {operation["level"]} {operation["operationplan"]["operation"]["name"]}
-                            <br />Quantity: {operation["operationplan"]["quantity"]}
-                            <br />Start Date: {operation["operationplan"]["start"]}
-                            <br />End Date: {operation["operationplan"]["end"]}
-        """
-                        )
-                    else:
-                        html = (
-                            html
-                            + f"""
-                        <div style="margin-top: 10px; padding-left: 20px; border-left: 2px dashed #bdc3c7;">
-                            <strong>Sub-operation: {operation["level"]}</strong>
-                            <br>{operation["operationplan"]["operation"]["name"]}
-                            <br>Quantity: {operation["operationplan"]["quantity"]}
-                            <br>Start Date: {operation["operationplan"]["start"]}
-                            <br>End Date: {operation["operationplan"]["end"]}
-        """
-                        )
-
-            for i in range(
-                frepple_json["demands"][0]["pegging"][
-                    len(frepple_json["demands"][0]["pegging"]) - 1
-                ]["level"]
-            ):
-                html = html + "</div>"
-            html = (
-                html
-                + """
-                    </li>
-                </ul>
-            </div>
-        """
-            )
-
-        if frepple_json["demands"][0].get("problems"):
-            html = (
-                html
-                + """
-            <div style="margin-bottom: 40px;">
-                <h2 style="margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 3px solid #e74c3c; color: #e74c3c;">Category: Problems</h2>
-                <ul style="list-style-type: none; padding: 0;">
-        """
-            )
-            for problem in frepple_json["demands"][0]["problems"]:
-                html = (
-                    html
-                    + f"""
-                    <li style="background-color: #fff; margin-bottom: 5px; padding: 15px; border-left: 5px solid #e74c3c;">
-                    {problem["description"]}
-                    </li>
-        """
-                )
-            html = (
-                html
-                + """
-                </ul>
-            </div>
-        """
-            )
-
-        if frepple_json["demands"][0].get("constraints"):
-            html = (
-                html
-                + """
-            <div style="margin-bottom: 40px;">
-                <h2 style="margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 3px solid #e74c3c; color: #e74c3c;">Category: Constraints</h2>
-                <ul style="list-style-type: none; padding: 0;">
-        """
-            )
-            for constraint in frepple_json["demands"][0]["constraints"]:
-                html = (
-                    html
-                    + f"""
-                    <li style="background-color: #fff; margin-bottom: 5px; padding: 15px; border-left: 5px solid #e74c3c;">
-                    {constraint["description"]}
-                    </li>
-        """
-                )
             html = (
                 html
                 + """

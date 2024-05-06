@@ -114,13 +114,11 @@ class SaleOrder(models.Model):
                                     sale_order.partner_id.id,
                                 )
                             },
-                            "minshipment": int(
-                                line.product_uom_qty
-                            ),  # Minimum shipment = Per how many do you want to ship | Zelfde als quantity in the knop
-                            "maxlateness": 86400000,  #  Binnen x aantal seconden moet ik het hebben | Niet Belangrijk dus staat op 1000 dagen
-                            "priority": 20,  # Niet belangrijk, ik neem info over van wat de quote tool doet.
+                            "minshipment": int(line.product_uom_qty),
+                            "maxlateness": 86400000,
+                            "priority": 20,
                             "policy": (
-                                None
+                                "independent"
                                 if sale_order.picking_policy == "direct"
                                 else "alltogether"
                             ),
