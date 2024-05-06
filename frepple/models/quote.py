@@ -38,7 +38,8 @@ class Quote(models.Model):
             else:
                 quote.minimum_shipment = 0
 
-    def _generate_html(self, frepple_json):
+    @classmethod
+    def generate_html(cls, frepple_json):
         html = """
         <div style="font-family: \'Segoe UI\', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f4f4; color: #333;">"""
 
@@ -347,7 +348,7 @@ class Quote(models.Model):
 
                         quote.promised_delivery_date = promised_delivery_date_utc
 
-                        quote.detailed_quote = self._generate_html(response_json)
+                        quote.detailed_quote = Quote.generate_html(response_json)
                     else:
                         quote.promised_delivery_date = False
                         quote.detailed_quote = "N/A"

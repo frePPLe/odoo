@@ -7,6 +7,8 @@ import jwt
 import time
 import datetime
 
+from .quote import Quote
+
 logger = logging.getLogger(__name__)
 
 
@@ -190,6 +192,9 @@ class SaleOrder(models.Model):
                 raise exceptions.UserError(
                     "FrePPLe was unable to plan the sales order line(s)"
                 )
+
+            html_response = Quote.generate_html(response_json)
+            sale_order.message_post(body=html_response, body_is_html=True)
 
             # If multiple lines, we need to get the furthest in time
             furthest_end_date = None
