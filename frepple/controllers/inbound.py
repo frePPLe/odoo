@@ -2,26 +2,19 @@
 #
 # Copyright (C) 2014 by frePPLe bv
 #
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
+# This library is free software; you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
+# General Public License for more details.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# You should have received a copy of the GNU Affero General Public
+# License along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
 import odoo
 import logging
 from xml.etree.cElementTree import iterparse
@@ -44,11 +37,6 @@ class importer(object):
         #    proposals in draft state.
         #  - Mode 2:
         #    Incremental export of some proposed transactions from frePPLe.
-        #    In this mode mode we are not erasing any previous proposals.
-        #  - Mode 3:
-        #    odoo_export command will use that mode starting from the second page.
-        #    In this mode, we make sure that no aggregation of exported quantities
-        #    is made.
         #    In this mode mode we are not erasing any previous proposals.
         self.mode = int(mode)
 
@@ -74,45 +62,25 @@ class importer(object):
     def run(self):
         msg = []
         if self.actual_user:
-            product_product = self.env["product.product"].with_user(self.actual_user)
-            product_supplierinfo = self.env["product.supplierinfo"].with_user(
-                self.actual_user
-            )
-            uom_uom = self.env["uom.uom"].with_user(self.actual_user)
             proc_order = self.env["purchase.order"].with_user(self.actual_user)
             proc_orderline = self.env["purchase.order.line"].with_user(self.actual_user)
             mfg_order = self.env["mrp.production"].with_user(self.actual_user)
             mfg_workorder = self.env["mrp.workorder"].with_user(self.actual_user)
             mfg_workcenter = self.env["mrp.workcenter"].with_user(self.actual_user)
-            mfg_workorder_secondary = self.env[
-                "mrp.workorder.secondary.workcenter"
-            ].with_user(self.actual_user)
             stck_picking_type = self.env["stock.picking.type"].with_user(
                 self.actual_user
             )
             stck_picking = self.env["stock.picking"].with_user(self.actual_user)
             stck_move = self.env["stock.move"].with_user(self.actual_user)
-            stck_warehouse = self.env["stock.warehouse"].with_user(self.actual_user)
-            stck_location = self.env["stock.location"].with_user(self.actual_user)
-            change_product_qty = self.env["change.production.qty"].with_user(
-                self.actual_user
-            )
         else:
-            product_product = self.env["product.product"]
-            product_supplierinfo = self.env["product.supplierinfo"]
-            uom_uom = self.env["uom.uom"]
             proc_order = self.env["purchase.order"]
             proc_orderline = self.env["purchase.order.line"]
             mfg_order = self.env["mrp.production"]
             mfg_workorder = self.env["mrp.workorder"]
             mfg_workcenter = self.env["mrp.workcenter"]
-            mfg_workorder_secondary = self.env["mrp.workorder.secondary.workcenter"]
             stck_picking_type = self.env["stock.picking.type"]
             stck_picking = self.env["stock.picking"]
             stck_move = self.env["stock.move"]
-            stck_warehouse = self.env["stock.warehouse"]
-            stck_location = self.env["stock.location"]
-            change_product_qty = self.env["change.production.qty"]
         if self.mode == 1:
             # Cancel previous draft purchase quotations
             m = self.env["purchase.order"]
@@ -153,18 +121,7 @@ class importer(object):
         mo_references = {}
         wo_data = []
 
-        # Workcenters of a workorder to update
-        resources = []
-
         for event, elem in iterparse(self.datafile, events=("start", "end")):
-            if (
-                elem.tag == "operationplan"
-                and elem.get("ordertype") == "WO"
-                and event == "start"
-            ):
-                resources = []
-            elif elem.tag == "resource" and event == "end":
-                resources.append(elem.get("id"))
             if event == "start" and elem.tag == "workorder" and elem.get("operation"):
                 try:
                     wo = {
@@ -174,31 +131,13 @@ class importer(object):
                     st = elem.get("start")
                     if st:
                         try:
-                            wo["start"] = (
-                                self.timezone.localize(
-                                    datetime.strptime(
-                                        st,
-                                        "%Y-%m-%d %H:%M:%S",
-                                    )
-                                )
-                                .astimezone(UTC)
-                                .replace(tzinfo=None)
-                            )
+                            wo["start"] = datetime.strptime(st, "%Y-%m-%d %H:%M:%S")
                         except Exception:
                             pass
                     nd = elem.get("end")
                     if st:
                         try:
-                            wo["end"] = (
-                                self.timezone.localize(
-                                    datetime.strptime(
-                                        nd,
-                                        "%Y-%m-%d %H:%M:%S",
-                                    )
-                                )
-                                .astimezone(UTC)
-                                .replace(tzinfo=None)
-                            )
+                            wo["end"] = datetime.strptime(nd, "%Y-%m-%d %H:%M:%S")
                         except Exception:
                             pass
                     wo_data.append(wo)
@@ -222,63 +161,26 @@ class importer(object):
                 try:
                     ordertype = elem.get("ordertype")
                     if ordertype == "PO":
-
-                        supplier_id = int(elem.get("supplier").rsplit(" ", 1)[-1])
-                        quantity = float(elem.get("quantity"))
+                        # Create purchase order
+                        supplier_id = int(elem.get("supplier").split(" ", 1)[0])
+                        quantity = elem.get("quantity")
                         date_planned = elem.get("end")
                         if date_planned:
-                            date_planned = (
-                                self.timezone.localize(
-                                    datetime.strptime(
-                                        date_planned,
-                                        "%Y-%m-%d %H:%M:%S",
-                                    )
-                                )
-                                .astimezone(UTC)
-                                .replace(tzinfo=None)
+                            date_planned = datetime.strptime(
+                                date_planned, "%Y-%m-%d %H:%M:%S"
                             )
                         date_ordered = elem.get("start")
                         if date_ordered:
-                            date_ordered = (
-                                self.timezone.localize(
-                                    datetime.strptime(
-                                        date_ordered,
-                                        "%Y-%m-%d %H:%M:%S",
-                                    )
-                                )
-                                .astimezone(UTC)
-                                .replace(tzinfo=None)
+                            date_ordered = datetime.strptime(
+                                date_ordered, "%Y-%m-%d %H:%M:%S"
                             )
-
-                        # Is that an update of an existing PO ?
-                        status = elem.get("status")
-                        if status in ("approved", "confirmed"):
-                            po_line_id = int(elem.get("id").rsplit(" - ", 1)[-1])
-                            po_line = proc_orderline.browse(po_line_id)
-                            if po_line:
-                                po_line.write(
-                                    {
-                                        "product_id": int(item_id),
-                                        "product_qty": quantity,
-                                        "product_uom": int(uom_id),
-                                        "date_planned": date_planned,
-                                        "name": elem.get("item"),
-                                    }
-                                )
-                                countproc += 1
-                            else:
-                                logger.error(
-                                    "Unable to find PO line %s in Odoo"
-                                    % (elem.get("reference"),)
-                                )
-                            continue
-
-                        # Create purchase order
                         if supplier_id not in supplier_reference:
                             po = proc_order.create(
                                 {
                                     "company_id": self.company.id,
-                                    "partner_id": supplier_id,
+                                    "partner_id": int(
+                                        elem.get("supplier").split(" ", 1)[0]
+                                    ),
                                     # TODO Odoo has no place to store the location and criticality
                                     # int(elem.get('location_id')),
                                     # elem.get('criticality'),
@@ -311,8 +213,10 @@ class importer(object):
                                 ] = date_ordered
 
                         if (item_id, supplier_id) not in product_supplier_dict:
-                            product = product_product.browse(int(item_id))
-                            supplier = product_supplierinfo.search(
+                            product = self.env["product.product"].browse(int(item_id))
+                            product_supplierinfo = self.env[
+                                "product.supplierinfo"
+                            ].search(
                                 [
                                     ("name", "=", supplier_id),
                                     (
@@ -325,34 +229,64 @@ class importer(object):
                                 limit=1,
                                 order="min_qty desc",
                             )
-                            product_uom = uom_uom.browse(int(uom_id))
-                            # first create a minimal PO line
+                            if product_supplierinfo:
+                                price_unit = product_supplierinfo.price
+                            else:
+                                price_unit = 0
+
+                            if product_supplierinfo:
+                                purchase_description = (
+                                    product.description_purchase or ""
+                                )
+                                if (
+                                    not product_supplierinfo.product_code
+                                    and not product_supplierinfo.product_name
+                                ):
+                                    temp = elem.get("item")
+
+                                elif (
+                                    product_supplierinfo.product_code
+                                    and not product_supplierinfo.product_name
+                                ):
+                                    temp = "[%s] %s" % (
+                                        product_supplierinfo.product_code,
+                                        elem.get("item"),
+                                    )
+
+                                elif (
+                                    product_supplierinfo.product_code
+                                    and product_supplierinfo.product_name
+                                ):
+                                    temp = "[%s] %s" % (
+                                        product_supplierinfo.product_code,
+                                        product_supplierinfo.product_name,
+                                    )
+
+                                else:
+                                    temp = product_supplierinfo.product_name
+                                product_name = f"{temp}\n{purchase_description}"
+                            else:
+                                # SG - 01/03/2024: assign the correct product name based on description_purchase (English as the language)
+                                purchase_description = (
+                                    product.description_purchase or ""
+                                )
+                                product_name = (
+                                    f"{elem.get('item')}\n{purchase_description}"
+                                )
+
                             po_line = proc_orderline.create(
                                 {
                                     "order_id": supplier_reference[supplier_id]["id"],
                                     "product_id": int(item_id),
                                     "product_qty": quantity,
                                     "product_uom": int(uom_id),
+                                    "date_planned": date_planned,
+                                    "price_unit": price_unit,
+                                    "name": product_name,
                                 }
                             )
-                            # Then let odoo computes all the fields (taxes, name, description...)
+                            product_supplier_dict[(item_id, supplier_id)] = po_line
 
-                            d = po_line._prepare_purchase_order_line(
-                                product,
-                                quantity,
-                                product_uom,
-                                self.company,
-                                supplier,
-                                po,
-                            )
-                            d["date_planned"] = date_planned
-                            # Finally update the PO line
-                            po_line.write(d)
-
-                            # Aggregation of quantities under the same PO line
-                            # only happens in incremental export
-                            if self.mode == 2:
-                                product_supplier_dict[(item_id, supplier_id)] = po_line
                         else:
                             po_line = product_supplier_dict[(item_id, supplier_id)]
                             po_line.date_planned = min(
@@ -363,95 +297,56 @@ class importer(object):
                         countproc += 1
                     elif ordertype == "DO":
                         if not hasattr(self, "do_index"):
-                            self.do_index = 1
-                        else:
-                            self.do_index += 1
+                            self.do_index = 0
+                        self.do_index += 1
                         product = self.env["product.product"].browse(int(item_id))
                         quantity = elem.get("quantity")
                         date_shipping = elem.get("start")
                         origin = elem.get("origin")
                         destination = elem.get("destination")
-
-                        origin_id = stck_warehouse.search(
-                            [("name", "=", origin)], limit=1
-                        )[0]
-                        destination_id = stck_warehouse.search(
-                            [("name", "=", destination)], limit=1
-                        )[0]
-
-                        location_id = None
-                        location_dest_id = None
-
-                        s = stck_location.search(
-                            [
-                                ("name", "like", "Stock"),
-                                ("usage", "=", "internal"),
-                            ],
-                        )
-                        for i in stck_location.browse([j.id for j in s]).read(
-                            ["warehouse_id"]
-                        ):
-                            if i["warehouse_id"][0] == origin_id.id:
-                                location_id = i
-                            elif i["warehouse_id"][0] == destination_id.id:
-                                location_dest_id = i
-                            if location_id and location_dest_id:
-                                break
-
-                        if not (location_id and location_dest_id):
+                        if origin == "Ohio" and destination == "Castle Rock":
+                            picking_type_id = 47
+                            location_id = 21
+                            location_dest_id = 25
+                        elif origin == "Castle Rock" and destination == "Ohio":
+                            picking_type_id = 48
+                            location_id = 8
+                            location_dest_id = 12
+                        elif origin == "Castle Rock" and destination == "Elbert":
+                            picking_type_id = 89
+                            location_id = 8
+                            location_dest_id = 12
+                        elif origin == "Elbert" and destination == "Castle Rock":
+                            picking_type_id = 87
+                            location_id = 11950
+                            location_dest_id = 11953
+                        else:
+                            # ignore this DO
                             logger.warning(
-                                "can't find a stocking location for %s or %s"
-                                % (origin_id.id, destination_id.id)
+                                "Skipping DO creation as only Castle Rock and Ohio are accepted"
                             )
                             continue
-
-                        try:
-                            picking_type_id = stck_picking_type.search(
-                                [
-                                    ("name", "=", "Internal Transfers"),
-                                    ("default_location_src_id", "=", location_id["id"]),
-                                ],
-                                limit=1,
-                            )[0].id
-                        except Exception as e:
-                            logger.warning(e)
-                            logger.warning(
-                                "can't find an 'Internal Transfers' picking type with default location %s"
-                                % (location_id.name,)
-                            )
-                            continue
-
                         if date_shipping:
-                            date_shipping = (
-                                self.timezone.localize(
-                                    datetime.strptime(
-                                        date_shipping,
-                                        "%Y-%m-%d %H:%M:%S",
-                                    )
-                                )
-                                .astimezone(UTC)
-                                .replace(tzinfo=None)
+                            date_shipping = datetime.strptime(
+                                date_shipping, "%Y-%m-%d %H:%M:%S"
                             )
                         else:
-                            date_shipping = (
-                                datetime.now().astimezone(UTC).replace(tzinfo=None)
-                            )
+                            date_shipping = datetime.now()
                         if not hasattr(self, "stock_picking_dict"):
                             self.stock_picking_dict = {}
-                        if not self.stock_picking_dict.get((origin, destination)):
-                            self.stock_picking_dict[(origin, destination)] = (
-                                stck_picking.create(
-                                    {
-                                        "picking_type_id": picking_type_id,
-                                        "scheduled_date": date_shipping,
-                                        "location_id": location_id["id"],
-                                        "location_dest_id": location_dest_id["id"],
-                                        "move_type": "direct",
-                                        "origin": "frePPLe",
-                                    }
-                                )
-                            )
                         sp = self.stock_picking_dict.get((origin, destination))
+                        if sp is None:
+                            sp = stck_picking.create(
+                                {
+                                    "picking_type_id": picking_type_id,
+                                    "scheduled_date": date_shipping,
+                                    "location_id": location_id,
+                                    "location_dest_id": location_dest_id,
+                                    "move_type": "direct",
+                                    "origin": "frePPLe",
+                                }
+                            )
+                            self.stock_picking_dict[(origin, destination)] = sp
                         if not hasattr(self, "sm_dict"):
                             self.sm_dict = {}
                         sm = self.sm_dict.get((product.id, sp.id))
@@ -484,7 +379,6 @@ class importer(object):
                                 }
                             )
                             self.sm_dict[(product.id, sp.id)] = sm
-
                     elif ordertype == "WO":
                         # Update a workorder
                         if elem.get("owner") in mo_references:
@@ -505,55 +399,26 @@ class importer(object):
                                     # Can't filter on the computed display_name field in the search...
                                     continue
                                 if wo:
-                                    data = {
-                                        "date_planned_start": self.timezone.localize(
-                                            datetime.strptime(
-                                                elem.get("start"),
-                                                "%Y-%m-%d %H:%M:%S",
-                                            )
-                                        )
-                                        .astimezone(UTC)
-                                        .replace(tzinfo=None),
-                                        "date_planned_finished": self.timezone.localize(
-                                            datetime.strptime(
-                                                elem.get("end"),
-                                                "%Y-%m-%d %H:%M:%S",
-                                            )
-                                        )
-                                        .astimezone(UTC)
-                                        .replace(tzinfo=None),
-                                    }
-                                    for res_id in resources:
-                                        res = mfg_workcenter.search(
-                                            [("id", "=", res_id)]
-                                        )
-                                        if not res:
-                                            continue
-                                        if (
-                                            not wo.operation_id  # No operation defined
-                                            or (
-                                                wo.operation_id.workcenter_id
-                                                == res  # Same workcenter
-                                                or (
-                                                    # New member of a pool
-                                                    wo.operation_id.workcenter_id
-                                                    and wo.operation_id.workcenter_id
-                                                    == res.owner
+                                    wo.write(
+                                        {
+                                            "date_planned_start": self.timezone.localize(
+                                                datetime.strptime(
+                                                    elem.get("start"),
+                                                    "%Y-%m-%d %H:%M:%S",
                                                 )
                                             )
-                                        ):
-                                            # Change primary work center
-                                            data["workcenter_id"] = res.id
-                                        else:
-                                            # Check assigned secondary resources
-                                            for sec in wo.secondary_workcenters:
-                                                if sec.workcenter_id.owner == res:
-                                                    break
-                                                if sec.workcenter_id.owner == res.owner:
-                                                    # Change secondary work center
-                                                    sec.write({"workcenter_id": res.id})
-                                                    break
-                                    wo.write(data)
+                                            .astimezone(UTC)
+                                            .replace(tzinfo=None),
+                                            "date_planned_finished": self.timezone.localize(
+                                                datetime.strptime(
+                                                    elem.get("end"),
+                                                    "%Y-%m-%d %H:%M:%S",
+                                                )
+                                            )
+                                            .astimezone(UTC)
+                                            .replace(tzinfo=None),
+                                        }
+                                    )
                                     break
                     else:
                         # Create manufacturing order
@@ -569,115 +434,67 @@ class importer(object):
 
                         # update the context with the default picking type
                         # to set correct src/dest locations
-                        # Also do not create secondary work center records
-                        context = (
-                            dict(
+                        actual_user_context = None
+                        if self.actual_user:
+                            actual_user_context = dict(
                                 self.env["res.users"]
                                 .with_user(self.actual_user)
                                 .context_get()
                             )
-                            if self.actual_user
-                            else dict(self.env.context)
-                        )
-                        context.update(
-                            {
-                                "default_picking_type_id": picking.id,
-                                "ignore_secondary_workcenters": True,
-                            }
-                        )
-                        if (elem.get("status") or "proposed") == "proposed":
-                            # MO creation
-                            mo = mfg_order.with_context(context).create(
+                            actual_user_context.update(
                                 {
-                                    "product_qty": elem.get("quantity"),
-                                    "date_planned_start": elem.get("start"),
-                                    "date_planned_finished": elem.get("end"),
-                                    "product_id": int(item_id),
-                                    "company_id": self.company.id,
-                                    "product_uom_id": int(uom_id),
-                                    "picking_type_id": picking.id,
-                                    "bom_id": int(
-                                        elem.get("operation").rsplit(" ", 1)[1]
-                                    ),
-                                    "qty_producing": 0.00,
-                                    # TODO no place to store the criticality
-                                    # elem.get('criticality'),
-                                    "origin": "frePPLe",
+                                    "default_picking_type_id": picking.id,
                                 }
                             )
-                            # Remember odoo name for the MO reference passed by frepple.
-                            # This mapping is later used when importing WO.
-                            mo_references[elem.get("reference")] = mo
-                            mo._onchange_workorder_ids()
-                            mo._onchange_move_raw()
-                            mo._create_update_move_finished()
-                            # mo.action_confirm()  # confirm MO
-                            # mo._plan_workorders() # plan MO
-                            # mo.action_assign() # reserve material
                         else:
-                            # MO update
-                            mo = mfg_order.with_context(context).search(
-                                [("name", "=", elem.get("reference"))]
-                            )[0]
-                            if mo:
-                                new_qty = float(elem.get("quantity"))
-                                if mo.product_qty != new_qty:
-                                    cpq = change_product_qty.create(
-                                        {
-                                            "mo_id": mo.id,
-                                            "product_qty": new_qty,
-                                        }
-                                    )
-                                    cpq.change_prod_qty()
-                                mo.write(
-                                    {
-                                        "date_planned_start": elem.get("start"),
-                                        "date_planned_finished": elem.get("end"),
-                                        "origin": "frePPLe",
-                                    }
-                                )
-                                mo_references[elem.get("reference")] = mo
+                            self.env.context = dict(self.env.context)
+                            self.env.context.update(
+                                {
+                                    "default_picking_type_id": picking.id,
+                                }
+                            )
+
+                        mo = mfg_order.with_context(
+                            actual_user_context or self.env.context
+                        ).create(
+                            {
+                                "product_qty": elem.get("quantity"),
+                                "date_planned_start": elem.get("start"),
+                                "date_planned_finished": elem.get("end"),
+                                "product_id": int(item_id),
+                                "company_id": self.company.id,
+                                "product_uom_id": int(uom_id),
+                                "picking_type_id": picking.id,
+                                "bom_id": int(elem.get("operation").rsplit(" ", 1)[1]),
+                                "qty_producing": 0.00,
+                                # TODO no place to store the criticality
+                                # elem.get('criticality'),
+                                "origin": "frePPLe",
+                            }
+                        )
+                        # Remember odoo name for the MO reference passed by frepple.
+                        # This mapping is later used when importing WO.
+                        mo_references[elem.get("reference")] = mo
+                        mo._onchange_workorder_ids()
+                        mo._onchange_move_raw()
+                        mo._create_update_move_finished()
+                        # mo.action_confirm()  # confirm MO
+                        # mo._plan_workorders() # plan MO
+                        # mo.action_assign() # reserve material
 
                         # Process the workorder information we received
                         if wo_data:
                             for wo in mo.workorder_ids:
                                 for rec in wo_data:
-                                    if rec["id"] == wo.id:
-                                        # By default odoo populates the scheduled start date field only when you confirm and plan
-                                        # the manufacturing order.
-                                        # Here we are already updating it earlier
-                                        if "start" in rec:
-                                            wo.date_planned_start = (
-                                                self.timezone.localize(rec["start"])
-                                                .astimezone(UTC)
-                                                .replace(tzinfo=None)
-                                            )
-                                        if "end" in rec:
-                                            wo.date_planned_finished = (
-                                                self.timezone.localize(rec["end"])
-                                                .astimezone(UTC)
-                                                .replace(tzinfo=None)
-                                            )
+                                    if rec["id"] == wo.operation_id.id:
                                         for res in rec["workcenters"]:
                                             if res["id"] != wo.workcenter_id.id:
                                                 wc = mfg_workcenter.browse(res["id"])
                                                 if wo.workcenter_id == wc[0].owner:
                                                     wo.workcenter_id = res["id"]
-                                                else:
-                                                    mfg_workorder_secondary.create(
-                                                        {
-                                                            "workcenter_id": res["id"],
-                                                            "workorder_id": wo.id,
-                                                            "duration": res["quantity"]
-                                                            * wo.duration_expected,
-                                                        }
-                                                    )
 
                         countmfg += 1
                 except Exception as e:
-                    import traceback
-
-                    logger.info(traceback.format_exc())
                     logger.error("Exception %s" % e)
                     msg.append(str(e))
                 # Remove the element now to keep the DOM tree small
