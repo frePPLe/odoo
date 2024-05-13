@@ -271,8 +271,6 @@ class Quote(models.Model):
                 if not base_url.endswith("/"):
                     base_url += "/"
 
-                base_url = base_url.replace("8000", "8002")
-
                 webtoken = jwt.encode(
                     encode_params, user_company_webtoken, algorithm="HS256"
                 )
@@ -299,12 +297,23 @@ class Quote(models.Model):
                     scenario = "default"
 
                 try:
+                    base_url = base_url.replace("localhost", "host.docker.internal")
                     frepple_response = requests.post(
-                        "%ssvc/%s/quote/%s/" % (base_url, scenario, action),
+                        (
+                            ("%ssvc/%s/quote/%s/" % (base_url, scenario, action))
+                            if "8000" not in base_url
+                            else (
+                                "%squote/%s/"
+                                % (
+                                    base_url.replace("8000", "8002"),
+                                    action,
+                                )
+                            )  # Rather ugly logic to recognize development layouts
+                        ),
                         headers=headers,
                         json=request_body,
                     )
-                except:
+                except Exception:
                     raise exceptions.UserError(
                         "The connection with the frePPLe quoting module could not be established"
                     )
@@ -319,7 +328,10 @@ class Quote(models.Model):
                     quote.detailed_quote = "N/A"
                     return
 
-                response_json = frepple_response.json()
+                try:
+                    response_json = frepple_response.json()
+                except Exception:
+                    raise exceptions.UserError("Invalid response from frePPLe")
                 if (
                     len(response_json["demands"]) > 0
                     and "pegging" in response_json["demands"][0]

@@ -28,7 +28,7 @@ class SaleOrder(models.Model):
         else:
             enable_quoting_module = self.user_id.id in groups.users.ids
         for order in self:
-            order._without_quote = not enable_quoting_module
+            order._without_quote = order.state != "draft" or not enable_quoting_module
 
     def use_product_short_names(self):
         # Check if we can use short names
@@ -171,12 +171,23 @@ class SaleOrder(models.Model):
                 scenario = "default"
 
             try:
+                base_url = base_url.replace("localhost", "host.docker.internal")
                 frepple_response = requests.post(
-                    "%ssvc/%s/quote/%s/" % (base_url, scenario, action),
+                    (
+                        ("%ssvc/%s/quote/%s/" % (base_url, scenario, action))
+                        if "8000" not in base_url
+                        else (
+                            "%squote/%s/"
+                            % (
+                                base_url.replace("8000", "8002"),
+                                action,
+                            )
+                        )  # Rather ugly logic to recognize development layouts
+                    ),
                     headers=headers,
                     json=request_body,
                 )
-            except:
+            except Exception:
                 raise exceptions.UserError(
                     "The connection with the frePPLe quoting module could not be established"
                 )
@@ -185,7 +196,10 @@ class SaleOrder(models.Model):
             if response_status_code == 401:
                 raise exceptions.UserError("User is not authorized to use FrePPLe")
 
-            response_json = frepple_response.json()
+            try:
+                response_json = frepple_response.json()
+            except Exception:
+                raise exceptions.UserError("Invalid response from frePPLe")
             if not response_json.get("demands"):
                 raise exceptions.UserError(
                     "FrePPLe was unable to plan the sales order line(s)"
