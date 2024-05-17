@@ -729,7 +729,34 @@ class importer(object):
                 # Remove the element now to keep the DOM tree small
                 wo_data = []
                 root.clear()
-            elif event == "start" and elem.tag == "operationplans":
+            # OPTIONAL SECTION: Store the planned delivery date (as computed by frepple) on odoo sales orders
+            # elif event == "end" and elem.tag == "demand":
+            #     try:
+            #         deliverydate = (
+            #             timezone(self.env.user.tz)
+            #             .localize(
+            #                 datetime.strptime(
+            #                     elem.get("deliverydate"), "%Y-%m-%d %H:%M:%S"
+            #                 ),
+            #                 is_dst=None,
+            #             )
+            #             .astimezone(pytz.utc)
+            #         ).strftime("%Y-%m-%d %H:%M:%S")
+            #         sol_name = elem.get("name").rsplit(" ", 1)
+            #         for so_line in self.env["sale.order.line"].search(
+            #             [("id", "=", sol_name[1])], limit=1
+            #         ):
+            #             so_line.sale_delivery_date = (
+            #                 datetime.strptime(deliverydate, "%Y-%m-%d %H:%M:%S")
+            #             ).date()
+            #             so_line.frepple_write_date = datetime.now()
+            #             so_line.order_id._compute_commitment_date()
+            #     except Exception as e:
+            #         logger.error("Exception %s" % e)
+            #         msg.append(str(e))
+                # Remove the element now to keep the DOM tree small
+                root.clear()
+            elif event == "start" and elem.tag in ["operationplans", "demands"]:
                 # Remember the root element
                 root = elem
 
