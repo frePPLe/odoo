@@ -2067,6 +2067,9 @@ class exporter(object):
                         # ("bid", "confirmed", "cancel"),
                     ),
                     ("order_id.state", "=", False),
+                    "|",
+                    ("order_id.receipt_status", "!=", "full"),
+                    ("order_id.receipt_status", "=", False),
                 ],
                 object=True,
             )
@@ -2118,9 +2121,6 @@ class exporter(object):
                     else:
                         batch = None
 
-                    # if PO status is done, we should ignore this receipt
-                    if j.state == "done":
-                        continue
                     location = self.map_locations.get(mv.location_dest_id.id, None)
                     if not location:
                         continue
@@ -2145,13 +2145,12 @@ class exporter(object):
                             quoteattr(self.map_customers.get(j.partner_id.id)),
                         )
             else:
-                # METHOD 2: Create purchasing operations from stock moves
+                # METHOD 2: Create purchasing operations from purchase order lines
                 if not i["product_id"] or i["state"] == "cancel":
                     continue
                 item = self.product_product.get(i.product_id.id, None)
                 j = i.order_id
-                # if PO status is done, we should ignore this PO line
-                if j.state == "done" or not item:
+                if not item:
                     continue
                 location = self.mfg_location
                 if location and item and i.product_qty > i.qty_received:
@@ -2165,7 +2164,7 @@ class exporter(object):
                     end = self.formatDateTime(end)
                     qty = self.convert_qty_uom(
                         i.product_qty - i.qty_received,
-                        i.product_uom,
+                        i.product_uom.id,
                         self.product_product[i.product_id.id]["template"],
                     )
 
