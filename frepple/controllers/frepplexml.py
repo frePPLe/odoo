@@ -150,6 +150,7 @@ class XMLController(odoo.http.Controller):
                     company=company_name,
                     mode=int(kwargs.get("mode", 1)),
                     timezone=kwargs.get("timezone", None),
+                    delta=int(kwargs.get("delta", 999)),
                     singlecompany=kwargs.get("singlecompany", "false").lower()
                     == "true",
                     version=version,
