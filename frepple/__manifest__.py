@@ -8,7 +8,6 @@
     "website": "https://frepple.com",
     "license": "Other OSI approved licence",
     "description": "Connector to frePPLe - finite capacity planning and scheduling",
-    "external_dependencies": {"python": ["jwt"]},
     # Option 1: for manufacturing companies using MRP module
     "depends": ["product", "purchase", "sale", "resource", "mrp"],
     "data": [
