@@ -187,6 +187,19 @@ class exporter(object):
         self.singlecompany = singlecompany
         self.delta = delta
         self.language = language
+        self.has_subcontracting = (
+            len(
+                self.generator.getData(
+                    "ir.module.module",
+                    search=[
+                        ("state", "=", "installed"),
+                        ("name", "=", "mrp_subcontracting"),
+                    ],
+                    fields=["id"],
+                )
+            )
+            > 0
+        )
 
         # The mode argument defines different types of runs:
         #  - Mode 1:
@@ -815,9 +828,9 @@ class exporter(object):
         individual_inserted = False
         for i in self.generator.getData(
             "res.partner",
-            search=[],
+            search=["|", ("parent_id", "=", False), ("parent_id.active", "=", True)],
             fields=["name", "parent_id", "is_company"],
-            order="is_company desc, id",
+            order="parent_id desc",
         ):
             if first:
                 yield "<!-- customers -->\n"
@@ -832,9 +845,11 @@ class exporter(object):
                     yield "<customer name=%s/>\n" % quoteattr(name)
                     individual_inserted = True
             else:
-                name = self.map_customers.get(i["parent_id"][0], None)
-                if not name:
+                if i["parent_id"][0] in self.map_customers:
+                    name = self.map_customers[i["parent_id"][0]]
+                else:
                     continue
+
             self.map_customers[i["id"]] = name
         if not first:
             yield "</customers>\n"
@@ -2095,7 +2110,7 @@ class exporter(object):
                         mv.id,
                         mv.purchase_line_id.id,
                     )
-                    if mv.is_subcontract:
+                    if self.has_subcontracting and mv.is_subcontract:
                         # PO lines on a subcontracting BOM are mapped as a MO in frepple
                         for k in mv.move_orig_ids:
                             if k.production_id:
