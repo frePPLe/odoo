@@ -61,9 +61,10 @@ class Odoo_generator:
         if ids is not None:
             return self.env[model].browse(ids).read(fields) if ids else []
         if order:
-            return self.env[model].search(search, order=order).read(fields)
+            return self.env[model].search_read(
+                domain=search, order=order, fields=fields)
         else:
-            return self.env[model].search(search).read(fields)
+            return self.env[model].search_read(domain=search, fields=fields)
 
 
 class XMLRPC_generator:
@@ -661,7 +662,7 @@ class exporter(object):
         first = True
         for i in self.generator.getData(
             "res.partner",
-            search=[("is_company", "=", True)],
+            search=[("customer_rank", ">", 0)],
             fields=["name"],
         ):
             if first:
@@ -685,7 +686,7 @@ class exporter(object):
         first = True
         for i in self.generator.getData(
             "res.partner",
-            search=[("is_company", "=", True)],
+            search=[("supplier_rank", ">", "0")],
             fields=["name"],
         ):
             if first:
