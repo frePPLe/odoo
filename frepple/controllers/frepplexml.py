@@ -23,10 +23,14 @@
 #
 
 import base64
+import hashlib
+import hmac
+import json
 import logging
 import odoo
 import os
 from pathlib import Path
+import time
 import traceback
 from tempfile import NamedTemporaryFile
 from werkzeug.exceptions import MethodNotAllowed, InternalServerError
@@ -39,12 +43,56 @@ from odoo.addons.frepple.controllers.inbound import importer
 
 logger = logging.getLogger(__name__)
 
-try:
-    import jwt
-except Exception:
-    logger.error(
-        "PyJWT module has not been installed. Please install the library from https://pypi.python.org/pypi/PyJWT"
+
+def urlsafe_base64_decode(input):
+    input += "=" * (4 - len(input) % 4)
+    return base64.urlsafe_b64decode(input)
+
+
+def base64_url_encode(data):
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("utf-8")
+
+
+def decode_jwt(token, secret_key):
+    # Split the token into header, payload, and signature
+    header_b64, payload_b64, signature_b64 = token.split(".")
+
+    # Decode the header and payload
+    header = json.loads(urlsafe_base64_decode(header_b64))
+    payload = json.loads(urlsafe_base64_decode(payload_b64))
+
+    # Verify the signature
+    message = f"{header_b64}.{payload_b64}".encode("utf-8")
+    signature = urlsafe_base64_decode(signature_b64)
+    expected_signature = hmac.new(
+        secret_key.encode("utf-8"), message, hashlib.sha256
+    ).digest()
+
+    # Check for token expiration
+    if "exp" in payload:
+        if payload["exp"] < int(time.time()):
+            raise ValueError("Token has expired")
+
+    if not hmac.compare_digest(signature, expected_signature):
+        raise ValueError("Invalid token signature")
+    return payload
+
+
+def encode_jwt(payload, secret_key):
+    header_b64 = base64_url_encode(
+        json.dumps({"alg": "HS256", "typ": "JWT"}).encode("utf-8")
     )
+    payload_b64 = base64_url_encode(json.dumps(payload).encode("utf-8"))
+
+    # Create signature
+    message = f"{header_b64}.{payload_b64}"
+    signature_b64 = base64_url_encode(
+        hmac.new(
+            secret_key.encode("utf-8"), message.encode("utf-8"), hashlib.sha256
+        ).digest()
+    )
+
+    return f"{header_b64}.{payload_b64}.{signature_b64}"
 
 
 class XMLController(odoo.http.Controller):
@@ -71,11 +119,7 @@ class XMLController(odoo.http.Controller):
             try:
                 if not company or not company.webtoken_key:
                     raise Exception("Missing company or webtoken key")
-                decoded = jwt.decode(
-                    auth,
-                    company.webtoken_key,
-                    algorithms=["HS256"],
-                )
+                decoded = decode_jwt(auth, company.webtoken_key)
                 if (
                     not database
                     or not decoded.get("user", None)
@@ -89,7 +133,7 @@ class XMLController(odoo.http.Controller):
                 )
                 if not uid:
                     raise Exception("Odoo token authentication failed")
-            except jwt.exceptions.InvalidTokenError:
+            except Exception:
                 raise Exception("Odoo token authentication failed")
         else:
             raise Exception("Unknown authentication method")

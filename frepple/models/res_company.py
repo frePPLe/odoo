@@ -26,15 +26,9 @@ import logging
 import time
 
 from odoo import api, models, fields, exceptions
+from ..controllers.frepplexml import encode_jwt, decode_jwt
 
 _logger = logging.getLogger(__name__)
-
-try:
-    import jwt
-except Exception:
-    _logger.error(
-        "PyJWT module has not been installed. Please install the library from https://pypi.python.org/pypi/PyJWT"
-    )
 
 
 class ResCompany(models.Model):
@@ -67,7 +61,7 @@ class ResCompany(models.Model):
         encode_params = dict(
             exp=round(time.time()) + 600, user=self.env.user.login, navbar=navbar
         )
-        webtoken = jwt.encode(encode_params, user_company_webtoken, algorithm="HS256")
+        webtoken = encode_jwt(encode_params, user_company_webtoken)
         if not isinstance(webtoken, str):
             webtoken = webtoken.decode("ascii")
         server = self.env.user.company_id.frepple_server

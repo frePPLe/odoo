@@ -56,7 +56,7 @@ class importer(object):
         try:
             usr = self.env["res.users"].browse(ids=[req.uid]).read(["tz"])[0]
             self.timezone = timezone(usr["tz"] or "UTC")
-        except Exception as e:
+        except Exception:
             self.timezone = timezone("UTC")
 
         # User to be set as responsible on new objects in incremental exports
@@ -155,6 +155,12 @@ class importer(object):
 
         # Workcenters of a workorder to update
         resources = []
+
+        context = (
+            dict(self.env["res.users"].with_user(self.actual_user).context_get())
+            if self.actual_user
+            else dict(self.env.context)
+        )
 
         for event, elem in iterparse(self.datafile, events=("start", "end")):
             if (
@@ -501,7 +507,7 @@ class importer(object):
                                 ]
                             )
                             for wo in wo_list:
-                                if wo["display_name"] != elem.get("operation"):
+                                if wo["display_name"] != elem.get("reference"):
                                     # Can't filter on the computed display_name field in the search...
                                     continue
                                 if wo:
@@ -556,7 +562,7 @@ class importer(object):
                                     wo.write(data)
                                     break
                     else:
-                        # Create manufacturing order
+                        # Create or update a manufacturing order
                         warehouse = int(elem.get("location_id"))
                         picking = stck_picking_type.search(
                             [
@@ -570,15 +576,6 @@ class importer(object):
                         # update the context with the default picking type
                         # to set correct src/dest locations
                         # Also do not create secondary work center records
-                        context = (
-                            dict(
-                                self.env["res.users"]
-                                .with_user(self.actual_user)
-                                .context_get()
-                            )
-                            if self.actual_user
-                            else dict(self.env.context)
-                        )
                         context.update(
                             {
                                 "default_picking_type_id": picking.id,
@@ -612,11 +609,16 @@ class importer(object):
                             # mo.action_confirm()  # confirm MO
                             # mo._plan_workorders() # plan MO
                             # mo.action_assign() # reserve material
+                            create = True
                         else:
                             # MO update
-                            mo = mfg_order.with_context(context).search(
-                                [("name", "=", elem.get("reference"))]
-                            )[0]
+                            create = False
+                            try:
+                                mo = mfg_order.with_context(context).search(
+                                    [("name", "=", elem.get("reference"))]
+                                )
+                            except Exception:
+                                continue
                             if mo:
                                 new_qty = float(elem.get("quantity"))
                                 if mo.product_qty != new_qty:
@@ -640,36 +642,83 @@ class importer(object):
                         if wo_data:
                             for wo in mo.workorder_ids:
                                 for rec in wo_data:
-                                    if rec["id"] == wo.id:
+                                    if (create and rec["id"] == wo.operation_id.id) or (
+                                        not create and rec["id"] == wo.id
+                                    ):
                                         # By default odoo populates the scheduled start date field only when you confirm and plan
                                         # the manufacturing order.
                                         # Here we are already updating it earlier
                                         if "start" in rec:
-                                            wo.date_start = (
-                                                self.timezone.localize(rec["start"])
-                                                .astimezone(UTC)
-                                                .replace(tzinfo=None)
-                                            )
+                                            wo.date_start = rec["start"]
+                                            if not create:
+                                                wo.write(
+                                                    {
+                                                        "date_planned_start": wo.date_planned_start
+                                                 
+                                                )
                                         if "end" in rec:
-                                            wo.date_finished = (
-                                                self.timezone.localize(rec["end"])
-                                                .astimezone(UTC)
-                                                .replace(tzinfo=None)
-                                            )
+                                            wo.date_finished = rec["end"]
+                                            if not create:
+                                                wo.write(
+                                                    {
+                                                        "date_planned_finished": wo.date_planned_finished
+                                                    }
+                                                )
+                                            
                                         for res in rec["workcenters"]:
-                                            if res["id"] != wo.workcenter_id.id:
-                                                wc = mfg_workcenter.browse(res["id"])
-                                                if wo.workcenter_id == wc[0].owner:
-                                                    wo.workcenter_id = res["id"]
-                                                else:
-                                                    mfg_workorder_secondary.create(
-                                                        {
-                                                            "workcenter_id": res["id"],
-                                                            "workorder_id": wo.id,
-                                                            "duration": res["quantity"]
-                                                            * wo.duration_expected,
-                                                        }
+                                            wc = mfg_workcenter.browse(res["id"])
+                                            if not wc:
+                                                continue
+                                            if create:
+                                                if res["id"] != wo.workcenter_id.id:
+                                                    if wo.workcenter_id == wc[0].owner:
+                                                        wo.workcenter_id = res["id"]
+                                                    else:
+                                                        mfg_workorder_secondary.create(
+                                                            {
+                                                                "workcenter_id": res[
+                                                                    "id"
+                                                                ],
+                                                                "workorder_id": wo.id,
+                                                                "duration": res[
+                                                                    "quantity"
+                                                                ]
+                                                                * wo.duration_expected,
+                                                            }
+                                                        )
+                                            else:
+                                                if (
+                                                    not wo.operation_id  # No operation defined
+                                                    or (
+                                                        wo.operation_id.workcenter_id
+                                                        == wc  # Same workcenter
+                                                        or (
+                                                            # New member of a pool
+                                                            wo.operation_id.workcenter_id
+                                                            and wo.operation_id.workcenter_id
+                                                            == wc.owner
+                                                        )
                                                     )
+                                                ):
+                                                    # Change primary work center
+                                                    wo.write({"workcenter_id": wc.id})
+                                                else:
+                                                    # Check assigned secondary resources
+                                                    for sec in wo.secondary_workcenters:
+                                                        if (
+                                                            sec.workcenter_id.owner
+                                                            == wc
+                                                        ):
+                                                            break
+                                                        if (
+                                                            sec.workcenter_id.owner
+                                                            == wc.owner
+                                                        ):
+                                                            # Change secondary work center
+                                                            sec.write(
+                                                                {"workcenter_id": wc.id}
+                                                            )
+                                                            break
 
                         countmfg += 1
                 except Exception as e:
@@ -681,7 +730,34 @@ class importer(object):
                 # Remove the element now to keep the DOM tree small
                 wo_data = []
                 root.clear()
-            elif event == "start" and elem.tag == "operationplans":
+            # OPTIONAL SECTION: Store the planned delivery date (as computed by frepple) on odoo sales orders
+            # elif event == "end" and elem.tag == "demand":
+            #     try:
+            #         deliverydate = (
+            #             timezone(self.env.user.tz)
+            #             .localize(
+            #                 datetime.strptime(
+            #                     elem.get("deliverydate"), "%Y-%m-%d %H:%M:%S"
+            #                 ),
+            #                 is_dst=None,
+            #             )
+            #             .astimezone(pytz.utc)
+            #         ).strftime("%Y-%m-%d %H:%M:%S")
+            #         sol_name = elem.get("name").rsplit(" ", 1)
+            #         for so_line in self.env["sale.order.line"].search(
+            #             [("id", "=", sol_name[1])], limit=1
+            #         ):
+            #             so_line.sale_delivery_date = (
+            #                 datetime.strptime(deliverydate, "%Y-%m-%d %H:%M:%S")
+            #             ).date()
+            #             so_line.frepple_write_date = datetime.now()
+            #             so_line.order_id._compute_commitment_date()
+            #     except Exception as e:
+            #         logger.error("Exception %s" % e)
+            #         msg.append(str(e))
+                # Remove the element now to keep the DOM tree small
+                root.clear()
+            elif event == "start" and elem.tag in ["operationplans", "demands"]:
                 # Remember the root element
                 root = elem
 

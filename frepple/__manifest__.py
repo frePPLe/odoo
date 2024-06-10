@@ -8,7 +8,6 @@
     "website": "https://frepple.com",
     "license": "Other OSI approved licence",
     "description": "Connector to frePPLe - finite capacity planning and scheduling",
-    "external_dependencies": {"python": ["PyJWT"]},
     "depends": ["product", "purchase", "sale", "resource", "mrp"],
     "data": [
         "security/frepple_security.xml",
