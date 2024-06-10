@@ -1836,8 +1836,6 @@ class exporter(object):
         # Get all move ids
         # We only read the open ones
 
-        stock_moves_dict_confirmed = []  # needed for the so line status
-
         stock_moves_dict = {
             i["id"]: i
             for i in self.generator.getData(
@@ -1854,38 +1852,34 @@ class exporter(object):
                     "move_orig_ids",
                     "product_id",
                     "date",
-                    "reserved_availability",
+                    "quantity",
                     "procure_method",
                     "product_uom_qty",
                     "product_uom",
+                    "state",
                 ],
             )
         }
-
-        if i["state"] != "confirmed":
-            stock_moves_dict[i["id"]] = i
-        else:
-            stock_moves_dict_confirmed.append(i["id"])
 
         def getReservedQuantity(stock_move_id):
             reserved_quantity = 0
             if stock_move_id in stock_moves_dict:
                 mv = stock_moves_dict[stock_move_id]
                 reserved_quantity = (
-                    mv["reserved_availability"]
-                    if mv["procure_method"] != "make_to_stock"
-                    else 0
+                    mv["quantity"] if mv["procure_method"] != "make_to_stock" else 0
                 )
-
-                for i in stock_moves_dict[stock_move_id]["move_orig_ids"]:
+                for i in mv["move_orig_ids"]:
                     if i != stock_move_id:
-                        s = getReservedQuantity(i)
-                        reserved_quantity += s
+                        reserved_quantity += getReservedQuantity(i)
             return reserved_quantity
 
         # Generate the demand records
         yield "<!-- sales order lines -->\n"
         yield "<demands>\n"
+
+        stock_moves_dict_confirmed = [
+            i for i in stock_moves_dict if stock_moves_dict[i]["state"] == "confirmed"
+        ]
 
         for i in so_line:
             name = "%s %d" % (i["order_id"][1], i["id"])
@@ -2159,7 +2153,7 @@ class exporter(object):
                         end = datetime.fromisoformat(end)
                     start = self.formatDateTime(start if start < end else end)
                     end = self.formatDateTime(end)
-                    qty = mv.product_qty - mv.quantity_done
+                    qty = mv.product_qty - mv.quantity
                     if qty >= 0:
                         yield '<operationplan reference=%s %sordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
                             quoteattr(po_line_reference),
@@ -2459,11 +2453,7 @@ class exporter(object):
                             max(
                                 0,
                                 mv.product_qty
-                                - (
-                                    mv.reserved_availability
-                                    if self.respect_reservations
-                                    else 0
-                                ),
+                                - (mv.quantity if self.respect_reservations else 0),
                             ),
                             mv.product_uom.id,
                             item["template"],
