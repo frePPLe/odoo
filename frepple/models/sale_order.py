@@ -3,10 +3,10 @@ import os
 import logging
 from odoo import models, api, fields, exceptions
 import requests
-import jwt
 import time
 import datetime
 
+from ..controllers.frepplexml import encode_jwt
 from .quote import Quote
 
 logger = logging.getLogger(__name__)
@@ -144,9 +144,7 @@ class SaleOrder(models.Model):
             if not base_url:
                 raise exceptions.UserError("frePPLe web server not configured")
 
-            webtoken = jwt.encode(
-                encode_params, user_company_webtoken, algorithm="HS256"
-            )
+            webtoken = encode_jwt(encode_params, user_company_webtoken)
             if not isinstance(webtoken, str):
                 webtoken = webtoken.decode("ascii")
 
