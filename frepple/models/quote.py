@@ -1,10 +1,11 @@
 from dateutil import tz
 from odoo import fields, models, api, exceptions
 import time
-import jwt
 import logging
 import requests
 from datetime import datetime
+
+from ..controllers.frepplexml import encode_jwt
 
 
 logger = logging.getLogger(__name__)
@@ -271,9 +272,7 @@ class Quote(models.Model):
                 if not base_url.endswith("/"):
                     base_url += "/"
 
-                webtoken = jwt.encode(
-                    encode_params, user_company_webtoken, algorithm="HS256"
-                )
+                webtoken = encode_jwt(encode_params, user_company_webtoken)
                 if not isinstance(webtoken, str):
                     webtoken = webtoken.decode("ascii")
 
