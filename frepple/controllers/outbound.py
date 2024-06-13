@@ -2365,20 +2365,16 @@ class exporter(object):
                         max(
                             0,
                             mv.product_qty
-                            - (
-                                mv.reserved_availability
-                                if self.respect_reservations
-                                else 0
-                            ),
+                            - (mv.quantity if self.respect_reservations else 0),
                         ),
                         mv.product_uom.id,
                         consumed_item["template"],
                     )
                     # subtract the reserved quantity if product is twice in the BOM
-                    reserved_quantity[(i["name"], mv["product_id"][0])] = max(
+                    reserved_quantity[(i["name"], mv.product_id.id)] = max(
                         0,
-                        reserved_quantity.get((i["name"], mv["product_id"][0]), 0)
-                        - mv["product_qty"],
+                        reserved_quantity.get((i["name"], mv.product_id.id), 0)
+                        - mv.product_qty,
                     )
                     if qty_flow > 0:
                         operation_materials[consumed_item["name"]] = (
