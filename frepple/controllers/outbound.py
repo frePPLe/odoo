@@ -190,6 +190,19 @@ class exporter(object):
             )
             > 0
         )
+        self.has_expiry = (
+            len(
+                self.generator.getData(
+                    "ir.module.module",
+                    search=[
+                        ("state", "=", "installed"),
+                        ("name", "=", "mrp_product_expiry"),
+                    ],
+                    fields=["id"],
+                )
+            )
+            > 0
+        )
 
         # The mode argument defines different types of runs:
         #  - Mode 1:
@@ -286,8 +299,13 @@ class exporter(object):
                 yield from self.export_manufacturingorders()
             logger.debug("Exporting reordering rules.")
             yield from self.export_orderpoints()
-            logger.debug("Exporting quantities on-hand.")
-            yield from self.export_onhand()
+
+            if self.has_expiry:
+                logger.debug("Exporting stock orders.")
+                yield from self.export_stockorders()
+            else:
+                logger.debug("Exporting quantities on-hand.")
+                yield from self.export_onhand()
 
         # Footer
         yield "</plan>\n"
@@ -1004,7 +1022,14 @@ class exporter(object):
                 "uom_id",
                 "categ_id",
                 "product_variant_ids",
-            ],
+            ]
+            + (
+                [
+                    "expiration_time",
+                ]
+                if self.has_expiry
+                else []
+            ),
         ):
             self.product_templates[i["id"]] = i
 
@@ -1089,7 +1114,7 @@ class exporter(object):
             self.product_product[i["id"]] = prod_obj
             self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
             # For make-to-order items the next line needs to XML snippet ' type="item_mto"'.
-            yield '<item name=%s %s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s">\n' % (
+            yield '<item name=%s %s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s"%s>\n' % (
                 quoteattr(name),
                 (
                     ("description=%s" % (quoteattr(description),))
@@ -1107,6 +1132,16 @@ class exporter(object):
                 quoteattr(tmpl["categ_id"][1]) if tmpl["categ_id"] else '""',
                 tmpl["uom_id"][0],
                 i["id"],
+                (
+                    (
+                        ' shelflife="%s"'
+                        % self.convert_float_time(tmpl["expiration_time"])
+                    )
+                    if self.has_expiry
+                    and tmpl["expiration_time"]
+                    and tmpl["expiration_time"] > 0
+                    else ""
+                ),
             )
             # Export suppliers for the item, if the item is allowed to be purchased
             if tmpl["purchase_ok"]:
@@ -2663,6 +2698,104 @@ class exporter(object):
                 )
         if not first:
             yield "</calendars>\n"
+
+    # export_stockorders will be called instead of export_onhand
+    # when expiration dates is enabled in Odoo
+
+    def export_stockorders(self):
+        """
+        Extracting all on hand inventories to frePPLe.
+
+        We're bypassing the ORM for performance reasons.
+
+        Mapping:
+        stock.report.prodlots.product_id.name @ stock.report.prodlots.location_id.name -> buffer.name
+        stock.report.prodlots.product_id.name -> buffer.item
+        stock.report.prodlots.location_id.name -> buffer.location
+        sum(stock.report.prodlots.qty) -> buffer.onhand
+        """
+        yield "<!-- inventory -->\n"
+        yield "<operationplans>\n"
+        if isinstance(self.generator, Odoo_generator):
+            # SQL query gives much better performance
+            self.generator.env.cr.execute(
+                """
+                SELECT stock_quant.product_id,
+                stock_quant.location_id,
+                sum(stock_quant.quantity) as quantity,
+                sum(stock_quant.reserved_quantity) as reserved_quantity,
+                stock_production_lot.name as lot_name,
+                stock_production_lot.expiration_date
+                FROM stock_quant
+                left outer join stock_production_lot on stock_quant.lot_id = stock_production_lot.id
+                and stock_production_lot.product_id = stock_quant.product_id
+                WHERE quantity > 0
+                GROUP BY stock_quant.product_id,
+                stock_quant.location_id,
+                stock_production_lot.name,
+                stock_production_lot.expiration_date
+                ORDER BY location_id ASC
+                """
+            )
+            data = self.generator.env.cr.fetchall()
+        else:
+            data = [
+                (i["product_id"][0], i["location_id"][0], i["quantity"])
+                for i in self.generator.getData(
+                    "stock.quant",
+                    search=[("quantity", ">", 0)],
+                    fields=[
+                        "product_id",
+                        "location_id",
+                        "quantity",
+                        "reserved_quantity",
+                    ],
+                )
+                if i["product_id"] and i["location_id"]
+            ]
+        inventory = {}
+        expirationdate = {}
+        for i in data:
+            item = self.product_product.get(i[0], None)
+            location = self.map_locations.get(i[1], None)
+            lotname = i[4]
+            if item and location:
+                inventory[(item["name"], location, lotname)] = max(
+                    0,
+                    inventory.get((item["name"], location, lotname), 0)
+                    + i[2]
+                    - (i[3] if self.respect_reservations else 0),
+                )
+                if i[5]:
+                    expirationdate[(item["name"], location, lotname)] = i[5]
+        for key, val in inventory.items():
+            yield (
+                """
+            <operationplan ordertype="STCK" end="%s" reference=%s %s quantity="%s">
+			<item name=%s/>
+			<location name=%s/>
+		    </operationplan>
+            """
+                % (
+                    self.formatDateTime(datetime.now()),
+                    quoteattr(
+                        "STCK %s @ %s%s"
+                        % (key[0], key[1], (" @ %s" % (key[2],)) if key[2] else "")
+                    ),
+                    (
+                        ('expiry="%s"' % self.formatDateTime(expirationdate[key]))
+                        if key in expirationdate
+                        else ""
+                    ),
+                    val or 0,
+                    quoteattr(key[0]),
+                    quoteattr(key[1]),
+                )
+            )
+        yield "</operationplans>\n"
+
+    # export_stockorders will be called instead of export_onhand
+    # when expiration dates is enabled in Odoo
 
     def export_onhand(self):
         """
