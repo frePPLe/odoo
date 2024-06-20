@@ -153,6 +153,7 @@ class exporter(object):
         singlecompany=False,
         version="0.0.0.unknown",
         delta=999,
+        apps="",
     ):
         self.database = database
         self.company = company
@@ -202,7 +203,7 @@ class exporter(object):
                 )
             )
             > 0
-        )
+        ) and "freppledb.shelflife" in apps
 
         # The mode argument defines different types of runs:
         #  - Mode 1:
