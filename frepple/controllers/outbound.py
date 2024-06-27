@@ -564,6 +564,7 @@ class exporter(object):
                     "calendar_id",
                     "week_type",
                     "resource_id",
+                    "day_period",
                 ],
             ):
                 if i["calendar_id"] and i["calendar_id"][0] in cal_ids:
@@ -572,7 +573,11 @@ class exporter(object):
                     if not i["resource_id"]:
                         if calendar_name not in calendars:
                             calendars[calendar_name] = []
-                        i["attendance"] = True
+                        i["attendance"] = (
+                            True
+                            if i["day_period"] in ("morning", "afternoon")
+                            else False
+                        )
                         calendars[calendar_name].append(i)
 
                     if calendar_resource.get(i["calendar_id"][0]):
@@ -593,7 +598,11 @@ class exporter(object):
                                         "calendar for %s"
                                         % (self.resources_with_specific_calendars[res],)
                                     ] = cal_tz[calendar_name]
-                                i["attendance"] = True
+                                i["attendance"] = (
+                                    True
+                                    if i["day_period"] in ("morning", "afternoon")
+                                    else False
+                                )
                                 calendars[
                                     "calendar for %s"
                                     % (self.resources_with_specific_calendars[res],)
@@ -658,22 +667,14 @@ class exporter(object):
                         # ONE-WEEK CALENDAR
                         yield '<bucket start="%s" end="%s" value="%s" days="%s" priority="%s" starttime="%s" endtime="%s"/>\n' % (
                             (
-                                self.formatDateTime(j["date_from"], cal_tz[i])
-                                if not j["attendance"]
-                                else (
-                                    j["date_from"].strftime("%Y-%m-%dT00:00:00")
-                                    if j["date_from"]
-                                    else "2020-01-01T00:00:00"
-                                )
+                                j["date_from"].strftime("%Y-%m-%dT00:00:00")
+                                if j["date_from"]
+                                else "2020-01-01T00:00:00"
                             ),
                             (
-                                self.formatDateTime(j["date_to"], cal_tz[i])
-                                if not j["attendance"]
-                                else (
-                                    j["date_to"].strftime("%Y-%m-%dT00:00:00")
-                                    if j["date_to"]
-                                    else "2030-12-31T00:00:00"
-                                )
+                                j["date_to"].strftime("%Y-%m-%dT00:00:00")
+                                if j["date_to"]
+                                else "2030-12-31T00:00:00"
                             ),
                             "1" if j["attendance"] else "0",
                             (
