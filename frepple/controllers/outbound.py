@@ -2246,6 +2246,28 @@ class exporter(object):
                 start = self.formatDateTime(start if start < end else end)
                 end = self.formatDateTime(end)
                 qty = i["product_qty"] - i["quantity_done"]
+                supplier = self.map_customers.get(j["partner_id"][0])
+                if not supplier:
+                    # supplier is archived :-(
+                    for sup in self.generator.getData(
+                        "res.partner",
+                        search=[
+                            ("id", "=", j["partner_id"][0]),
+                            "|",
+                            ("active", "=", True),
+                            ("active", "=", False),
+                        ],
+                        fields=["name", "active"],
+                    ):
+                        supplier = "%s %s%s" % (
+                            sup["name"],
+                            "(archived) " if not sup["active"] else "",
+                            sup["id"],
+                        )
+                        self.map_customers[sup["id"]] = supplier
+                        break
+                if not supplier:
+                    continue
                 if qty >= 0:
                     yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
                         quoteattr(po_line_reference),
@@ -2254,7 +2276,7 @@ class exporter(object):
                         qty,
                         quoteattr(item["name"]),
                         quoteattr(location),
-                        quoteattr(self.map_customers.get(j["partner_id"][0])),
+                        quoteattr(supplier),
                     )
             yield "</operationplans>\n"
 
