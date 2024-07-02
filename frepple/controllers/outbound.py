@@ -2142,6 +2142,19 @@ class exporter(object):
                     i["product_uom"],
                     self.product_product[i["product_id"][0]]["template"],
                 )
+                supplier = self.map_customers.get(j["partner_id"][0])
+                if not supplier:
+                    # supplier is archived :-(
+                    for sup in self.generator.getData(
+                        "res.partner",
+                        ids=list(j["partner_id"][0]),
+                        fields=["name"],
+                    ):
+                        supplier = "%s (archived) %s" % (sup["name"], sup["id"])
+                        self.map_customers[sup["id"]] = supplier
+                        break
+                if not supplier:
+                    continue
                 yield '<operationplan reference=%s ordertype="PO" start="%s" end="%s" quantity="%f" status="confirmed">' "<item name=%s/><location name=%s/><supplier name=%s/></operationplan>\n" % (
                     quoteattr("%s - %s" % (j["name"], i["id"])),
                     start,
@@ -2149,7 +2162,7 @@ class exporter(object):
                     qty,
                     quoteattr(item["name"]),
                     quoteattr(location),
-                    quoteattr(self.map_customers.get(j["partner_id"][0])),
+                    quoteattr(supplier),
                 )
         yield "</operationplans>\n"
 
