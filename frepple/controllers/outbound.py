@@ -2147,10 +2147,19 @@ class exporter(object):
                     # supplier is archived :-(
                     for sup in self.generator.getData(
                         "res.partner",
-                        ids=list(j["partner_id"][0]),
-                        fields=["name"],
+                        search=[
+                            ("id", "=", j["partner_id"][0]),
+                            "|",
+                            ("active", "=", True),
+                            ("active", "=", False),
+                        ],
+                        fields=["name", "active"],
                     ):
-                        supplier = "%s (archived) %s" % (sup["name"], sup["id"])
+                        supplier = "%s %s%s" % (
+                            sup["name"],
+                            "(archived) " if not sup["active"] else "",
+                            sup["id"],
+                        )
                         self.map_customers[sup["id"]] = supplier
                         break
                 if not supplier:
