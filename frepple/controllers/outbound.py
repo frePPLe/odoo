@@ -161,7 +161,7 @@ class exporter(object):
         singlecompany=False,
         version="0.0.0.unknown",
         delta=999,
-		language="en_US",
+        language="en_US",
         apps="",
     ):
         self.database = database
@@ -1051,7 +1051,6 @@ class exporter(object):
                 if self.has_expiry
                 else []
             ),
-
         ):
             self.product_templates[i["id"]] = i
 
@@ -2185,13 +2184,13 @@ class exporter(object):
                     start = self.formatDateTime(start if start < end else end)
                     end = self.formatDateTime(end)
                     qty = mv.product_qty - mv.quantity_done
-                    supplier = self.map_customers.get(j["partner_id"][0])
+                    supplier = self.map_customers.get(j.partner_id.id)
                     if not supplier:
                         # supplier is archived :-(
                         for sup in self.generator.getData(
                             "res.partner",
                             search=[
-                                ("id", "=", j["partner_id"][0]),
+                                ("id", "=", j.partner_id.id),
                                 "|",
                                 ("active", "=", True),
                                 ("active", "=", False),
@@ -2256,13 +2255,13 @@ class exporter(object):
                     else:
                         batch = None
 
-                    supplier = self.map_customers.get(j["partner_id"][0])
+                    supplier = self.map_customers.get(j.partner_id.id)
                     if not supplier:
                         # supplier is archived :-(
                         for sup in self.generator.getData(
                             "res.partner",
                             search=[
-                                ("id", "=", j["partner_id"][0]),
+                                ("id", "=", j.partner_id.id),
                                 "|",
                                 ("active", "=", True),
                                 ("active", "=", False),
