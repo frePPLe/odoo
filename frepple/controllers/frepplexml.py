@@ -192,6 +192,7 @@ class XMLController(odoo.http.Controller):
                 company = i
             if not company:
                 return Response("Invalid company name argument", 401)
+        apps = kwargs.get("apps", req.httprequest.form.get("apps", None)) or ""
 
         if req.httprequest.method == "GET":
             # Generate data
@@ -209,6 +210,7 @@ class XMLController(odoo.http.Controller):
                     version=version,
                     delta=float(kwargs.get("delta", 999)),
                     language=language,
+                    apps=apps,
                 )
                 # last empty double quote is to let python understand frepple is a folder.
                 xml_folder = os.path.join(str(Path.home()), "logs", "frepple", "")
