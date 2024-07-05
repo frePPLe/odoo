@@ -291,6 +291,7 @@ class exporter(object):
                 logger.debug("Exporting workcenterskills.")
                 yield from self.export_workcenterskills()
         logger.debug("Exporting products.")
+        yield from self.export_item_hierarchy()
         yield from self.export_items()
         if with_mrp:
             logger.debug("Exporting BOMs.")
@@ -997,6 +998,49 @@ class exporter(object):
         if not first:
             yield "</resources>\n"
 
+    def export_item_hierarchy(self):
+        """
+        Creates an item in frepple for each category that will be then used
+        as item.owner
+
+        Mapping:
+        product.category.complete_name -> item.name
+        product.category.parent_id.complete_name -> item.owner_id
+        """
+        self.categories = {}
+        for i in self.generator.getData(
+            "product.category",
+            search=[],
+            fields=[
+                "complete_name",
+                "parent_id",
+            ],
+        ):
+            self.categories[i["id"]] = i
+        first = True
+        for i in self.categories:
+            if first:
+                yield "<!-- categories -->\n"
+                yield "<items>\n"
+                first = False
+            yield "<item name=%s>%s</item>\n" % (
+                quoteattr(self.categories[i]["complete_name"]),
+                (
+                    (
+                        "<owner name=%s/>"
+                        % quoteattr(
+                            self.categories[self.categories[i]["parent_id"][0]][
+                                "complete_name"
+                            ]
+                        )
+                    )
+                    if self.categories[i]["parent_id"]
+                    else ""
+                ),
+            )
+        if not first:
+            yield "</items>\n"
+
     def export_items(self):
         """
         Send the list of products to frePPLe, based on the product.product model.
@@ -1141,7 +1185,7 @@ class exporter(object):
             self.product_template_product[i["product_tmpl_id"][0]] = prod_obj
 
             # For make-to-order items the next line needs to XML snippet ' type="item_mto"'.
-            yield '<item name=%s %s uom=%s volume="%f" weight="%f" cost="%f" category=%s subcategory="%s,%s"%s%s>\n' % (
+            yield '<item name=%s %s uom=%s volume="%f" weight="%f" cost="%f" subcategory="%s,%s"%s%s>%s\n' % (
                 quoteattr(name),
                 (
                     ("description=%s" % (quoteattr(description),))
@@ -1156,7 +1200,6 @@ class exporter(object):
                 )  # Option 1:  Map "sales price" to frepple
                 #  max(0, tmpl["standard_price"]) or 0)  # Option 2: Map the "cost" to frepple
                 / self.convert_qty_uom(1.0, tmpl["uom_id"], i["product_tmpl_id"][0]),
-                quoteattr(tmpl["categ_id"][1]) if tmpl["categ_id"] else '""',
                 tmpl["uom_id"][0],
                 i["id"],
                 ' type="item_mto"' if self.route_mto in tmpl["route_ids"] else "",
@@ -1168,6 +1211,16 @@ class exporter(object):
                     if self.has_expiry
                     and tmpl["expiration_time"]
                     and tmpl["expiration_time"] > 0
+                    else ""
+                ),
+                (
+                    (
+                        "<owner name=%s/>"
+                        % quoteattr(
+                            self.categories[tmpl["categ_id"][0]]["complete_name"]
+                        )
+                    )
+                    if tmpl["categ_id"] and tmpl["categ_id"][0] in self.categories
                     else ""
                 ),
             )
