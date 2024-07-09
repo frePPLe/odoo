@@ -1967,10 +1967,6 @@ class exporter(object):
         yield "<!-- sales order lines -->\n"
         yield "<demands>\n"
 
-        stock_moves_dict_confirmed = [
-            i for i in stock_moves_dict if stock_moves_dict[i]["state"] == "confirmed"
-        ]
-
         for i in so_line:
             name = "%s %d" % (i["order_id"][1], i["id"])
             batch = i["order_id"][1]
@@ -1992,7 +1988,8 @@ class exporter(object):
             # if no stock_move if that SO line is still open, we can consider the line closed
             state = j.get("state", "sale")
             if state == "sale" and not any(
-                x in stock_moves_dict_confirmed for x in i["move_ids"]
+                x in stock_moves_dict and stock_moves_dict[x] not in ("cancel", "done")
+                for x in i["move_ids"]
             ):
                 state = "done"
             if state in ("draft", "sent"):
@@ -2243,7 +2240,7 @@ class exporter(object):
                         end = datetime.fromisoformat(end)
                     start = self.formatDateTime(start if start < end else end)
                     end = self.formatDateTime(end)
-                    qty = mv.product_qty - mv.quantity
+                    qty = mv.product_qty
                     supplier = self.map_customers.get(j.partner_id.id)
                     if not supplier:
                         # supplier is archived :-(
