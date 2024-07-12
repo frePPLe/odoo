@@ -2860,16 +2860,16 @@ class exporter(object):
                 stock_quant.location_id,
                 sum(stock_quant.quantity) as quantity,
                 sum(stock_quant.reserved_quantity) as reserved_quantity,
-                stock_production_lot.name as lot_name,
-                stock_production_lot.expiration_date
+                stock_lot.name as lot_name,
+                stock_lot.expiration_date
                 FROM stock_quant
-                left outer join stock_production_lot on stock_quant.lot_id = stock_production_lot.id
-                and stock_production_lot.product_id = stock_quant.product_id
+                left outer join stock_lot on stock_quant.lot_id = stock_lot.id
+                and stock_lot.product_id = stock_quant.product_id
                 WHERE quantity > 0
                 GROUP BY stock_quant.product_id,
                 stock_quant.location_id,
-                stock_production_lot.name,
-                stock_production_lot.expiration_date
+                stock_lot.name,
+                stock_lot.expiration_date
                 ORDER BY location_id ASC
                 """
             )
