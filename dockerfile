@@ -2,8 +2,10 @@ FROM odoo:17
 
 USER root
 
-RUN echo "list_db = False" >> /etc/odoo/odoo.conf && \
-    echo "limit_time_cpu = 600" >> /etc/odoo/odoo.conf && \
+# Comment the next line to run in multi-database mode
+RUN echo "list_db = False" >> /etc/odoo/odoo.conf
+
+RUN echo "limit_time_cpu = 600" >> /etc/odoo/odoo.conf && \
     echo "limit_time_real = 600" >> /etc/odoo/odoo.conf
 
 USER odoo

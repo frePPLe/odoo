@@ -172,6 +172,12 @@ class XMLController(odoo.http.Controller):
         company_name = kwargs.get("company", req.httprequest.form.get("company", None))
         company = None
 
+        if not req.env:
+            # Set up the database context when running in multi-database mode
+            reg = odoo.registry(database)
+            cr = reg.cursor()
+            req.env = odoo.api.Environment(cr, odoo.SUPERUSER_ID, {})
+
         # Login
         req.session.db = database
         try:
