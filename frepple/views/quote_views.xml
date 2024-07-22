@@ -50,6 +50,7 @@
             <kanban>
                 <field name="product_id"/>
                 <field name="warehouse_id"/>
+                <field name="quantity"/>
                 <field name="promised_delivery_date"/>
                 <templates>
                     <t t-name="kanban-box">
@@ -61,12 +62,17 @@
                             <!-- Horizontal divider -->
                             <div class="o_kanban_record_body">
                                 <span>
-                                    <b>Promised Delivery Date:</b>
+                                    <b>Quantity: </b>
+                                </span>
+                                <field name="quantity"/>
+                                <br />
+                                <span>
+                                    <b>Promised Delivery Date: </b>
                                 </span>
                                 <field name="promised_delivery_date"/>
                                 <br />
                                 <span>
-                                    <b>Last Quoted:</b>
+                                    <b>Last Quoted: </b>
                                 </span>
                                 <field name="last_quoted"/>
                             </div>
@@ -86,6 +92,7 @@
             <tree string="">
                 <field name="product_id"/>
                 <field name="warehouse_id"/>
+                <field name="quantity"/>
                 <field name="promised_delivery_date"/>
                 <field name="last_quoted"/>
             </tree>
