@@ -1575,7 +1575,7 @@ class exporter(object):
                                     yield "<loads>\n"
                                 yield '<load quantity="%f" search=%s><resource name=%s/>%s</load>\n' % (
                                     j["time_cycle"],
-                                    quoteattr(j["search_mode"]),
+                                    quoteattr(j["search_mode"] or "PRIORITY"),
                                     quoteattr(
                                         self.map_workcenters[j["workcenter_id"][0]]
                                     ),
@@ -1600,7 +1600,10 @@ class exporter(object):
                                             else secondary_workcenter["duration"]
                                             / j["time_cycle"]
                                         ),
-                                        quoteattr(secondary_workcenter["search_mode"]),
+                                        quoteattr(
+                                            secondary_workcenter["search_mode"]
+                                            or "PRIORITY"
+                                        ),
                                         quoteattr(
                                             self.map_workcenters[
                                                 secondary_workcenter["workcenter_id"][0]
@@ -1756,7 +1759,10 @@ class exporter(object):
                                             else secondary_workcenter["duration"]
                                             / step["time_cycle"]
                                         ),
-                                        quoteattr(secondary_workcenter["search_mode"]),
+                                        quoteattr(
+                                            secondary_workcenter["search_mode"]
+                                            or "PRIORITY"
+                                        ),
                                         quoteattr(
                                             self.map_workcenters[
                                                 secondary_workcenter["workcenter_id"][0]
@@ -1790,7 +1796,7 @@ class exporter(object):
                                 ),
                                 quoteattr(location),
                                 1,
-                                quoteattr(step["search_mode"]),
+                                quoteattr(step["search_mode"] or "PRIORITY"),
                                 quoteattr(
                                     self.map_workcenters[step["workcenter_id"][0]]
                                 ),
