@@ -1497,7 +1497,7 @@ class exporter(object):
                         )
                         if not producedQty:
                             producedQty = 1
-                        if producedQty != 1:
+                        if producedQty != 1 and not subcontractor:
                             yield "<size_minimum>%s</size_minimum>\n" % producedQty
                         yield "<flows>\n"
 
