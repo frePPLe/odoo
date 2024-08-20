@@ -1121,8 +1121,8 @@ class exporter(object):
                 use_short_names = False
                 break
 
-        # Read the products
         supplierinfo_fields = [
+            "product_tmpl_id",
             "partner_id",
             "delay",
             "min_qty",
@@ -1133,6 +1133,26 @@ class exporter(object):
             "sequence",
             "is_subcontractor",
         ]
+        try:
+            tmp = self.generator.getData(
+                "product.supplierinfo",
+                fields=supplierinfo_fields,
+            )
+        except Exception:
+            # subcontracting module not installed
+            supplierinfo_fields.remove("is_subcontractor")
+            tmp = self.generator.getData(
+                "product.supplierinfo",
+                fields=supplierinfo_fields,
+            )
+        itemsuppliers = {}
+        for i in tmp:
+            if i["product_tmpl_id"][0] in itemsuppliers:
+                itemsuppliers[i["product_tmpl_id"][0]].append(i)
+            else:
+                itemsuppliers[i["product_tmpl_id"][0]] = [i]
+
+        # Read the products
         first = True
         for i in self.generator.getData(
             "product.product",
@@ -1221,23 +1241,8 @@ class exporter(object):
             )
             # Export suppliers for the item, if the item is allowed to be purchased
             if tmpl["purchase_ok"]:
-                try:
-                    # TODO it's inefficient to run a query per product template.
-                    results = self.generator.getData(
-                        "product.supplierinfo",
-                        search=[("product_tmpl_id", "=", tmpl["id"])],
-                        fields=supplierinfo_fields,
-                    )
-                except Exception:
-                    # subcontracting module not installed
-                    supplierinfo_fields.remove("is_subcontractor")
-                    results = self.generator.getData(
-                        "product.supplierinfo",
-                        search=[("product_tmpl_id", "=", tmpl["id"])],
-                        fields=supplierinfo_fields,
-                    )
                 suppliers = {}
-                for sup in results:
+                for sup in itemsuppliers.get(tmpl["id"], []):
                     name = self.map_customers.get(sup["partner_id"][0], None)
                     if not name:
                         # Skip uninterested suppliers (eg archived ones)
