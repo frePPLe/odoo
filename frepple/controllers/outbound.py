@@ -2708,10 +2708,12 @@ class exporter(object):
         convert stock.warehouse.orderpoint.qty_multiple -> buffer->size_multiple
         """
         first = True
-        try:
-            has_buffer_max = self.version[0] >= 9
-        except Exception:
-            has_buffer_max = False
+        # Keeping with the original reorderpoint mapping now
+        # try:
+        #     has_buffer_max = self.version[0] >= 9
+        # except Exception:
+        #     has_buffer_max = False
+        has_buffer_max = False
 
         if has_buffer_max:
             # frepple >= 9.0 has native support for buffers with a min and max level
