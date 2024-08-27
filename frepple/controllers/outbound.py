@@ -1137,6 +1137,7 @@ class exporter(object):
             tmp = self.generator.getData(
                 "product.supplierinfo",
                 fields=supplierinfo_fields,
+                search=[("product_tmpl_id", "!=", False)],
             )
         except Exception:
             # subcontracting module not installed
@@ -1144,6 +1145,7 @@ class exporter(object):
             tmp = self.generator.getData(
                 "product.supplierinfo",
                 fields=supplierinfo_fields,
+                search=[("product_tmpl_id", "!=", False)],
             )
         itemsuppliers = {}
         for i in tmp:
