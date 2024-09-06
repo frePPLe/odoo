@@ -635,9 +635,8 @@ class exporter(object):
                     "resource_id",
                 ],
             ):
-                calendar_name = "%s %s" % (i["calendar_id"][1], i["calendar_id"][0])
-
                 if i["calendar_id"] and i["calendar_id"][0] in cal_ids:
+                    calendar_name = "%s %s" % (i["calendar_id"][1], i["calendar_id"][0])
                     if not i["resource_id"]:
                         if calendar_name not in calendars:
                             calendars[calendar_name] = []
@@ -667,6 +666,8 @@ class exporter(object):
                                     "calendar for %s"
                                     % (self.resources_with_specific_calendars[res],)
                                 ].append(i)
+                # else:
+                #    TODO   Handle company-wide leaves that apply to all calendars
 
             # Iterate over the results:
             for i in calendars:
