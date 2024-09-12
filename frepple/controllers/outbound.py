@@ -1981,10 +1981,22 @@ class exporter(object):
         for i in so_line:
             name = "%s %d" % (i["order_id"][1], i["id"])
             batch = i["order_id"][1]
-            product = self.product_product.get(i["product_id"][0], None)
+            product = (
+                self.product_product.get(i["product_id"][0], None)
+                if i["product_id"]
+                else None
+            )
             j = so[i["order_id"][0]]
-            location = j["warehouse_id"][1]
-            customer = self.map_customers.get(j["partner_id"][0], None)
+            location = (
+                self.warehouses.get(j["warehouse_id"][0], None)
+                if j["warehouse_id"]
+                else None
+            )
+            customer = (
+                self.map_customers.get(j["partner_id"][0], None)
+                if j["partner_id"]
+                else None
+            )
 
             if not customer or not location or not product:
                 # Not interested in this sales order...
