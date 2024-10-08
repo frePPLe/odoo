@@ -281,16 +281,36 @@ class importer(object):
 
                         # Create purchase order
                         if supplier_id not in supplier_reference:
-                            po = proc_order.create(
-                                {
-                                    "company_id": self.company.id,
-                                    "partner_id": supplier_id,
-                                    # TODO Odoo has no place to store the location and criticality
-                                    # int(elem.get('location_id')),
-                                    # elem.get('criticality'),
-                                    "origin": "frePPLe",
-                                }
-                            )
+                            po_args = {
+                                "company_id": self.company.id,
+                                "partner_id": supplier_id,
+                                "origin": "frePPLe",
+                            }
+                            try:
+                                picking_type_id = stck_picking_type.search(
+                                    [
+                                        ("code", "=", "incoming"),
+                                        (
+                                            "warehouse_id",
+                                            "=",
+                                            int(elem.get("location_id")),
+                                        ),
+                                    ],
+                                    limit=1,
+                                )[:1]
+                                if not picking_type_id:
+                                    picking_type_id = stck_picking_type.search(
+                                        [
+                                            ("code", "=", "incoming"),
+                                            ("warehouse_id", "=", False),
+                                        ],
+                                        limit=1,
+                                    )[:1]
+                                if picking_type_id:
+                                    po_args["picking_type_id"] = picking_type_id.id
+                            except Exception:
+                                pass
+                            po = proc_order.create(po_args)
                             po.payment_term_id = (
                                 po.partner_id.property_supplier_payment_term_id.id
                             )
