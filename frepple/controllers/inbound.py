@@ -116,7 +116,7 @@ class importer(object):
         if self.mode == 1:
             # Cancel previous draft purchase quotations
             m = self.env["purchase.order"]
-            recs = m.search([("state", "=", "draft"), ("origin", "=", "frePPLe")])
+            recs = m.search([("state", "=", "draft"), ("origin", "=like", "frePPLe%")])
             recs.write({"state": "cancel"})
             recs.unlink()
             msg.append("Removed %s old draft purchase orders" % len(recs))
@@ -127,7 +127,7 @@ class importer(object):
                     "|",
                     ("state", "=", "draft"),
                     ("state", "=", "cancel"),
-                    ("origin", "=", "frePPLe"),
+                    ("origin", "=like", "frePPLe%"),
                 ]
             )
             recs.write({"state": "cancel"})
@@ -280,11 +280,16 @@ class importer(object):
                             continue
 
                         # Create purchase order
+                        remark = elem.get("remark", None)
+                        if remark:
+                            remark = "frePPLe - %s" % remark
+                        else:
+                            remark = "frePPLe"
                         if supplier_id not in supplier_reference:
                             po_args = {
                                 "company_id": self.company.id,
                                 "partner_id": supplier_id,
-                                "origin": "frePPLe",
+                                "origin": remark,
                             }
                             try:
                                 picking_type_id = stck_picking_type.search(
@@ -465,6 +470,11 @@ class importer(object):
                         if not hasattr(self, "stock_picking_dict"):
                             self.stock_picking_dict = {}
                         if not self.stock_picking_dict.get((origin, destination)):
+                            remark = elem.get("remark", None)
+                            if remark:
+                                remark = "frePPLe - %s" % remark
+                            else:
+                                remark = "frePPLe"
                             self.stock_picking_dict[(origin, destination)] = (
                                 stck_picking.create(
                                     {
@@ -473,7 +483,7 @@ class importer(object):
                                         "location_id": location_id["id"],
                                         "location_dest_id": location_dest_id["id"],
                                         "move_type": "direct",
-                                        "origin": "frePPLe",
+                                        "origin": remark,
                                     }
                                 )
                             )
@@ -604,6 +614,11 @@ class importer(object):
                         )
                         if (elem.get("status") or "proposed") == "proposed":
                             # MO creation
+                            remark = elem.get("remark", None)
+                            if remark:
+                                remark = "frePPLe - %s" % remark
+                            else:
+                                remark = "frePPLe"
                             mo = mfg_order.with_context(context).create(
                                 {
                                     "product_qty": elem.get("quantity"),
@@ -619,7 +634,7 @@ class importer(object):
                                     "qty_producing": 0.00,
                                     # TODO no place to store the criticality
                                     # elem.get('criticality'),
-                                    "origin": "frePPLe",
+                                    "origin": remark,
                                 }
                             )
                             # Remember odoo name for the MO reference passed by frepple.
@@ -641,6 +656,11 @@ class importer(object):
                                 continue
                             if mo:
                                 new_qty = float(elem.get("quantity"))
+                                remark = elem.get("remark", None)
+                                if remark:
+                                    remark = "frePPLe - %s" % remark
+                                else:
+                                    remark = "frePPLe"
                                 if mo.product_qty != new_qty:
                                     cpq = change_product_qty.create(
                                         {
@@ -653,7 +673,7 @@ class importer(object):
                                     {
                                         "date_start": elem.get("start"),
                                         "date_finished": elem.get("end"),
-                                        "origin": "frePPLe",
+                                        "origin": remark,
                                     }
                                 )
                                 mo_references[elem.get("reference")] = mo
