@@ -399,10 +399,10 @@ class importer(object):
                         destination = elem.get("destination")
 
                         origin_id = stck_warehouse.search(
-                            [("name", "=", origin)], limit=1
+                            [("code", "=", origin)], limit=1
                         )[0]
                         destination_id = stck_warehouse.search(
-                            [("name", "=", destination)], limit=1
+                            [("code", "=", destination)], limit=1
                         )[0]
 
                         location_id = None
