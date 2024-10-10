@@ -4,14 +4,14 @@
         <field name="name">mrp.secondary.workcenter.tree</field>
         <field name="model">mrp.secondary.workcenter</field>
         <field name="arch" type="xml">
-            <tree string="Secondary Work Centers">
+            <form string="Secondary Work Centers">
                 <field name="routing_workcenter_id" invisible="1"/>
                 <field name="workcenter_id"/>
                 <field name="skill"/>
                 <field name="search_mode" optional="show"/>
                 <field name="priority" optional="show"/>
                 <field name="duration"/>
-            </tree>
+            </form>
         </field>
     </record>
     <record id="mrp_secondary_workcenter_form_view" model="ir.ui.view">

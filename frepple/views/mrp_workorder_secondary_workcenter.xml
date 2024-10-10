@@ -5,11 +5,11 @@
         <field name="name">mrp.workorder.secondary.workcenter.tree</field>
         <field name="model">mrp.workorder.secondary.workcenter</field>
         <field name="arch" type="xml">
-            <tree>
+            <form>
                 <field name="workorder_id" invisible="1"/>
                 <field name="workcenter_id"/>
                 <field name="duration"/>
-            </tree>
+            </form>
         </field>
     </record>
     <record id="mrp_workorder_secondary_workcenter_form_view" model="ir.ui.view">

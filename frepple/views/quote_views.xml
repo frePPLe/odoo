@@ -89,13 +89,13 @@
         <field name="name">frepple_quote.post.view.tree</field>
         <field name="model">frepple.quote</field>
         <field name="arch" type="xml">
-            <tree string="">
+            <form string="">
                 <field name="product_id"/>
                 <field name="warehouse_id"/>
                 <field name="quantity"/>
                 <field name="promised_delivery_date"/>
                 <field name="last_quoted"/>
-            </tree>
+            </form>
         </field>
     </record>
 

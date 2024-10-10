@@ -6,7 +6,7 @@
     "author": "frePPLe",
     "license": "Other OSI approved licence",
     "category": "Uncategorized",
-    "version": "18.0.0",
+    "version": "18.0.0.0",
     "depends": ["mrp_subcontracting"],
     "data": [
         "data/product.template.csv",

@@ -20,7 +20,8 @@ class AutoLoginHome(main.Home):
             # Force a login
             main.ensure_db()
             uid = request.session.authenticate(
-                request.session.db, ADMIN_USERID, ADMIN_PASSWORD
+                request.session.db,
+                {"login": ADMIN_USERID, "password": ADMIN_PASSWORD, "type": "password"},
             )
             request.params["login_success"] = True
             request.params["password"] = ADMIN_PASSWORD

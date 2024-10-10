@@ -26,10 +26,10 @@
         <field name="name">MRP Skill List</field>
         <field name="model">mrp.skill</field>
         <field name="arch" type="xml">
-            <tree>
+            <form>
                 <field name="name" />
                 <field name="description" />
-            </tree>
+            </form>
         </field>
     </record>
 </odoo>

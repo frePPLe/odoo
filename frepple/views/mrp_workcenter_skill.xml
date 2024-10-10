@@ -26,11 +26,11 @@
         <field name="name">MRP Work Center Skill List</field>
         <field name="model">mrp.workcenter.skill</field>
         <field name="arch" type="xml">
-            <tree>
+            <form>
                 <field name="workcenter" invisible="context.get('workcenter_invisible', False)"/>
                 <field name="skill" />
                 <field name="priority" />
-            </tree>
+            </form>
         </field>
     </record>
 </odoo>
