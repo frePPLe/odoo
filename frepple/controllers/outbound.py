@@ -74,79 +74,6 @@ class Odoo_generator:
                 return self.env[model].search(search).read(fields)
 
 
-class XMLRPC_generator:
-    pagesize = 5000
-
-    def __init__(self, url, db, username, password):
-        self.db = db
-        self.password = password
-        self.env = xmlrpc.client.ServerProxy(
-            "{}/xmlrpc/2/common".format(url),
-            context=ssl._create_unverified_context(),
-        )
-        self.uid = self.env.authenticate(db, username, password, {})
-        self.env = xmlrpc.client.ServerProxy(
-            "{}/xmlrpc/2/object".format(url),
-            context=ssl._create_unverified_context(),
-            use_builtin_types=True,
-            headers={"Connection": "keep-alive"}.items(),
-        )
-        self.context = {}
-
-    def setContext(self, **kwargs):
-        self.context.update(kwargs)
-
-    def callMethod(self, model, id, method, args):
-        return self.env.execute_kw(
-            self.db, self.uid, self.password, model, method, [id], []
-        )
-
-    def getData(self, model, search=None, order="id asc", fields=[], ids=[]):
-        if ids:
-            page_ids = [ids]
-        else:
-            page_ids = []
-            offset = 0
-            msg = {
-                "limit": self.pagesize,
-                "offset": offset,
-                "context": self.context,
-                "order": order,
-            }
-            while True:
-                extra_ids = self.env.execute_kw(
-                    self.db,
-                    self.uid,
-                    self.password,
-                    model,
-                    "search",
-                    [search] if search else [[]],
-                    msg,
-                )
-                if not extra_ids:
-                    break
-                page_ids.append(extra_ids)
-                offset += self.pagesize
-                msg["offset"] = offset
-        if page_ids and page_ids != [[]]:
-            data = []
-            for page in page_ids:
-                data.extend(
-                    self.env.execute_kw(
-                        self.db,
-                        self.uid,
-                        self.password,
-                        model,
-                        "read",
-                        [page],
-                        {"fields": fields, "context": self.context},
-                    )
-                )
-            return data
-        else:
-            return []
-
-
 class exporter(object):
     def __init__(
         self,
@@ -1075,7 +1002,7 @@ class exporter(object):
                 self.route_mto = k
         for i in self.generator.getData(
             "product.template",
-            search=[("type", "not in", ("service", "consu"))],
+            search=[("type", "not in", ("service", "combo"))],
             fields=[
                 "sale_ok",
                 "purchase_ok",
@@ -1116,7 +1043,7 @@ class exporter(object):
             product_template.name->>'en_US')
             having count(*) > 1
             ) t
-                """,
+            """,
             (self.language, self.language),
         )
         for i in self.generator.env.cr.fetchall():
@@ -2980,7 +2907,6 @@ class exporter(object):
                 "INNER JOIN stock_location ON stock_quant.location_id = stock_location.id "
                 "WHERE quantity > 0 "
                 "AND stock_location.scrap_location is distinct from true "
-                "AND stock_location.return_location is distinct from true "
                 "AND stock_location.usage = 'internal' "
                 "GROUP BY product_id, stock_quant.location_id "
                 "ORDER BY stock_quant.location_id ASC"
@@ -3020,61 +2946,3 @@ class exporter(object):
                 quoteattr(key[1]),
             )
         yield "</buffers>\n"
-
-
-if __name__ == "__main__":
-    #
-    # When calling this script directly as a Python file, the connector uses XMLRPC
-    # to connect to odoo and download all data.
-    #
-    # This is useful for debugging connector updates remotely, when you don't have
-    # direct access to the odoo server itself.
-    # This mode of working is not recommended for production use because of performance
-    # considerations.
-    #
-    # DEPRECATED EXPERIMENTAL FEATURE!!!
-    # This feature was always experimental, and we now see it as a dead end.
-    #
-    import argparse
-    from warnings import warn
-
-    warn("The XMLRPC odoo connector is deprecated", DeprecationWarning)
-
-    parser = argparse.ArgumentParser(description="Debug frepple odoo connector")
-    parser.add_argument(
-        "--url", help="URL of the odoo server", default="http://localhost:8069"
-    )
-    parser.add_argument("--db", help="Odoo database to connect to", default="odoo14")
-    parser.add_argument(
-        "--username", help="User name for the odoo connection", default="admin"
-    )
-    parser.add_argument(
-        "--password", help="User password for the odoo connection", default="admin"
-    )
-    parser.add_argument(
-        "--company", help="Odoo company to use", default="My Company (Chicago)"
-    )
-    parser.add_argument(
-        "--timezone", help="Time zone to convert odoo datetime fields to", default="UTC"
-    )
-    parser.add_argument(
-        "--singlecompany",
-        default=False,
-        help="Limit the data to a single company only.",
-        action="store_true",
-    )
-    args = parser.parse_args()
-
-    generator = XMLRPC_generator(args.url, args.db, args.username, args.password)
-    xp = exporter(
-        generator,
-        None,
-        uid=generator.uid,
-        database=generator.db,
-        company=args.company,
-        mode=1,
-        timezone=args.timezone,
-        singlecompany=True,
-    )
-    for i in xp.run():
-        print(i, end="")

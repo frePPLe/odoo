@@ -112,7 +112,14 @@ class XMLController(odoo.http.Controller):
             self.user, password = auth.split(":", 1)
             if not database or not self.user or not password:
                 raise Exception("Missing user, password or database")
-            uid = req.session.authenticate(database, self.user, password)
+            uid = req.session.authenticate(
+                database,
+                {
+                    "login": self.user,
+                    "password": password,
+                    "type": "password",
+                },
+            )
             if not uid:
                 raise Exception("Odoo basic authentication failed")
         elif authmeth.lower() == "bearer" and version and version[0] >= 7:
@@ -129,7 +136,12 @@ class XMLController(odoo.http.Controller):
                         "Missing user, password, company or database in token"
                     )
                 uid = req.session.authenticate(
-                    database, decoded["user"], decoded["password"]
+                    database,
+                    {
+                        "login": decoded["user"],
+                        "password": decoded["password"],
+                        "type": "password",
+                    },
                 )
                 if not uid:
                     raise Exception("Odoo token authentication failed")
@@ -140,7 +152,7 @@ class XMLController(odoo.http.Controller):
         if language:
             # If not set we use the default language of the user
             req.session.context["lang"] = language
-        return uid
+        return uid["uid"]
 
     @odoo.http.route(
         "/frepple/xml", type="http", auth="none", methods=["POST", "GET"], csrf=False
