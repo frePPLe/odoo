@@ -97,6 +97,16 @@ class importer(object):
             change_product_qty = self.env["change.production.qty"].with_user(
                 self.actual_user
             )
+            hasRequisition = True
+            try:
+                purchase_requisition = self.env["purchase.requisition"].with_user(
+                    self.actual_user
+                )
+                purchase_requisition_line = self.env[
+                    "purchase.requisition.line"
+                ].with_user(self.actual_user)
+            except:
+                hasRequisition = False
         else:
             product_product = self.env["product.product"]
             product_supplierinfo = self.env["product.supplierinfo"]
@@ -113,6 +123,12 @@ class importer(object):
             stck_warehouse = self.env["stock.warehouse"]
             stck_location = self.env["stock.location"]
             change_product_qty = self.env["change.production.qty"]
+            hasRequisition = True
+            try:
+                purchase_requisition = self.env["purchase.requisition"]
+                purchase_requisition_line = self.env["purchase.requisition.line"]
+            except:
+                hasRequisition = False
         if self.mode == 1:
             # Cancel previous draft purchase quotations
             m = self.env["purchase.order"]
@@ -133,6 +149,31 @@ class importer(object):
             recs.write({"state": "cancel"})
             recs.unlink()
             msg.append("Removed %s old draft manufacturing orders" % len(recs))
+
+            # read all the blanket orders
+            if hasRequisition:
+                pr_ids = [
+                    i
+                    for i in purchase_requisition.search(
+                        [
+                            "&",
+                            "&",
+                            "|",
+                            ("date_end", "=", False),
+                            ("date_end", ">=", datetime.now()),
+                            ("type_id.name", "=", "Blanket Order"),
+                            ("state", "=", "ongoing"),
+                        ]
+                    )
+                ]
+                requisition_dic = {
+                    (i.product_id.id, i.requisition_id.vendor_id.id): i.requisition_id
+                    for i in purchase_requisition_line.search(
+                        [
+                            ("requisition_id", "in", [j.id for j in pr_ids]),
+                        ]
+                    )
+                }
 
         # Parsing the XML data file
         countproc = 0
@@ -366,6 +407,52 @@ class importer(object):
                                     "product_uom": int(uom_id),
                                 }
                             )
+
+                            # Is there a blanket order for this product /supplier ?
+                            if (
+                                self.mode == 1
+                                and hasRequisition
+                                and not po_line.order_id.requisition_id
+                                and (int(item_id), supplier_id) in requisition_dic
+                            ):
+                                po.requisition_id = requisition_dic[
+                                    (int(item_id), supplier_id)
+                                ]
+                            elif (
+                                self.mode != 1
+                                and hasRequisition
+                                and not po_line.order_id.requisition_id
+                            ):
+                                for i in purchase_requisition_line.search(
+                                    [
+                                        "&",
+                                        "&",
+                                        "&",
+                                        "&",
+                                        "|",
+                                        ("requisition_id.date_end", "=", False),
+                                        (
+                                            "requisition_id.date_end",
+                                            ">=",
+                                            datetime.now(),
+                                        ),
+                                        (
+                                            "requisition_id.type_id.name",
+                                            "=",
+                                            "Blanket Order",
+                                        ),
+                                        ("requisition_id.state", "=", "ongoing"),
+                                        ("product_id.id", "=", int(item_id)),
+                                        (
+                                            "requisition_id.vendor_id.id",
+                                            "=",
+                                            supplier_id,
+                                        ),
+                                    ]
+                                ):
+                                    po_line.order_id.requisition_id = i.requisition_id
+                                    break
+
                             # Then let odoo computes all the fields (taxes, name, description...)
 
                             d = po_line._prepare_purchase_order_line(
