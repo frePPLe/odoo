@@ -448,10 +448,10 @@ class importer(object):
                                             "=",
                                             supplier_id,
                                         ),
-                                    ]
+                                    ],
+                                    limit=1,
                                 ):
                                     po_line.order_id.requisition_id = i.requisition_id
-                                    break
 
                             # Then let odoo computes all the fields (taxes, name, description...)
 
