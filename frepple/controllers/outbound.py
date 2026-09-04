@@ -1389,8 +1389,8 @@ class exporter(object):
                                     not r["price"] or sup["price"] < r["price"]
                                 ):
                                     r["price"] = sup["price"]
-                                if r["date_end"] is not None and (
-                                    sup["date_end"] is None
+                                if r["date_end"] and (
+                                    not sup["date_end"]
                                     or sup["date_end"] > r["date_end"]
                                 ):
                                     r["date_end"] = sup["date_end"]
