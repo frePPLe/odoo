@@ -293,6 +293,8 @@ class exporter(object):
         yield '"items":[\n'
         yield from self.export_item_hierarchy()
         yield from self.export_items()
+        logger.debug("Exporting item distributions at warehouse level")
+        yield from self.export_itemdistributions()
         yield "],\n"
 
         logger.debug("Exporting BOMs.")
@@ -336,6 +338,49 @@ class exporter(object):
             yield "]"
         # Footer
         yield "}\n"
+
+    def get_interwarehouse_route_info(self, route):
+        """Return (origin_wh, destination_wh, leadtime in days) if the route moves goods from
+        one warehouse to another, otherwise False.
+
+        Both values are stock.warehouse records.
+        """
+
+        if not route or not route.active:
+            return False
+
+        rules = route.rule_ids.filtered("active").sorted("sequence")
+        total_leadtime = sum(rules.filtered("active").mapped("delay"))
+
+        # 1. Standard resupply routes
+        if (
+            route.supplier_wh_id
+            and route.supplied_wh_id
+            and route.supplier_wh_id != route.supplied_wh_id
+        ):
+            return (route.supplier_wh_id, route.supplied_wh_id, total_leadtime)
+
+        # 2. Custom routes: each side is looked up independently
+        origin_wh = next(
+            (
+                r.location_src_id.warehouse_id
+                for r in rules
+                if r.location_src_id.warehouse_id
+            ),
+            False,
+        )
+        destination_wh = next(
+            (
+                r.location_dest_id.warehouse_id
+                for r in reversed(rules)
+                if r.location_dest_id.warehouse_id
+            ),
+            False,
+        )
+
+        if origin_wh and destination_wh and origin_wh != destination_wh:
+            return (origin_wh, destination_wh, total_leadtime)
+        return False
 
     def load_company(self):
         try:
@@ -1026,6 +1071,7 @@ class exporter(object):
                 fields=[
                     "complete_name",
                     "parent_id",
+                    "route_ids",
                 ],
             ):
                 self.categories[i["id"]] = i
@@ -1038,6 +1084,32 @@ class exporter(object):
                                 "complete_name"
                             ]
                         }
+                    if self.categories[i]["route_ids"]:
+                        for route in self.generator.getData(
+                            "stock.route",
+                            search=[("id", "in", self.categories[i]["route_ids"])],
+                            object=True,
+                        ):
+                            if not route.active:
+                                continue
+                            r = self.get_interwarehouse_route_info(route)
+                            if not r:
+                                continue
+                            origin_wh, destination_wh, leadtime_days = r
+                            origin_wh_name = self.warehouses.get(origin_wh.id)
+                            destination_wh_name = self.warehouses.get(destination_wh.id)
+                            if not origin_wh_name or not destination_wh_name:
+                                continue
+                            if not item.get("itemdistributions"):
+                                item["itemdistributions"] = []
+                            item["itemdistributions"].append(
+                                {
+                                    "origin": {"name": origin_wh_name},
+                                    "destination": {"name": destination_wh_name},
+                                    "leadtime": (leadtime_days or 0) * 86400,
+                                    "priority": 10,  # Medium priority as this is a rule at product level
+                                }
+                            )
                     yield json.dumps(item) + ",\n"
                 except Exception as e:
                     yield from self.flagException(f"exporting item hierarchy {i}", e)
@@ -1429,6 +1501,31 @@ class exporter(object):
                                         1
                                     ].strftime("%Y-%m-%d")
                                 item["itemsuppliers"].append(itemsupplier)
+                    # create the distribution orders
+                    if tmpl["route_ids"]:
+                        for route in self.generator.getData(
+                            "stock.route",
+                            search=[("id", "in", tmpl["route_ids"])],
+                            object=True,
+                        ):
+                            r = self.get_interwarehouse_route_info(route)
+                            if not r:
+                                continue
+                            origin_wh, destination_wh, leadtime_days = r
+                            origin_wh_name = self.warehouses.get(origin_wh.id)
+                            destination_wh_name = self.warehouses.get(destination_wh.id)
+                            if not origin_wh_name or not destination_wh_name:
+                                continue
+                            if not item.get("itemdistributions"):
+                                item["itemdistributions"] = []
+                            item["itemdistributions"].append(
+                                {
+                                    "origin": {"name": origin_wh_name},
+                                    "destination": {"name": destination_wh_name},
+                                    "leadtime": (leadtime_days or 0) * 86400,
+                                    "priority": 1,  # high priority as this is a rule at product level
+                                }
+                            )
                     yield json.dumps(item) + ",\n"
                 except Exception as e:
                     yield from self.flagException(f"exporting item {i}", e)
@@ -4080,3 +4177,57 @@ class exporter(object):
                     )
         except Exception as e:
             yield from self.flagException("exporting on hand inventory", e)
+
+    def export_itemdistributions(self):
+        try:
+            # 1. Look for the inter-warehouse routes for all warehouses
+            # starting from the destination warehouse
+            dest_warehouses = self.generator.getData(
+                "stock.warehouse",
+                object=True,
+            )
+            item = {"name": "All items", "itemdistributions": []}
+            for dest_wh in dest_warehouses:
+                try:
+                    dest_wh_name = self.warehouses.get(dest_wh.id)
+                    if not dest_wh_name:
+                        continue
+
+                    for route in dest_wh.resupply_route_ids.filtered(
+                        lambda r: r.active
+                    ):
+                        total_lead_time = 0
+                        rules = route.rule_ids.filtered(
+                            lambda r: r.active and r.action in ["pull", "pull_push"]
+                        )
+                        is_multi_warehouse_route = False
+                        if not rules:
+                            return None
+                        for rule in rules:
+                            src_wh_name = self.map_locations.get(
+                                rule.location_src_id.id
+                            )
+                            if src_wh_name != dest_wh_name:
+                                # this route is a multi-warehouse route
+                                is_multi_warehouse_route = True
+                                break
+
+                        if is_multi_warehouse_route:
+                            total_lead_time = sum(rules.mapped("delay"))
+
+                            item["itemdistributions"].append(
+                                {
+                                    "origin": {"name": src_wh_name},
+                                    "destination": {"name": dest_wh_name},
+                                    "leadtime": total_lead_time * 86400,
+                                    "priority": 99,  # low priority as this is an All items rule
+                                }
+                            )
+                except Exception as e:
+                    yield from self.flagException(
+                        f"exporting item distribution for warehouse {dest_wh_name} and route id {route.id}",
+                        e,
+                    )
+            yield json.dumps(item)
+        except Exception as e:
+            yield from self.flagException("exporting itemdistributions", e)
