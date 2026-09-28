@@ -44,6 +44,7 @@ from freppledb.input.models import (
     Demand,
     WorkOrder,
     ItemSupplier,
+    ItemDistribution,
 )
 
 # THE CODE IN THIS FILE IS NOT EXECUTED BY THE ODOO TEST SUITE.
@@ -141,6 +142,131 @@ class OdooTest(TransactionTestCase):
                 ],
                 {"tz": "UTC"},
             ],
+        )
+
+    def odooCreate(self, odoo_model, values):
+        return self.models.execute_kw(
+            self.db, self.uid, self.password, odoo_model, "create", [values]
+        )
+
+    def odooWrite(self, odoo_model, record_ids, values):
+        return self.models.execute_kw(
+            self.db, self.uid, self.password, odoo_model, "write", [record_ids, values]
+        )
+
+    def test_warehouse_distribution(self):
+        """
+        Odoo resupply routes between warehouses must arrive in frepple as item
+        distributions, at the granularity odoo assigns them.
+
+        The test builds 3 warehouses and the 3 assignment levels:
+          - WH supplies SHOP1, selected on the warehouse   -> root item
+          - WH supplies SHOP2, selected on a category      -> category item
+          - SHOP2 supplies SHOP1, selected on a product    -> product item
+        """
+        self.odooRPCinit()
+
+        main = self.odooRPC("stock.warehouse", [("code", "=", "WH")], {"limit": 1})[0]
+        company = main["company_id"][0]
+        shop1 = self.odooCreate(
+            "stock.warehouse",
+            {"name": "Shop One", "code": "SHOP1", "company_id": company},
+        )
+        shop2 = self.odooCreate(
+            "stock.warehouse",
+            {"name": "Shop Two", "code": "SHOP2", "company_id": company},
+        )
+        # Creating the resupply links creates the inter-warehouse routes
+        self.odooWrite(
+            "stock.warehouse",
+            [shop1],
+            {"resupply_wh_ids": [(6, 0, [main["id"], shop2])]},
+        )
+        self.odooWrite(
+            "stock.warehouse", [shop2], {"resupply_wh_ids": [(6, 0, [main["id"]])]}
+        )
+
+        routes = {}
+        for r in self.odooRPC(
+            "stock.route",
+            [("supplied_wh_id", "in", [shop1, shop2])],
+            {},
+            ["supplied_wh_id", "supplier_wh_id", "rule_ids"],
+        ):
+            routes[(r["supplied_wh_id"][0], r["supplier_wh_id"][0])] = r
+        self.assertEqual(len(routes), 3, "expected 3 inter-warehouse routes")
+
+        # A distinct lead time per route, on the rule that lands in the destination
+        for key, delay in (
+            ((shop1, main["id"]), 2),
+            ((shop2, main["id"]), 1),
+            ((shop1, shop2), 3),
+        ):
+            for rule in self.odooRPC(
+                "stock.rule",
+                [("id", "in", routes[key]["rule_ids"])],
+                {},
+                ["propagate_warehouse_id"],
+            ):
+                if rule["propagate_warehouse_id"]:
+                    self.odooWrite("stock.rule", [rule["id"]], {"delay": delay})
+
+        # Level 1, the warehouse: SHOP1 is supplied by WH for every item
+        self.odooWrite(
+            "stock.warehouse",
+            [shop1],
+            {"route_ids": [(4, routes[(shop1, main["id"])]["id"])]},
+        )
+        # Level 2, a category: that category is supplied at SHOP2 by WH
+        root_categ = self.odooRPC(
+            "product.category", [("parent_id", "=", False)], {"limit": 1}
+        )[0]["id"]
+        categ = self.odooCreate(
+            "product.category", {"name": "Distribution test", "parent_id": root_categ}
+        )
+        self.odooWrite(
+            "stock.route",
+            [routes[(shop2, main["id"])]["id"]],
+            {"categ_ids": [(4, categ)]},
+        )
+        # Level 3, a product: this one is supplied at SHOP1 by SHOP2 instead
+        product = self.odooCreate(
+            "product.template",
+            {
+                "name": "Distribution test product",
+                "is_storable": True,
+                "categ_id": categ,
+            },
+        )
+        self.odooWrite(
+            "product.template",
+            [product],
+            {"route_ids": [(4, routes[(shop1, shop2)]["id"])]},
+        )
+
+        management.call_command("runplan", plantype=1, constraint="", env="odoo_read_1")
+
+        found = {
+            (d.item.name, d.location.name, d.origin.name): d.leadtime.days
+            for d in ItemDistribution.objects.filter(source="odoo_1")
+        }
+        self.assertEqual(
+            found,
+            {
+                ("All", "SHOP1", "WH"): 2,
+                ("All / Distribution test", "SHOP2", "WH"): 1,
+                ("Distribution test product", "SHOP1", "SHOP2"): 3,
+            },
+            "unexpected item distributions imported from odoo",
+        )
+
+        # Switching the export off removes what the connector owns
+        self.odooWrite("res.company", [company], {"export_itemdistributions": False})
+        management.call_command("runplan", plantype=1, constraint="", env="odoo_read_1")
+        self.assertEqual(
+            ItemDistribution.objects.filter(source="odoo_1").count(),
+            0,
+            "item distributions should not be exported when the option is off",
         )
 
     def test_odoo_e2e(self):
