@@ -1108,6 +1108,7 @@ class exporter(object):
                                     "destination": {"name": destination_wh_name},
                                     "leadtime": (leadtime_days or 0) * 86400,
                                     "priority": 10,  # Medium priority as this is a rule at product level
+                                    "route_id": route.id,
                                 }
                             )
                     yield json.dumps(item) + ",\n"
@@ -1524,6 +1525,7 @@ class exporter(object):
                                     "destination": {"name": destination_wh_name},
                                     "leadtime": (leadtime_days or 0) * 86400,
                                     "priority": 1,  # high priority as this is a rule at product level
+                                    "route_id": route.id,
                                 }
                             )
                     yield json.dumps(item) + ",\n"
@@ -4221,6 +4223,7 @@ class exporter(object):
                                     "destination": {"name": dest_wh_name},
                                     "leadtime": total_lead_time * 86400,
                                     "priority": 99,  # low priority as this is an All items rule
+                                    "route_id": route.id,
                                 }
                             )
                 except Exception as e:
