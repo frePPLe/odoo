@@ -251,6 +251,8 @@ class exporter(object):
             yield from self.export_manufacturingorders()
             logger.debug("Exporting reordering rules.")
             yield from self.export_orderpoints()
+            logger.debug("Exporting item distributions.")
+            yield from self.export_itemdistributions()
 
             if self.has_expiry:
                 logger.debug("Exporting stock orders.")
@@ -274,6 +276,7 @@ class exporter(object):
                 "calendar",
                 "manufacturing_warehouse",
                 "respect_reservations",
+                "export_itemdistributions",
             ],
         ):
             self.company_id = i["id"]
@@ -283,6 +286,7 @@ class exporter(object):
             self.po_lead = i["po_lead"]
             self.manufacturing_lead = i["manufacturing_lead"]
             self.respect_reservations = i["respect_reservations"]
+            self.with_itemdistributions = i["export_itemdistributions"]
             try:
                 self.calendar = (
                     i["calendar"]
@@ -3659,6 +3663,116 @@ class exporter(object):
                     )
             if not first:
                 yield "</calendars>\n"
+
+    def export_itemdistributions(self):
+        """
+        Generate the item distributions to frePPLe, based on the inter-warehouse
+        resupply routes in odoo.
+
+        When a warehouse is resupplied from another warehouse, odoo creates a route
+        that carries the supplied and the supplying warehouse. The rules of that
+        route move the goods through a transit location, which belongs to no
+        warehouse, so no single rule has its source and its destination in 2
+        different warehouses. The warehouse pair is therefore read from the route.
+
+        Odoo applies the most specific route assignment: a route on the product or
+        on its category wins over a route selected on the warehouse. We export at
+        the same granularity, which also keeps the number of records low:
+          - route assigned to products    -> one distribution per product
+          - route assigned to categories  -> one distribution on the category item
+          - route selected on a warehouse -> one distribution on the root item
+
+        Mapping:
+        stock.route.supplied_wh_id -> itemdistribution.destination
+        stock.route.supplier_wh_id -> itemdistribution.origin
+        stock.route.product_ids / categ_ids / warehouse_ids -> itemdistribution.item
+        sum of the delay of the pull rules -> itemdistribution.leadtime
+        """
+        if not getattr(self, "with_itemdistributions", True):
+            return
+
+        # Routes that describe a resupply between 2 warehouses.
+        # Ordered by sequence, so the route odoo would pick comes first.
+        routes = [
+            r
+            for r in self.generator.getData(
+                "stock.route",
+                search=[
+                    ("supplied_wh_id", "!=", False),
+                    ("supplier_wh_id", "!=", False),
+                ],
+                order="sequence,id",
+                fields=[
+                    "supplied_wh_id",
+                    "supplier_wh_id",
+                    "rule_ids",
+                    "product_ids",
+                    "categ_ids",
+                    "warehouse_ids",
+                ],
+            )
+            if r["supplied_wh_id"][0] in self.warehouses
+            and r["supplier_wh_id"][0] in self.warehouses
+        ]
+        if not routes:
+            return
+
+        # The lead time of a route is the sum of the delays of its pull rules,
+        # the same aggregation odoo uses in stock.rule._get_lead_days
+        leadtimes = {}
+        for rule in self.generator.getData(
+            "stock.rule",
+            ids=[i for r in routes for i in r["rule_ids"]],
+            fields=["route_id", "action", "delay"],
+        ):
+            if rule["action"] in ("pull", "pull_push") and rule["route_id"]:
+                leadtimes[rule["route_id"][0]] = leadtimes.get(
+                    rule["route_id"][0], 0
+                ) + (rule["delay"] or 0)
+
+        # All variants of a template: a route on the template applies to all of them
+        variants = {}
+        for p in self.product_product.values():
+            variants.setdefault(p["template"], []).append(p["name"])
+
+        # Root of the item hierarchy, ie the root product category of odoo
+        roots = [
+            c["complete_name"] for c in self.categories.values() if not c["parent_id"]
+        ]
+
+        # Collect the distributions. The key is what frepple makes unique as well,
+        # so a second route for the same item and warehouse pair is skipped.
+        distributions = {}
+        for r in routes:
+            destination = self.warehouses[r["supplied_wh_id"][0]]
+            origin = self.warehouses[r["supplier_wh_id"][0]]
+            leadtime = leadtimes.get(r["id"], 0)
+            items = []
+            for tmpl in r["product_ids"]:
+                items.extend(variants.get(tmpl, []))
+            for categ in r["categ_ids"]:
+                if categ in self.categories:
+                    items.append(self.categories[categ]["complete_name"])
+            if r["supplied_wh_id"][0] in r["warehouse_ids"]:
+                # Selected on the warehouse it supplies: the default for all items
+                items.extend(roots)
+            for item in items:
+                distributions.setdefault((item, destination, origin), leadtime)
+
+        first = True
+        for (item, destination, origin), leadtime in distributions.items():
+            if first:
+                yield "<!-- item distributions -->\n"
+                yield "<itemdistributions>\n"
+                first = False
+            yield '<itemdistribution leadtime="P%dD"><item name=%s/><destination name=%s/><origin name=%s/></itemdistribution>\n' % (
+                leadtime,
+                quoteattr(item),
+                quoteattr(destination),
+                quoteattr(origin),
+            )
+        if not first:
+            yield "</itemdistributions>\n"
 
     # export_stockorders will be called instead of export_onhand
     # when expiration dates is enabled in Odoo
