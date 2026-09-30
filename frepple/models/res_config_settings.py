@@ -59,6 +59,3 @@ class ResConfigSettings(models.TransientModel):
         related="company_id.frepple_interface_user",
         readonly=False,
     )
-    export_itemdistributions = fields.Boolean(
-        related="company_id.export_itemdistributions", readonly=False
-    )

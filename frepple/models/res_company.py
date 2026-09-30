@@ -58,13 +58,6 @@ class ResCompany(models.Model):
     frepple_interface_user = fields.Many2one(
         "res.users", "frePPLe interface user", ondelete="set null"
     )
-    export_itemdistributions = fields.Boolean(
-        "Export warehouse distributions",
-        default=True,
-        help="When checked the resupply routes between warehouses are exported to "
-        "frepple as item distributions. Uncheck it when you maintain the item "
-        "distributions directly in frepple.",
-    )
 
     def getWebtoken_key(self):
         return self.env.company.webtoken_key

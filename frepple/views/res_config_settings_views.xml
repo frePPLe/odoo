@@ -86,17 +86,6 @@
                            <field name="respect_reservations"/>
                         </div>
                      </div>
-                     <div class="col-12 col-lg-6 o_setting_box" id="frepple_export_itemdistributions">
-                        <div class="o_setting_left_pane"/>
-                        <div class="o_setting_right_pane">
-                           <label for="export_itemdistributions"/>
-                           <div class="text-muted">
-                     When checked the resupply routes between warehouses are exported to frepple as item distributions.<br/>
-                     Uncheck it when you maintain the item distributions directly in frepple.
-                           </div>
-                           <field name="export_itemdistributions"/>
-                        </div>
-                     </div>
                      <div class="col-12 col-lg-6 o_setting_box" id="frepple_disclose_stack_trace">
                         <div class="o_setting_left_pane"/>
                         <div class="o_setting_right_pane">

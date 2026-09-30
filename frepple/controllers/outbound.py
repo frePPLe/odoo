@@ -276,7 +276,6 @@ class exporter(object):
                 "calendar",
                 "manufacturing_warehouse",
                 "respect_reservations",
-                "export_itemdistributions",
             ],
         ):
             self.company_id = i["id"]
@@ -286,7 +285,6 @@ class exporter(object):
             self.po_lead = i["po_lead"]
             self.manufacturing_lead = i["manufacturing_lead"]
             self.respect_reservations = i["respect_reservations"]
-            self.with_itemdistributions = i["export_itemdistributions"]
             try:
                 self.calendar = (
                     i["calendar"]
@@ -3688,8 +3686,6 @@ class exporter(object):
         stock.route.product_ids / categ_ids / warehouse_ids -> itemdistribution.item
         sum of the delay of the pull rules -> itemdistribution.leadtime
         """
-        if not getattr(self, "with_itemdistributions", True):
-            return
 
         # Routes that describe a resupply between 2 warehouses.
         # Ordered by sequence, so the route odoo would pick comes first.
@@ -3743,30 +3739,52 @@ class exporter(object):
         # Collect the distributions. The key is what frepple makes unique as well,
         # so a second route for the same item and warehouse pair is skipped.
         distributions = {}
+        priority_item = 1
+        priority_category = 10
+        priority_warehouse = 99
         for r in routes:
             destination = self.warehouses[r["supplied_wh_id"][0]]
             origin = self.warehouses[r["supplier_wh_id"][0]]
+            destination_obj = self.generator.getData(
+                "stock.warehouse",
+                ids=[r["supplied_wh_id"][0]],
+                object=True,
+            )[0]
             leadtime = leadtimes.get(r["id"], 0)
             items = []
             for tmpl in r["product_ids"]:
-                items.extend(variants.get(tmpl, []))
+                items.extend((item, priority_item) for item in variants.get(tmpl, []))
             for categ in r["categ_ids"]:
                 if categ in self.categories:
-                    items.append(self.categories[categ]["complete_name"])
-            if r["supplied_wh_id"][0] in r["warehouse_ids"]:
+                    items.append(
+                        (self.categories[categ]["complete_name"], priority_category)
+                    )
+
+            if (
+                r["supplier_wh_id"][0] in destination_obj.resupply_wh_ids.ids
+                or r["supplied_wh_id"][0] in r["warehouse_ids"]
+            ):
                 # Selected on the warehouse it supplies: the default for all items
-                items.extend(roots)
-            for item in items:
-                distributions.setdefault((item, destination, origin), leadtime)
+                items.extend((item, priority_warehouse) for item in roots)
+            for item, priority in items:
+                distributions.setdefault(
+                    (item, destination, origin), (leadtime, priority, r["id"])
+                )
 
         first = True
-        for (item, destination, origin), leadtime in distributions.items():
+        for (item, destination, origin), (
+            leadtime,
+            priority,
+            route_id,
+        ) in distributions.items():
             if first:
                 yield "<!-- item distributions -->\n"
                 yield "<itemdistributions>\n"
                 first = False
-            yield '<itemdistribution leadtime="P%dD"><item name=%s/><destination name=%s/><origin name=%s/></itemdistribution>\n' % (
+            yield '<itemdistribution priority="%d" leadtime="P%dD"><doubleproperty name="route_id" value="%d"/><item name=%s/><destination name=%s/><origin name=%s/></itemdistribution>\n' % (
+                priority,
                 leadtime,
+                route_id,
                 quoteattr(item),
                 quoteattr(destination),
                 quoteattr(origin),

@@ -260,15 +260,6 @@ class OdooTest(TransactionTestCase):
             "unexpected item distributions imported from odoo",
         )
 
-        # Switching the export off removes what the connector owns
-        self.odooWrite("res.company", [company], {"export_itemdistributions": False})
-        management.call_command("runplan", plantype=1, constraint="", env="odoo_read_1")
-        self.assertEqual(
-            ItemDistribution.objects.filter(source="odoo_1").count(),
-            0,
-            "item distributions should not be exported when the option is off",
-        )
-
     def test_odoo_e2e(self):
         # Import odoo data
         self.assertEqual(
