@@ -249,6 +249,8 @@ class exporter(object):
             yield from self.export_purchaseorders()
             logger.debug("Exporting manufacturing orders.")
             yield from self.export_manufacturingorders()
+            logger.debug("Exporting distribution orders.")
+            yield from self.export_distributionorders()
             logger.debug("Exporting reordering rules.")
             yield from self.export_orderpoints()
             logger.debug("Exporting item distributions.")
@@ -3542,6 +3544,75 @@ class exporter(object):
                     yield "</operationplan>\n"
         yield "</operationplans>\n"
 
+    def export_distributionorders(self):
+        """
+        Extracting inter warehouse transfers.
+
+        We extract stock moves where the source location is a transit location and
+        the destination location is an internal location.
+        Depending on the previous stock move state (the stock move in the source warehouse from an
+        internal location to the transit location), we will know if the stock is still in the origin
+        warehouse or is in the transit location where it belongs to no warehouse.
+
+        Mapping:
+
+        """
+        now = datetime.now()
+
+        yield "<!-- distribution orders in progress -->\n"
+        yield "<operationplans>\n"
+        arrivals = self.generator.getData(
+            "stock.move",
+            search=[
+                ("location_id.usage", "=", "transit"),
+                ("location_dest_id.usage", "=", "internal"),
+                ("state", "not in", ("done", "cancel")),
+            ],
+            object=True,
+        )
+        for arr in arrivals:
+            deps = arr.move_orig_ids.filtered(
+                lambda m: m.location_id.usage == "internal"
+                and m.location_dest_id.usage == "transit"
+                and m.state != "cancel"
+            )
+            if not deps:
+                continue  # orphan arrival, very likely not an interwarehouse transfer
+            origin_wh = self.warehouses.get(deps[0].location_id.warehouse_id.id)
+            destination_wh = self.warehouses.get(arr.location_dest_id.warehouse_id.id)
+            product = self.product_product.get(arr.product_id.id)
+            if (
+                not product
+                or not origin_wh
+                or not destination_wh
+                or origin_wh == destination_wh
+            ):
+                continue
+            qty = arr.product_uom._compute_quantity(
+                arr.product_uom_qty, arr.product_id.uom_id
+            )
+            shipping_date = min(deps.mapped("date")).strftime("%Y-%m-%d %H:%M:%S")
+            receipt_date = arr.date.strftime("%Y-%m-%d %H:%M:%S")
+            in_transit = all(d.state == "done" for d in deps)
+            yield (
+                '<operationplan reference=%s ordertype="DO" start="%s" end="%s" quantity="%f" status="confirmed">'
+                "<item name=%s/><location name=%s/>%s"
+                "</operationplan>\n"
+            ) % (
+                quoteattr(f"{arr.picking_id.name} {arr.id}"),
+                shipping_date,
+                receipt_date,
+                qty,
+                quoteattr(product["name"]),
+                quoteattr(destination_wh),
+                (
+                    ("<origin name=%s/>" % quoteattr(origin_wh))
+                    if not in_transit
+                    else ""
+                ),  # we don't want to subtract the move quantity from the origin on hand if the move has reached the transit location
+            )
+        yield "</operationplans>\n"
+
     def export_orderpoints(self):
         """
         Defining order points for frePPLe, based on the stock.warehouse.orderpoint
@@ -3733,7 +3804,8 @@ class exporter(object):
 
         # Root of the item hierarchy, ie the root product category of odoo
         roots = [
-            c["complete_name"] for c in self.categories.values() if not c["parent_id"]
+            "All items",  # We use the default 'All items' from Frepple to have one less level of hierarchy
+            # c["complete_name"] for c in self.categories.values() if not c["parent_id"]
         ]
 
         # Collect the distributions. The key is what frepple makes unique as well,
@@ -3989,17 +4061,24 @@ class exporter(object):
                 "|",
                 ["move_id.group_id", "=", False],
                 ["move_id.group_id.sale_id", "=", False],
+                [
+                    "move_id.location_id.usage",
+                    "!=",
+                    "transit",
+                ],  # we don't want to reserve stock that hasn't reached yet the destination warehouse
             ],
-            fields=[
-                "product_id",
-                "quantity",
-                "location_dest_id",
-                "move_id",
-            ],
+            object=True,
             order="product_id asc",
         ):
-            item = self.product_product.get(mvln["product_id"][0], None)
-            location = self.map_locations.get(mvln["location_dest_id"][0], None)
+            item = self.product_product.get(mvln.product_id.id, None)
+            location = self.map_locations.get(
+                (
+                    mvln.location_dest_id.id
+                    if mvln.location_dest_id.usage != "transit"
+                    else mvln.location_id.id
+                ),
+                None,
+            )
             if item and location:
                 inventory[(item["name"], location)] = (
                     inventory.get((item["name"], location), 0) + mvln["quantity"]
