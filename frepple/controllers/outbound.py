@@ -1067,6 +1067,7 @@ class exporter(object):
         supplierinfo.date_end -> itemsupplier.effective_end
         product.product.product_tmpl_id.delay -> itemsupplier.leadtime
         supplierinfo.sequence -> itemsupplier.priority
+        warehouses of the buy rules on the product, category or warehouse routes -> itemsupplier.location
         """
 
         # Read the product tags
@@ -1182,6 +1183,47 @@ class exporter(object):
                     itemsuppliers_tmpl[i["product_tmpl_id"][0]].append(i)
                 else:
                     itemsuppliers_tmpl[i["product_tmpl_id"][0]] = [i]
+
+        # Warehouses receiving the goods of each buy route
+        buy_routes = {}
+        for rule in self.generator.getData(
+            "stock.rule",
+            search=[("action", "=", "buy")],
+            fields=["route_id", "warehouse_id", "location_dest_id"],
+        ):
+            if not rule["route_id"]:
+                continue
+            wh = (
+                self.warehouses.get(rule["warehouse_id"][0])
+                if rule["warehouse_id"]
+                else None
+            ) or (
+                self.map_locations.get(rule["location_dest_id"][0])
+                if rule["location_dest_id"]
+                else None
+            )
+            if wh:
+                buy_routes.setdefault(rule["route_id"][0], set()).add(wh)
+
+        # Warehouses buying all products because a buy route is selected on the warehouse
+        buy_warehouses_default = set()
+        if buy_routes:
+            for wh in self.generator.getData("stock.warehouse", fields=["route_ids"]):
+                code = self.warehouses.get(wh["id"])
+                if any(code in buy_routes.get(r, ()) for r in wh["route_ids"]):
+                    buy_warehouses_default.add(code)
+
+        # Routes of each category, including the ones inherited from parent categories
+        categ_routes = (
+            {
+                c["id"]: c["total_route_ids"]
+                for c in self.generator.getData(
+                    "product.category", fields=["total_route_ids"]
+                )
+            }
+            if buy_routes
+            else {}
+        )
 
         # Read the products
         first = True
@@ -1410,30 +1452,45 @@ class exporter(object):
                             "date_end": sup["date_end"],
                         }
                 if suppliers:
+                    if "buy_warehouses" not in tmpl:
+                        buy_warehouses = set(buy_warehouses_default)
+                        for r in tmpl["route_ids"] + (
+                            categ_routes.get(tmpl["categ_id"][0], [])
+                            if tmpl["categ_id"]
+                            else []
+                        ):
+                            buy_warehouses |= buy_routes.get(r, set())
+                        tmpl["buy_warehouses"] = sorted(buy_warehouses)
+                    # Without any buy route, you are not getting any itemsupplier record
+                    locations = tmpl[
+                        "buy_warehouses"
+                    ]  #  or [None] # uncomment to get an itemsupplier record with an empty location
                     yield "<itemsuppliers>\n"
                     for k, v in suppliers.items():
                         if v["date_end"] and v["date_end"] < self.currentdate.date():
                             continue
-                        yield '<itemsupplier leadtime="P%dD" priority="%s" batchwindow="P%dD" size_minimum="%f" cost="%f"%s%s><supplier name=%s/></itemsupplier>\n' % (
-                            v["delay"],
-                            v["sequence"] or -1,
-                            v["batching_window"] or 0,
-                            v["min_qty"],
-                            max(0, v["price"]),
-                            (
-                                ' effective_end="%sT00:00:00"'
-                                % v["date_end"].strftime("%Y-%m-%d")
-                                if v["date_end"]
-                                else ""
-                            ),
-                            (
-                                ' effective_start="%sT00:00:00"'
-                                % k[1].strftime("%Y-%m-%d")
-                                if k[1]
-                                else ""
-                            ),
-                            quoteattr(k[0]),
-                        )
+                        for loc in locations:
+                            yield '<itemsupplier leadtime="P%dD" priority="%s" batchwindow="P%dD" size_minimum="%f" cost="%f"%s%s><supplier name=%s/>%s</itemsupplier>\n' % (
+                                v["delay"],
+                                v["sequence"] or -1,
+                                v["batching_window"] or 0,
+                                v["min_qty"],
+                                max(0, v["price"]),
+                                (
+                                    ' effective_end="%sT00:00:00"'
+                                    % v["date_end"].strftime("%Y-%m-%d")
+                                    if v["date_end"]
+                                    else ""
+                                ),
+                                (
+                                    ' effective_start="%sT00:00:00"'
+                                    % k[1].strftime("%Y-%m-%d")
+                                    if k[1]
+                                    else ""
+                                ),
+                                quoteattr(k[0]),
+                                ("<location name=%s/>" % quoteattr(loc) if loc else ""),
+                            )
                     yield "</itemsuppliers>\n"
             yield "</item>\n"
         if not first:
@@ -3557,8 +3614,6 @@ class exporter(object):
         Mapping:
 
         """
-        now = datetime.now()
-
         yield "<!-- distribution orders in progress -->\n"
         yield "<operationplans>\n"
         arrivals = self.generator.getData(
@@ -3591,6 +3646,27 @@ class exporter(object):
             qty = arr.product_uom._compute_quantity(
                 arr.product_uom_qty, arr.product_id.uom_id
             )
+            # We want to look in the same procurement group for the reserved quantity in the origin warehouse.
+            # We assume that either the entire quantity is reverved or none is reserved.
+            # If no quantity is reserved, we need to set the origin location at DO level so that Frepple
+            # consumes the stock.
+            # If all the quantity is reserved, then no need to decrease the stock. The origin at DO level will be empty.
+            qty_reserved_at_origin = sum(
+                [
+                    sm.quantity
+                    for sm in arr.group_id.stock_move_ids  # check all the stock moves of the procurement group
+                    if sm.state
+                    in [
+                        "assigned",
+                        "partially_available",
+                    ]  # if it is assigned, then there is some reservation
+                    and sm.location_id.warehouse_id.id
+                    == deps[
+                        0
+                    ].location_id.warehouse_id.id  # make sure we are talking about the origin warehouse
+                ]
+            )
+
             shipping_date = min(deps.mapped("date")).strftime("%Y-%m-%d %H:%M:%S")
             receipt_date = arr.date.strftime("%Y-%m-%d %H:%M:%S")
             in_transit = all(d.state == "done" for d in deps)
@@ -3607,7 +3683,7 @@ class exporter(object):
                 quoteattr(destination_wh),
                 (
                     ("<origin name=%s/>" % quoteattr(origin_wh))
-                    if not in_transit
+                    if not qty_reserved_at_origin and not in_transit
                     else ""
                 ),  # we don't want to subtract the move quantity from the origin on hand if the move has reached the transit location
             )
@@ -4040,9 +4116,25 @@ class exporter(object):
 
         # All reservations were removed from the previous SQL query, but some
         # of them need to added back.
-        # Only reservations that are linked to a manufacturing order or sale order should be
+        # Only reservations that are linked to a manufacturing order or sale order
+        # or distribution order should be
         # subtracted from the inventory (since we account for them separately by reducing the
         # required quantity).
+
+        # Look for the procurement groups for distribution orders
+        do_group_ids = [
+            sm["group_id"][0]
+            for sm in self.generator.getData(
+                "stock.move",
+                search=[
+                    ("location_id.usage", "=", "transit"),
+                    ("location_dest_id.usage", "=", "internal"),
+                    ("state", "not in", ("done", "cancel")),
+                ],
+                fields=["group_id"],
+            )
+        ]
+
         for mvln in self.generator.getData(
             "stock.move.line",
             search=[
@@ -4051,6 +4143,8 @@ class exporter(object):
                 # not linked to a manufacturing, sales or purchase order
                 ["production_id", "=", False],
                 ["workorder_id", "=", False],
+                # not linked to a distribution order
+                ["move_id.group_id", "not in", do_group_ids],
                 "|",
                 ["picking_id", "=", False],
                 ["picking_id.purchase_id", "=", False],
@@ -4061,24 +4155,17 @@ class exporter(object):
                 "|",
                 ["move_id.group_id", "=", False],
                 ["move_id.group_id.sale_id", "=", False],
-                [
-                    "move_id.location_id.usage",
-                    "!=",
-                    "transit",
-                ],  # we don't want to reserve stock that hasn't reached yet the destination warehouse
             ],
-            object=True,
+            fields=[
+                "product_id",
+                "quantity",
+                "location_dest_id",
+                "move_id",
+            ],
             order="product_id asc",
         ):
-            item = self.product_product.get(mvln.product_id.id, None)
-            location = self.map_locations.get(
-                (
-                    mvln.location_dest_id.id
-                    if mvln.location_dest_id.usage != "transit"
-                    else mvln.location_id.id
-                ),
-                None,
-            )
+            item = self.product_product.get(mvln["product_id"][0], None)
+            location = self.map_locations.get(mvln["location_dest_id"][0], None)
             if item and location:
                 inventory[(item["name"], location)] = (
                     inventory.get((item["name"], location), 0) + mvln["quantity"]
