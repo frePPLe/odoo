@@ -1,62 +1,64 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-		<record id="product_supplierinfo_150" model="product.supplierinfo">
-            <field name="product_tmpl_id" ref="product_template.cushion"/>
-            <field name="partner_id" ref="base.res_partner_18"/>
+        <record id="product_supplierinfo_150" model="product.supplierinfo">
+            <field name="product_tmpl_id" ref="product_template.cushion" />
+            <field name="partner_id" ref="base.res_partner_18" />
             <field name="delay">10</field>
             <field name="min_qty">10</field>
             <field name="price">10</field>
-            <field name="currency_id" ref="base.USD"/>
+            <field name="currency_id" ref="base.USD" />
         </record>
-		<record id="product_supplierinfo_151" model="product.supplierinfo">
-            <field name="product_tmpl_id" ref="product_template.varnish"/>
-            <field name="partner_id" ref="base.res_partner_12"/>
+        <record id="product_supplierinfo_151" model="product.supplierinfo">
+            <field name="product_tmpl_id" ref="product_template.varnish" />
+            <field name="partner_id" ref="base.res_partner_12" />
             <field name="delay">14</field>
             <field name="min_qty">50</field>
             <field name="price">5</field>
-            <field name="currency_id" ref="base.USD"/>
+            <field name="currency_id" ref="base.USD" />
         </record>
-		<record id="product_supplierinfo_152" model="product.supplierinfo">
-            <field name="product_tmpl_id" ref="product_template.wooden_beam"/>
-            <field name="partner_id" ref="base.res_partner_2"/>
+        <record id="product_supplierinfo_152" model="product.supplierinfo">
+            <field name="product_tmpl_id" ref="product_template.wooden_beam" />
+            <field name="partner_id" ref="base.res_partner_2" />
             <field name="delay">7</field>
-            <field name="min_qty">50</field>
-            <field name="price">3</field>
-            <field name="currency_id" ref="base.USD"/>
+            <field name="min_qty">6</field>
+            <field name="price">18</field>
+            <!-- specify the unit of measure for the supplier -->
+            <field name="product_uom_id" ref="uom.product_uom_pack_6" />
+            <field name="currency_id" ref="base.USD" />
         </record>
         <record id="product_supplierinfo_153" model="product.supplierinfo">
-            <field name="product_tmpl_id" ref="product_template.wooden_beam"/>
-            <field name="partner_id" ref="base.res_partner_18"/>
+            <field name="product_tmpl_id" ref="product_template.wooden_beam" />
+            <field name="partner_id" ref="base.res_partner_18" />
             <field name="delay">7</field>
             <field name="min_qty">1</field>
             <field name="price">9</field>
-            <field name="currency_id" ref="base.USD"/>
+            <field name="currency_id" ref="base.USD" />
             <field name="date_start">2029-01-01</field>
         </record>
-		<record id="product_supplierinfo_154" model="product.supplierinfo">
-            <field name="product_tmpl_id" ref="product_template.wooden_beam"/>
-            <field name="partner_id" ref="base.res_partner_18"/>
+        <record id="product_supplierinfo_154" model="product.supplierinfo">
+            <field name="product_tmpl_id" ref="product_template.wooden_beam" />
+            <field name="partner_id" ref="base.res_partner_18" />
             <field name="delay">7</field>
             <field name="min_qty">50</field>
             <field name="price">3</field>
-            <field name="currency_id" ref="base.USD"/>
+            <field name="currency_id" ref="base.USD" />
             <field name="date_end">2020-01-01</field>
         </record>
-		<record id="product_supplierinfo_155" model="product.supplierinfo">
-            <field name="product_tmpl_id" ref="product_template.custom_cushion"/>
-            <field name="partner_id" ref="base.res_partner_18"/>
+        <record id="product_supplierinfo_155" model="product.supplierinfo">
+            <field name="product_tmpl_id" ref="product_template.custom_cushion" />
+            <field name="partner_id" ref="base.res_partner_18" />
             <field name="delay">7</field>
             <field name="min_qty">50</field>
             <field name="price">3</field>
-            <field name="currency_id" ref="base.USD"/>
+            <field name="currency_id" ref="base.USD" />
         </record>
         <record id="product_supplierinfo_subcontract_chair" model="product.supplierinfo">
-            <field name="product_tmpl_id" ref="product_template.chair"/>
-            <field name="partner_id" ref="res_partner_subcontractor_chair"/>
+            <field name="product_tmpl_id" ref="product_template.chair" />
+            <field name="partner_id" ref="res_partner_subcontractor_chair" />
             <field name="delay">20</field>
             <field name="price">44</field>
-            <field name="currency_id" ref="base.USD"/>
+            <field name="currency_id" ref="base.USD" />
             <field name="date_end">2020-01-01</field>
         </record>
     </data>

@@ -271,6 +271,18 @@ class OdooTest(TransactionTestCase):
             2,
             "Item supplier with past effective end date should be ignored",
         )
+        self.assertEqual(
+            ItemSupplier.objects.all()
+            .filter(
+                item__name="wooden beam - 木头",
+                supplier__name__contains="Acme Corporation",
+                sizeminimum=36,
+                cost=3,
+            )
+            .count(),
+            1,
+            "Item supplier unit of measure should be correctly applied",
+        )
 
         self.assertEqual(
             ManufacturingOrder.objects.all()
