@@ -1237,6 +1237,7 @@ class exporter(object):
                 "product_tmpl_id",
                 "product_id",
                 "partner_id",
+                "product_uom_id",
                 "delay",
                 "min_qty",
                 "date_end",
@@ -1387,6 +1388,11 @@ class exporter(object):
                         for sup in itemsuppliers_product.get(
                             i["id"], itemsuppliers_tmpl.get(tmpl["id"], [])
                         ):
+                            purchase_uom_quantity = self.convert_qty_uom(
+                                1.0, sup["product_uom_id"], tmpl["id"]
+                            )
+                            price = max(0, sup["price"]) / purchase_uom_quantity
+                            min_qty = (sup["min_qty"] or 0) * purchase_uom_quantity
                             name = self.map_suppliers.get(sup["partner_id"][0], None)
                             if not name:
                                 # Skip uninterested suppliers (eg archived ones)
@@ -1412,11 +1418,11 @@ class exporter(object):
                                                 and sup["sequence"] < s["priority"]
                                             ):
                                                 s["priority"] = sup["sequence"]
-                                            if sup["min_qty"] and (
+                                            if min_qty and (
                                                 not s["size_minimum"]
-                                                or sup["min_qty"] < s["size_minimum"]
+                                                or min_qty < s["size_minimum"]
                                             ):
-                                                s["size_minimum"] = sup["min_qty"]
+                                                s["size_minimum"] = min_qty
                                             if sup["date_end"] and (
                                                 not s["date_end"]
                                                 or sup["date_end"] > s["date_end"]
@@ -1431,7 +1437,7 @@ class exporter(object):
                                             "name": name,
                                             "delay": sup["delay"],
                                             "priority": sup["sequence"] or -1,
-                                            "size_minimum": sup["min_qty"],
+                                            "size_minimum": min_qty,
                                             "date_start": sup["date_start"],
                                             "date_end": sup["date_end"],
                                         }
@@ -1454,14 +1460,10 @@ class exporter(object):
                                     or sup["batching_window"] > r["batching_window"]
                                 ):
                                     r["batching_window"] = sup["batching_window"]
-                                if sup["min_qty"] and (
-                                    not r["min_qty"] or sup["min_qty"] < r["min_qty"]
-                                ):
-                                    r["min_qty"] = sup["min_qty"]
-                                if sup["price"] and (
-                                    not r["price"] or sup["price"] < r["price"]
-                                ):
-                                    r["price"] = sup["price"]
+                                if min_qty and (not r["min_qty"] or min_qty < r["min_qty"]):
+                                    r["min_qty"] = min_qty
+                                if price and (not r["price"] or price < r["price"]):
+                                    r["price"] = price
                                 if r["date_end"] and (
                                     not sup["date_end"]
                                     or sup["date_end"] > r["date_end"]
@@ -1472,8 +1474,8 @@ class exporter(object):
                                     "delay": sup["delay"],
                                     "sequence": sup["sequence"] or -1,
                                     "batching_window": sup["batching_window"] or 0,
-                                    "min_qty": sup["min_qty"],
-                                    "price": max(0, sup["price"]),
+                                    "min_qty": min_qty,
+                                    "price": price,
                                     "date_end": sup["date_end"],
                                 }
                         if suppliers:
