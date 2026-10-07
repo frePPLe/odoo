@@ -3880,8 +3880,10 @@ class exporter(object):
 
         # Root of the item hierarchy, ie the root product category of odoo
         roots = [
-            "All items",  # We use the default 'All items' from Frepple to have one less level of hierarchy
-            # c["complete_name"] for c in self.categories.values() if not c["parent_id"]
+            # "All items",  # We use the default 'All items' from Frepple to have one less level of hierarchy
+            c["complete_name"]
+            for c in self.categories.values()
+            if not c["parent_id"]
         ]
 
         # Collect the distributions. The key is what frepple makes unique as well,
