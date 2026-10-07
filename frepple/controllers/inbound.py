@@ -29,7 +29,6 @@ from pytz import timezone, UTC
 from xml.etree.cElementTree import iterparse
 
 import odoo
-from odoo.addons.stock.models.stock_rule import Procurement
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +95,11 @@ class importer(object):
             bom_type = self.env["mrp.bom"].with_user(self.actual_user)
             stock_reference = self.env["stock.reference"].with_user(self.actual_user)
             stock_route = self.env["stock.route"].with_user(self.actual_user)
+            stock_rule = self.env["stock.rule"].with_user(self.actual_user)
             stock_warehouse = self.env["stock.warehouse"].with_user(self.actual_user)
+            procurement_group = self.env["procurement.group"].with_user(
+                self.actual_user
+            )
             stock_move = self.env["stock.move"].with_user(self.actual_user)
             change_product_qty = self.env["change.production.qty"].with_user(
                 self.actual_user
@@ -124,7 +127,9 @@ class importer(object):
             stck_picking_type = self.env["stock.picking.type"]
             stock_reference = self.env["stock.reference"]
             stock_route = self.env["stock.route"]
+            stock_rule = self.env["stock.rule"]
             stock_warehouse = self.env["stock.warehouse"]
+            procurement_group = self.env["procurement.group"]
             stock_move = self.env["stock.move"]
             change_product_qty = self.env["change.production.qty"]
             hasRequisition = True
@@ -563,26 +568,26 @@ class importer(object):
 
                         product_uom = uom_uom.browse(int(uom_id))
 
-                        procurement = Procurement(
+                        procurement = procurement_group.Procurement(
                             product,
                             quantity,
                             product_uom,
                             stock_warehouse.browse(
                                 destination_id
-                            ).lot_stock_id,  # a stock.location record
-                            product.display_name,
-                            st_reference.name,
-                            self.company,
+                            ).lot_stock_id,  # location_id
+                            product.display_name,  # name
+                            st_reference.name,  # origin
+                            self.company,  # company_id
                             {
                                 "route_ids": selected_route,
                                 "warehouse_id": stock_warehouse.browse(destination_id),
                                 "reference_ids": st_reference,
                                 "date_planned": date_shipping,
                                 "date_deadline": date_receiving,
-                            },
+                            },  # values
                         )
 
-                        self.env["stock.rule"].run([procurement])
+                        stock_rule.run([procurement])
 
                         # stock.rule.run returns True, so retrieve the result via the reference
                         pickings = stock_move.search(
