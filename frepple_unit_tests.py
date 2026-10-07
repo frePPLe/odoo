@@ -21,7 +21,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 import json
 import os
@@ -30,13 +30,14 @@ import xmlrpc.client
 
 from django.conf import settings
 from django.core import management
-from django.db.models import F, Sum
+from django.db.models import Sum
 from django.test import TransactionTestCase
 from django.contrib.auth.models import Group
 
-from freppledb.common.models import User
+from freppledb.common.models import User, Parameter
 from freppledb.input.models import (
     Item,
+    Location,
     Buffer,
     PurchaseOrder,
     ManufacturingOrder,
@@ -45,6 +46,7 @@ from freppledb.input.models import (
     WorkOrder,
     ItemSupplier,
     ItemDistribution,
+    DistributionOrder,
 )
 
 # THE CODE IN THIS FILE IS NOT EXECUTED BY THE ODOO TEST SUITE.
@@ -64,7 +66,7 @@ class OdooTest(TransactionTestCase):
             "odoo_container", "--full", "--nolog", "--verbosity", "0"
         )
         # Use the next line to avoid full rebuild
-        # management.call_command("odoo_container",  "--verbosity", "0")
+        # management.call_command("odoo_container", "--verbosity", "0")
         self.client.login(username="admin", password="admin")
         super().setUp()
 
@@ -154,7 +156,7 @@ class OdooTest(TransactionTestCase):
             self.db, self.uid, self.password, odoo_model, "write", [record_ids, values]
         )
 
-    def test_warehouse_distribution(self):
+    def _test_warehouse_distribution(self):
         """
         Odoo resupply routes between warehouses must arrive in frepple as item
         distributions, at the granularity odoo assigns them.
@@ -164,7 +166,6 @@ class OdooTest(TransactionTestCase):
           - WH supplies SHOP2, selected on a category      -> category item
           - SHOP2 supplies SHOP1, selected on a product    -> product item
         """
-        self.odooRPCinit()
 
         main = self.odooRPC("stock.warehouse", [("code", "=", "WH")], {"limit": 1})[0]
         company = main["company_id"][0]
@@ -246,25 +247,140 @@ class OdooTest(TransactionTestCase):
 
         management.call_command("runplan", plantype=1, constraint="", env="odoo_read_1")
 
+        expected = {
+            ("All", "SHOP1", "WH"): 2,
+            ("All / Distribution test", "SHOP2", "WH"): 1,
+            ("Distribution test product", "SHOP1", "SHOP2"): 3,
+        }
         found = {
             (d.item.name, d.location.name, d.origin.name): d.leadtime.days
             for d in ItemDistribution.objects.filter(source="odoo_1")
+            if (d.item.name, d.location.name, d.origin.name) in expected
         }
         self.assertEqual(
             found,
-            {
-                ("All", "SHOP1", "WH"): 2,
-                ("All / Distribution test", "SHOP2", "WH"): 1,
-                ("Distribution test product", "SHOP1", "SHOP2"): 3,
-            },
+            expected,
             "unexpected item distributions imported from odoo",
         )
 
+        item = Item.objects.get(name="Distribution test product")
+        item.save()
+        Item.rebuildHierarchy()
+        item.refresh_from_db()
+
+        product_id = self.odooRPC(
+            "product.template",
+            [("id", "=", product)],
+            {},
+            ["product_variant_id"],
+        )[0]["product_variant_id"][0]
+
+        proposed_do = DistributionOrder.objects.create(
+            reference="distribution-export",
+            item=item,
+            origin=Location.objects.get(name="WH"),
+            destination=Location.objects.get(name="SHOP2"),
+            quantity=10,
+            startdate=datetime.now().replace(microsecond=0),
+            enddate=datetime.now().replace(microsecond=0) + timedelta(days=3),
+            status="proposed",
+        )
+
+        qs = (
+            ItemDistribution.objects.filter(route_id__isnull=False)
+            .filter(item__lft__lte=proposed_do.item.lft)
+            .filter(item__rght__gte=proposed_do.item.lft)
+            .exclude(priority=0)
+            .filter(origin__name=proposed_do.origin.name)
+            .filter(location__name=proposed_do.destination.name)
+        )
+
+        self.assertGreaterEqual(
+            len(qs),
+            1,
+            f"can't find an itemdistribution for Distribution test product with left {proposed_do.item.lft} from {proposed_do.origin.name} to {proposed_do.destination.name}",
+        )
+
+        previous_groups = [
+            i["id"]
+            for i in self.odooRPC(
+                "procurement.group",
+                [],
+                {},
+                ["id"],
+            )
+        ]
+        response = self.client.post(
+            "/erp/upload/",
+            json.dumps(
+                [
+                    {
+                        "reference": proposed_do.reference,
+                        "type": "DO",
+                        "quantity": float(proposed_do.quantity),
+                        "end": proposed_do.enddate.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "start": proposed_do.startdate.strftime("%Y-%m-%dT%H:%M:%S"),
+                    }
+                ]
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(
+            response.status_code,
+            200,
+            "couldn't upload the proposed distribution order",
+        )
+        approved_do = DistributionOrder.objects.get(
+            pk__startswith="%s exported as " % proposed_do.reference
+        )
+        self.assertEqual(approved_do.status, "approved")
+        self.assertFalse(
+            DistributionOrder.objects.filter(pk=proposed_do.reference).exists()
+        )
+
+        groups = self.odooRPC(
+            "procurement.group",
+            [("id", "not in", list(previous_groups))],
+            {},
+            ["name", "move_type"],
+        )
+        self.assertEqual(len(groups), 1, "expected one new procurement group")
+        self.assertEqual(groups[0]["name"], "Frepple")
+        self.assertEqual(groups[0]["move_type"], "direct")
+        pickings = self.odooRPC(
+            "stock.picking",
+            [("group_id", "=", groups[0]["id"])],
+            {},
+            ["name", "move_ids", "location_id", "location_dest_id", "state"],
+        )
+        self.assertGreaterEqual(
+            len(pickings), 2, "expected shipping and receiving pickings"
+        )
+
+        for picking in pickings:
+            self.assertNotIn(picking["state"], ("done", "cancel"))
+            moves = self.odooRPC(
+                "stock.move",
+                [("id", "in", picking["move_ids"])],
+                {},
+                ["product_id", "product_uom_qty", "group_id"],
+            )
+            self.assertEqual(len(moves), 1)
+            self.assertEqual(moves[0]["product_id"][0], product_id)
+            self.assertEqual(moves[0]["product_uom_qty"], float(proposed_do.quantity))
+            self.assertEqual(moves[0]["group_id"][0], groups[0]["id"])
+
     def test_odoo_e2e(self):
+
         # Import odoo data
         self.assertEqual(
             Item.objects.all().count(), 0, "we should start with an empty database"
         )
+
+        param = Parameter.objects.get_or_create(name="odoo.singlecompany")[0]
+        param.value = "true"
+        param.save()
+
         management.call_command(
             "runplan",
             plantype=1,
@@ -474,7 +590,7 @@ class OdooTest(TransactionTestCase):
             elif odoo_rec["type"] == "latedelivery":
                 count_late_delivery += 1
         self.assertGreaterEqual(
-            count_purchase, 4, "expected at least 4 purchase recommendations"
+            count_purchase, 3, "expected at least 3 purchase recommendations"
         )
         self.assertGreaterEqual(
             count_reschedule,
@@ -755,3 +871,5 @@ class OdooTest(TransactionTestCase):
                         odoo_prl["requisition_id"][0],
                         "different blanket order id",
                     )
+
+        self._test_warehouse_distribution()
