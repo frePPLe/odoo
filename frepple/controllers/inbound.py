@@ -29,6 +29,7 @@ from pytz import timezone, UTC
 from xml.etree.cElementTree import iterparse
 
 import odoo
+from odoo.addons.stock.models.stock_rule import Procurement
 
 logger = logging.getLogger(__name__)
 
@@ -97,9 +98,6 @@ class importer(object):
             stock_route = self.env["stock.route"].with_user(self.actual_user)
             stock_rule = self.env["stock.rule"].with_user(self.actual_user)
             stock_warehouse = self.env["stock.warehouse"].with_user(self.actual_user)
-            procurement_group = self.env["procurement.group"].with_user(
-                self.actual_user
-            )
             stock_move = self.env["stock.move"].with_user(self.actual_user)
             change_product_qty = self.env["change.production.qty"].with_user(
                 self.actual_user
@@ -129,7 +127,6 @@ class importer(object):
             stock_route = self.env["stock.route"]
             stock_rule = self.env["stock.rule"]
             stock_warehouse = self.env["stock.warehouse"]
-            procurement_group = self.env["procurement.group"]
             stock_move = self.env["stock.move"]
             change_product_qty = self.env["change.production.qty"]
             hasRequisition = True
@@ -568,7 +565,7 @@ class importer(object):
 
                         product_uom = uom_uom.browse(int(uom_id))
 
-                        procurement = procurement_group.Procurement(
+                        procurement = Procurement(
                             product,
                             quantity,
                             product_uom,
