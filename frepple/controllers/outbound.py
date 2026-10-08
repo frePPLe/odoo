@@ -1456,7 +1456,7 @@ class exporter(object):
                         }
                 if suppliers:
                     if "buy_warehouses" not in tmpl:
-                        buy_warehouses = set(buy_warehouses_default)
+                        buy_warehouses = set()
                         for r in tmpl["route_ids"] + (
                             categ_routes.get(tmpl["categ_id"][0], [])
                             if tmpl["categ_id"]
