@@ -1244,6 +1244,39 @@ class exporter(object):
                     else:
                         itemsuppliers_tmpl[i["product_tmpl_id"][0]] = [i]
 
+            # Warehouses receiving the goods of each buy route
+            buy_routes = {}
+            for rule in self.generator.getData(
+                "stock.rule",
+                search=[("action", "=", "buy")],
+                fields=["route_id", "warehouse_id", "location_dest_id"],
+            ):
+                if not rule["route_id"]:
+                    continue
+                wh = (
+                    self.warehouses.get(rule["warehouse_id"][0])
+                    if rule["warehouse_id"]
+                    else None
+                ) or (
+                    self.map_locations.get(rule["location_dest_id"][0])
+                    if rule["location_dest_id"]
+                    else None
+                )
+                if wh:
+                    buy_routes.setdefault(rule["route_id"][0], set()).add(wh)
+
+            # Routes of each category, including the ones inherited from parent categories
+            categ_routes = (
+                {
+                    c["id"]: c["total_route_ids"]
+                    for c in self.generator.getData(
+                        "product.category", fields=["total_route_ids"]
+                    )
+                }
+                if buy_routes
+                else {}
+            )
+
             # Read the products
             for i in self.generator.getData(
                 "product.product",
@@ -1460,6 +1493,19 @@ class exporter(object):
                                     "date_end": sup["date_end"],
                                 }
                         if suppliers:
+                            if "buy_warehouses" not in tmpl:
+                                buy_warehouses = set()
+                                for r in tmpl["route_ids"] + (
+                                    categ_routes.get(tmpl["categ_id"][0], [])
+                                    if tmpl["categ_id"]
+                                    else []
+                                ):
+                                    buy_warehouses |= buy_routes.get(r, set())
+                                tmpl["buy_warehouses"] = sorted(buy_warehouses)
+                            # Without any buy route, you are not getting any itemsupplier record
+                            locations = tmpl[
+                                "buy_warehouses"
+                            ]  #  or [None] # uncomment to get an itemsupplier record with an empty location
                             item["itemsuppliers"] = []
                             for k, v in suppliers.items():
                                 if (
@@ -1467,24 +1513,31 @@ class exporter(object):
                                     and v["date_end"] < self.currentdate.date()
                                 ):
                                     continue
-                                itemsupplier = {
-                                    "leadtime": (v["delay"] or 0) * 86400,
-                                    "priority": v["sequence"] or -1,
-                                    "batchwindow": (v["batching_window"] or 0) * 86400,
-                                    "size_minimum": v["min_qty"],
-                                    "cost": max(0, v["price"]),
-                                    "supplier": {"name": k[0]},
-                                }
+                                for loc in locations:
+                                    itemsupplier = {
+                                        "leadtime": (v["delay"] or 0) * 86400,
+                                        "priority": v["sequence"] or -1,
+                                        "batchwindow": (v["batching_window"] or 0)
+                                        * 86400,
+                                        "size_minimum": v["min_qty"],
+                                        "cost": max(0, v["price"]),
+                                        "supplier": {"name": k[0]},
+                                    }
+                                    itemsupplier.update(
+                                        {"location": {"name": loc}} if loc else {}
+                                    )
+                                    logger.info(f"itemsupplier={itemsupplier}")
 
-                                if v["date_end"]:
-                                    itemsupplier["effective_end"] = "%sT00:00:00" % v[
-                                        "date_end"
-                                    ].strftime("%Y-%m-%d")
-                                if k[1]:
-                                    itemsupplier["effective_start"] = "%sT00:00:00" % k[
-                                        1
-                                    ].strftime("%Y-%m-%d")
-                                item["itemsuppliers"].append(itemsupplier)
+                                    if v["date_end"]:
+                                        itemsupplier["effective_end"] = (
+                                            "%sT00:00:00"
+                                            % v["date_end"].strftime("%Y-%m-%d")
+                                        )
+                                    if k[1]:
+                                        itemsupplier["effective_start"] = (
+                                            "%sT00:00:00" % k[1].strftime("%Y-%m-%d")
+                                        )
+                                    item["itemsuppliers"].append(itemsupplier)
                     yield json.dumps(item) + ",\n"
                 except Exception as e:
                     yield from self.flagException(f"exporting item {i}", e)
