@@ -21,7 +21,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 import json
 import os
@@ -34,12 +34,15 @@ from django.db.models import F, Sum
 from django.test import TransactionTestCase
 from django.contrib.auth.models import Group
 
-from freppledb.common.models import User
+from freppledb.common.models import User, Parameter
 from freppledb.input.models import (
     Item,
+    ItemDistribution,
+    Location,
     Buffer,
     PurchaseOrder,
     ManufacturingOrder,
+    DistributionOrder,
     OperationMaterial,
     OperationPlanMaterial,
     Demand,
@@ -110,7 +113,7 @@ class OdooTest(TransactionTestCase):
         self,
         odoo_model,
         action,
-        record_ids,  # a list of record ids on which the action should be execued
+        *action_args,
     ):
         return self.models.execute_kw(
             self.db,
@@ -118,8 +121,14 @@ class OdooTest(TransactionTestCase):
             self.password,
             odoo_model,
             action,
-            [record_ids],
+            list(action_args),
         )
+
+    def odooCreate(self, odoo_model, values):
+        return self.odooRPCAction(odoo_model, "create", values)
+
+    def odooWrite(self, odoo_model, record_ids, values):
+        return self.odooRPCAction(odoo_model, "write", record_ids, values)
 
     def updateUserTimeZone(self):
         admin = self.odooRPC(
@@ -144,11 +153,231 @@ class OdooTest(TransactionTestCase):
             ],
         )
 
+    def _test_warehouse_distribution(self):
+        """
+        Odoo resupply routes between warehouses must arrive in frepple as item
+        distributions, at the granularity odoo assigns them.
+
+        The test builds 3 warehouses and the 3 assignment levels:
+          - WH supplies SHOP1, selected on the warehouse   -> root item
+          - WH supplies SHOP2, selected on a category      -> category item
+          - SHOP2 supplies SHOP1, selected on a product    -> product item
+        """
+
+        main = self.odooRPC("stock.warehouse", [("code", "=", "WH")], {"limit": 1})[0]
+        company = main["company_id"][0]
+        shop1 = self.odooCreate(
+            "stock.warehouse",
+            {"name": "Shop One", "code": "SHOP1", "company_id": company},
+        )
+        shop2 = self.odooCreate(
+            "stock.warehouse",
+            {"name": "Shop Two", "code": "SHOP2", "company_id": company},
+        )
+        # Creating the resupply links creates the inter-warehouse routes
+        self.odooWrite(
+            "stock.warehouse",
+            [shop1],
+            {"resupply_wh_ids": [(6, 0, [main["id"], shop2])]},
+        )
+        self.odooWrite(
+            "stock.warehouse", [shop2], {"resupply_wh_ids": [(6, 0, [main["id"]])]}
+        )
+
+        routes = {}
+        for r in self.odooRPC(
+            "stock.route",
+            [("supplied_wh_id", "in", [shop1, shop2])],
+            {},
+            ["supplied_wh_id", "supplier_wh_id", "rule_ids"],
+        ):
+            routes[(r["supplied_wh_id"][0], r["supplier_wh_id"][0])] = r
+        self.assertEqual(len(routes), 3, "expected 3 inter-warehouse routes")
+
+        # A distinct lead time per route, on the rule that lands in the destination
+        for key, delay in (
+            ((shop1, main["id"]), 2),
+            ((shop2, main["id"]), 1),
+            ((shop1, shop2), 3),
+        ):
+            for rule in self.odooRPC(
+                "stock.rule",
+                [("id", "in", routes[key]["rule_ids"])],
+                {},
+                ["warehouse_id"],
+            ):
+                if rule["warehouse_id"] and rule["warehouse_id"][0] == key[0]:
+                    self.odooWrite("stock.rule", [rule["id"]], {"delay": delay})
+
+        # Level 1, the warehouse: SHOP1 is supplied by WH for every item
+        self.odooWrite(
+            "stock.warehouse",
+            [shop1],
+            {"route_ids": [(4, routes[(shop1, main["id"])]["id"])]},
+        )
+        # Level 2, a category: that category is supplied at SHOP2 by WH
+        root_categ = self.odooRPC(
+            "product.category", [("parent_id", "=", False)], {"limit": 1}
+        )[0]["id"]
+        categ = self.odooCreate(
+            "product.category", {"name": "Distribution test", "parent_id": root_categ}
+        )
+        categ_name = self.odooRPC(
+            "product.category", [("id", "=", categ)], {}, ["complete_name"]
+        )[0]["complete_name"]
+        self.odooWrite(
+            "stock.route",
+            [routes[(shop2, main["id"])]["id"]],
+            {"categ_ids": [(4, categ)]},
+        )
+        # Level 3, a product: this one is supplied at SHOP1 by SHOP2 instead
+        product = self.odooCreate(
+            "product.template",
+            {
+                "name": "Distribution test product",
+                "is_storable": True,
+                "categ_id": categ,
+            },
+        )
+        self.odooWrite(
+            "product.template",
+            [product],
+            {"route_ids": [(4, routes[(shop1, shop2)]["id"])]},
+        )
+
+        management.call_command("runplan", plantype=1, constraint="", env="odoo_read_1")
+
+        expected = {
+            ("All items", "SHOP1", "WH"): 2,
+            (categ_name, "SHOP2", "WH"): 1,
+            ("Distribution test product", "SHOP1", "SHOP2"): 3,
+        }
+        found = {
+            (d.item.name, d.location.name, d.origin.name): d.leadtime.days
+            for d in ItemDistribution.objects.filter(source="odoo_1")
+            if (d.item.name, d.location.name, d.origin.name) in expected
+        }
+        self.assertEqual(
+            found,
+            expected,
+            "unexpected item distributions imported from odoo",
+        )
+
+        item = Item.objects.get(name="Distribution test product")
+        item.save()
+        Item.rebuildHierarchy()
+        item.refresh_from_db()
+
+        product_id = self.odooRPC(
+            "product.template",
+            [("id", "=", product)],
+            {},
+            ["product_variant_id"],
+        )[0]["product_variant_id"][0]
+
+        proposed_do = DistributionOrder.objects.create(
+            reference="distribution-export",
+            item=item,
+            origin=Location.objects.get(name="WH"),
+            destination=Location.objects.get(name="SHOP2"),
+            quantity=10,
+            startdate=datetime.now().replace(microsecond=0),
+            enddate=datetime.now().replace(microsecond=0) + timedelta(days=3),
+            status="proposed",
+        )
+
+        qs = (
+            ItemDistribution.objects.filter(route_id__isnull=False)
+            .filter(item__lft__lte=proposed_do.item.lft)
+            .filter(item__rght__gte=proposed_do.item.lft)
+            .exclude(priority=0)
+            .filter(origin__name=proposed_do.origin.name)
+            .filter(location__name=proposed_do.destination.name)
+        )
+
+        self.assertGreaterEqual(
+            len(qs),
+            1,
+            f"can't find an itemdistribution for Distribution test product with left {proposed_do.item.lft} from {proposed_do.origin.name} to {proposed_do.destination.name}",
+        )
+
+        previous_references = [
+            i["id"]
+            for i in self.odooRPC(
+                "stock.reference",
+                [],
+                {},
+                ["id"],
+            )
+        ]
+        response = self.client.post(
+            "/erp/upload/",
+            json.dumps(
+                [
+                    {
+                        "reference": proposed_do.reference,
+                        "type": "DO",
+                        "quantity": float(proposed_do.quantity),
+                        "enddate": proposed_do.enddate.strftime("%Y-%m-%dT%H:%M:%S"),
+                    }
+                ]
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(
+            response.status_code,
+            200,
+            "couldn't upload the proposed distribution order",
+        )
+        approved_do = DistributionOrder.objects.get(
+            pk__startswith="%s exported as " % proposed_do.reference
+        )
+        self.assertEqual(approved_do.status, "approved")
+        self.assertFalse(
+            DistributionOrder.objects.filter(pk=proposed_do.reference).exists()
+        )
+
+        references = self.odooRPC(
+            "stock.reference",
+            [("id", "not in", list(previous_references))],
+            {},
+            ["name"],
+        )
+        self.assertEqual(len(references), 1, "expected one new stock reference")
+        self.assertEqual(references[0]["name"], "frePPLe")
+        pickings = self.odooRPC(
+            "stock.picking",
+            [("reference_ids", "in", [references[0]["id"]])],
+            {},
+            ["name", "move_ids", "location_id", "location_dest_id", "state"],
+        )
+        self.assertGreaterEqual(
+            len(pickings), 2, "expected shipping and receiving pickings"
+        )
+
+        for picking in pickings:
+            self.assertNotIn(picking["state"], ("done", "cancel"))
+            moves = self.odooRPC(
+                "stock.move",
+                [("id", "in", picking["move_ids"])],
+                {},
+                ["product_id", "product_uom_qty", "reference_ids"],
+            )
+            self.assertEqual(len(moves), 1)
+            self.assertEqual(moves[0]["product_id"][0], product_id)
+            self.assertEqual(moves[0]["product_uom_qty"], float(proposed_do.quantity))
+            self.assertIn(references[0]["id"], moves[0]["reference_ids"])
+
     def test_odoo_e2e(self):
         # Import odoo data
         self.assertEqual(
             Item.objects.all().count(), 0, "we should start with an empty database"
         )
+
+        param = Parameter.objects.get_or_create(name="odoo.singlecompany")[0]
+        param.value = "true"
+        param.save()
+
         management.call_command(
             "runplan",
             plantype=1,
@@ -663,3 +892,5 @@ class OdooTest(TransactionTestCase):
                         odoo_prl["requisition_id"][0],
                         "different blanket order id",
                     )
+
+        self._test_warehouse_distribution()
