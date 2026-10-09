@@ -1,2 +1,3 @@
-"id","product_id","route_id","product_min_qty","product_max_qty"
-"stock_warehouse_orderpoint_varnished_chair","varnished chair","Buy","30.0","50.0"
+"id","product_id","location_id","route_id","product_min_qty","product_max_qty"
+"stock_warehouse_orderpoint_varnished_chair_1","varnished chair","WH/Stock","Buy","20.0","40.0"
+"stock_warehouse_orderpoint_varnished_chair_2","varnished chair","WH/Pre-Production","Buy","10.0","20.0"

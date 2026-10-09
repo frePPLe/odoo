@@ -40,6 +40,7 @@ from freppledb.input.models import (
     ItemDistribution,
     Location,
     Buffer,
+    CalendarBucket,
     PurchaseOrder,
     ManufacturingOrder,
     DistributionOrder,
@@ -551,6 +552,22 @@ class OdooTest(TransactionTestCase):
             .aggregate(total_onhand=Sum("onhand"))["total_onhand"],
             138,
             "expected inventory of 138 for E-COM11",
+        )
+
+        # Check reordering rules are aggregated correctlyby warehouse
+        self.assertEqual(
+            CalendarBucket.objects.all()
+            .filter(calendar_id="SS for varnished chair @ WH", value=30)
+            .count(),
+            1,
+            "Expected a safety stock of 30 for varnished chair @ WH",
+        )
+        self.assertEqual(
+            CalendarBucket.objects.all()
+            .filter(calendar_id="ROQ for varnished chair @ WH", value=20)
+            .count(),
+            1,
+            "Expected a reorder quantity of 20 for varnished chair @ WH",
         )
 
         # Check plan results
