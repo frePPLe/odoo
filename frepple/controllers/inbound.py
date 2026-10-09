@@ -95,10 +95,11 @@ class importer(object):
                 self.actual_user
             )
             bom_type = self.env["mrp.bom"].with_user(self.actual_user)
-            stck_picking = self.env["stock.picking"].with_user(self.actual_user)
-            stck_move = self.env["stock.move"].with_user(self.actual_user)
-            stck_warehouse = self.env["stock.warehouse"].with_user(self.actual_user)
-            stck_location = self.env["stock.location"].with_user(self.actual_user)
+            procurement_group = self.env["procurement.group"].with_user(
+                self.actual_user
+            )
+            stock_route = self.env["stock.route"].with_user(self.actual_user)
+            stock_warehouse = self.env["stock.warehouse"].with_user(self.actual_user)
             change_product_qty = self.env["change.production.qty"].with_user(
                 self.actual_user
             )
@@ -123,10 +124,9 @@ class importer(object):
             mfg_workcenter = self.env["mrp.workcenter"]
             mfg_workorder_secondary = self.env["mrp.workorder.secondary.workcenter"]
             stck_picking_type = self.env["stock.picking.type"]
-            stck_picking = self.env["stock.picking"]
-            stck_move = self.env["stock.move"]
-            stck_warehouse = self.env["stock.warehouse"]
-            stck_location = self.env["stock.location"]
+            procurement_group = self.env["procurement.group"]
+            stock_route = self.env["stock.route"]
+            stock_warehouse = self.env["stock.warehouse"]
             change_product_qty = self.env["change.production.qty"]
             hasRequisition = True
             try:
@@ -206,6 +206,9 @@ class importer(object):
         # Mapping between frepple-generated MO reference and their odoo id.
         mo_references = {}
         wo_data = []
+
+        # Mapping between frepple-generated DO reference and the created odoo picking ids
+        do_references = {}
 
         # Workcenters of a workorder to update
         resources = []
@@ -525,133 +528,80 @@ class importer(object):
                             po_line.product_qty = po_line.product_qty + float(quantity)
                         countproc += 1
                     elif ordertype == "DO":
-                        if not hasattr(self, "do_index"):
-                            self.do_index = 1
-                        else:
-                            self.do_index += 1
-                        product = self.env["product.product"].browse(int(item_id))
-                        quantity = elem.get("quantity")
+                        reference = elem.get("reference")
+                        product = product_product.browse(int(item_id))
+                        quantity = float(elem.get("quantity"))
                         date_shipping = elem.get("start")
-                        origin = elem.get("origin")
-                        destination = elem.get("destination")
-
-                        origin_id = stck_warehouse.search(
-                            [("code", "=", origin)], limit=1
-                        )[0]
-                        destination_id = stck_warehouse.search(
-                            [("code", "=", destination)], limit=1
-                        )[0]
-
-                        location_id = None
-                        location_dest_id = None
-
-                        s = stck_location.search(
-                            [
-                                ("name", "like", "Stock"),
-                                ("usage", "=", "internal"),
-                            ],
-                        )
-                        for i in stck_location.browse([j.id for j in s]).read(
-                            ["warehouse_id"]
+                        date_receiving = elem.get("end")
+                        destination_id = int(elem.get("destination_id"))
+                        route_id = int(elem.get("route_id"))
+                        if (
+                            not product
+                            or not quantity
+                            or not date_shipping
+                            or not destination_id
+                            or not route_id
                         ):
-                            if i["warehouse_id"][0] == origin_id.id:
-                                location_id = i
-                            elif i["warehouse_id"][0] == destination_id.id:
-                                location_dest_id = i
-                            if location_id and location_dest_id:
-                                break
-
-                        if not (location_id and location_dest_id):
-                            logger.warning(
-                                "can't find a stocking location for %s or %s"
-                                % (origin_id.id, destination_id.id)
-                            )
                             continue
 
-                        try:
-                            picking_type_id = stck_picking_type.search(
-                                [
-                                    ("name", "=", "Internal Transfers"),
-                                    ("default_location_src_id", "=", location_id["id"]),
-                                ],
-                                limit=1,
-                            )[0].id
-                        except Exception as e:
-                            logger.warning(e)
-                            logger.warning(
-                                "can't find an 'Internal Transfers' picking type with default location %s"
-                                % (location_id.name,)
-                            )
-                            continue
-
-                        if date_shipping:
-                            date_shipping = (
+                        date_shipping, date_receiving = (
+                            (
                                 self.timezone.localize(
-                                    datetime.strptime(
-                                        date_shipping,
-                                        "%Y-%m-%d %H:%M:%S",
-                                    )
+                                    datetime.strptime(d, "%Y-%m-%d %H:%M:%S")
                                 )
                                 .astimezone(UTC)
                                 .replace(tzinfo=None)
+                                if d
+                                else False
                             )
-                        else:
-                            date_shipping = (
-                                datetime.now().astimezone(UTC).replace(tzinfo=None)
+                            for d in (date_shipping, date_receiving)
+                        )
+
+                        # see if the connectors received the route to use
+                        selected_route = stock_route.browse(route_id)
+
+                        product_uom = uom_uom.browse(int(uom_id))
+
+                        # 1. Create a procurement group
+                        pg = procurement_group.create(
+                            {
+                                "name": "Frepple",
+                                "move_type": "direct",  # or 'one'
+                            }
+                        )
+
+                        # 2. Define the Procurement
+                        procurement = procurement_group.Procurement(
+                            product,
+                            quantity,
+                            product_uom,
+                            stock_warehouse.browse(
+                                destination_id
+                            ).lot_stock_id,  # location_id
+                            product.display_name,  # name
+                            pg.name,  # origin
+                            self.company,  # company_id
+                            {
+                                "route_ids": selected_route,
+                                "warehouse_id": stock_warehouse.browse(destination_id),
+                                "date_planned": date_shipping,
+                                "date_deadline": date_receiving,
+                                "group_id": pg,  # Ties rules & moves to this group
+                            },
+                        )
+
+                        # 3. Run the procurement engine of Odoo to generate the pickings
+                        procurement_group.run([procurement])
+
+                        # 4. Retrieve created pickings via the procurement group
+                        pickings = self.env["stock.picking"].search(
+                            [("group_id", "=", pg.id)]
+                        )
+
+                        if pickings:
+                            do_references[reference] = ", ".join(
+                                pickings.mapped("name")
                             )
-                        if not hasattr(self, "stock_picking_dict"):
-                            self.stock_picking_dict = {}
-                        if not self.stock_picking_dict.get((origin, destination)):
-                            remark = elem.get("remark", None)
-                            if remark:
-                                remark = "frePPLe - %s" % remark
-                            else:
-                                remark = "frePPLe"
-                            self.stock_picking_dict[(origin, destination)] = (
-                                stck_picking.create(
-                                    {
-                                        "picking_type_id": picking_type_id,
-                                        "scheduled_date": date_shipping,
-                                        "location_id": location_id["id"],
-                                        "location_dest_id": location_dest_id["id"],
-                                        "move_type": "direct",
-                                        "origin": remark,
-                                    }
-                                )
-                            )
-                        sp = self.stock_picking_dict.get((origin, destination))
-                        if not hasattr(self, "sm_dict"):
-                            self.sm_dict = {}
-                        sm = self.sm_dict.get((product.id, sp.id))
-                        if sm:
-                            sm.write(
-                                {
-                                    "date": min(date_shipping, sm.date),
-                                    "product_uom_qty": sm.product_uom_qty
-                                    + float(quantity),
-                                }
-                            )
-                        else:
-                            sm = stck_move.create(
-                                {
-                                    "date": date_shipping,
-                                    "product_id": product.id,
-                                    "product_uom_qty": quantity,
-                                    "product_uom": int(uom_id),
-                                    "location_id": sp.location_id.id,
-                                    "location_dest_id": sp.location_dest_id.id,
-                                    "picking_id": sp.id,
-                                    "origin": "frePPLe",
-                                    "name": "%s %s"
-                                    % (
-                                        self.stock_picking_dict.get(
-                                            (origin, destination)
-                                        ).name,
-                                        self.do_index,
-                                    ),
-                                }
-                            )
-                            self.sm_dict[(product.id, sp.id)] = sm
 
                     elif ordertype == "WO":
                         # Update a workorder
@@ -974,6 +924,10 @@ class importer(object):
             {"reference": mo.name, "id": mo.id, "frepple_reference": frepple_ref}
             for frepple_ref, mo in mo_references.items()
         ]
+        created_dos = [
+            {"reference": pickings, "id": pickings, "frepple_reference": frepple_ref}
+            for frepple_ref, pickings in do_references.items()
+        ]
 
         # Be polite, and reply to the post
         if countmfg_created:
@@ -988,10 +942,16 @@ class importer(object):
             )
         if created_pos:
             msg.append("Created %d purchase orders" % (len(created_pos),))
+        if created_dos:
+            msg.append(
+                "Created %d pickings"
+                % (sum([len(v.split(",")) for v in do_references.values()]),)
+            )
         return json.dumps(
             {
                 "messages": msg,
                 "created_purchase_orders": created_pos,
                 "created_manufacturing_orders": created_mos,
+                "created_distribution_orders": created_dos,
             }
         )
