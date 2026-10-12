@@ -375,10 +375,6 @@ class OdooTest(TransactionTestCase):
             Item.objects.all().count(), 0, "we should start with an empty database"
         )
 
-        param = Parameter.objects.get_or_create(name="odoo.singlecompany")[0]
-        param.value = "true"
-        param.save()
-
         management.call_command(
             "runplan",
             plantype=1,
