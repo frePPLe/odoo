@@ -14,10 +14,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Trigger event on frepple repository
-        uses: mvasigh/dispatch-action@main
+        uses: actions/github-script@v8
         with:
-          token: ${{ secrets.COMMUNITY_GITHUB_TOKEN }}
-          repo: frepple
-          owner: frePPLe
-          event_type: odoo_connector_18
-
+          github-token: ${{ secrets.COMMUNITY_GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: "frePPLe",
+              repo: "frepple",
+              event_type: "odoo_connector_18",
+            });
