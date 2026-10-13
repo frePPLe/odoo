@@ -3355,7 +3355,7 @@ class exporter(object):
                     else:
                         # No serialization on the product
                         qty = self.convert_qty_uom(
-                            i.qty_producing if i.qty_producing else i.product_qty,
+                            i.product_qty,
                             i.product_uom_id.id,
                             self.product_product[i.product_id.id]["template"],
                         )
