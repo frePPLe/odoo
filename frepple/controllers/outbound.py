@@ -3215,6 +3215,32 @@ class exporter(object):
         mrp.production.date_planned -> operationplan.start
         '1' -> operationplan.status = "confirmed"
         """
+
+        def getReservedQuantity(move, production_id, target_uom, move_chain=None):
+            if move_chain is None:
+                move_chain = set()
+            if move.state == "cancel" or move.id in move_chain:
+                return 0.0
+            move_chain.add(move.id)
+
+            quantity = 0.0
+            for move_line in move.move_line_ids:
+                if move_line.state not in ("assigned", "partially_available"):
+                    continue
+                if (
+                    move_line.move_id.production_id
+                    and move_line.move_id.production_id.id != production_id
+                ):
+                    continue
+                quantity += move_line.product_uom_id._compute_quantity(
+                    move_line.quantity, target_uom
+                )
+
+            return quantity + sum(
+                getReservedQuantity(origin, production_id, target_uom, move_chain)
+                for origin in move.move_orig_ids
+            )
+
         now = datetime.now()
 
         yield "<!-- manufacturing orders in progress -->\n"
@@ -3320,7 +3346,7 @@ class exporter(object):
                         continue
                     default_uom = mv.product_id.uom_id
                     qty_flow = mv.product_uom._compute_quantity(
-                        mv.product_uom_qty - mv.quantity, default_uom
+                        mv.product_uom_qty, default_uom
                     )
                     for l in mv.move_line_ids:
                         if l.state == "done":
@@ -3328,11 +3354,7 @@ class exporter(object):
                                 l.quantity, default_uom
                             )
                     if self.respect_reservations:
-                        for l in mv.move_line_ids | mv.move_orig_ids.move_line_ids:
-                            if l.state == "assigned" and l.move_id.picking_id:
-                                qty_flow -= l.product_uom_id._compute_quantity(
-                                    l.quantity, default_uom
-                                )
+                        qty_flow -= getReservedQuantity(mv, i.id, default_uom)
                     if qty_flow > 0:
                         operation_materials[consumed_item["name"]] = (
                             operation_materials.get(consumed_item["name"], 0)
@@ -3434,7 +3456,7 @@ class exporter(object):
                             continue
                         default_uom = mv.product_id.uom_id
                         qty_flow = mv.product_uom._compute_quantity(
-                            mv.product_uom_qty - mv.quantity, default_uom
+                            mv.product_uom_qty, default_uom
                         )
                         for l in mv.move_line_ids:
                             if l.state == "done":
@@ -3442,11 +3464,7 @@ class exporter(object):
                                     l.quantity, default_uom
                                 )
                         if self.respect_reservations:
-                            for l in mv.move_line_ids | mv.move_orig_ids.move_line_ids:
-                                if l.state == "assigned" and l.move_id.picking_id:
-                                    qty_flow -= l.product_uom_id._compute_quantity(
-                                        l.quantity, default_uom
-                                    )
+                            qty_flow -= getReservedQuantity(mv, i.id, default_uom)
                         if qty_flow > 0:
                             operation_materials[material["name"]] = (
                                 operation_materials.get(material["name"], 0)
