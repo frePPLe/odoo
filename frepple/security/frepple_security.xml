@@ -24,10 +24,11 @@
 	</data>
     -->
     <data noupdate="1">
-        <record id="frepple_recommendation_company_rule" model="ir.rule">
+        <record id="frepple_recommendation_company_rule" model="ir.access">
             <field name="name">Frepple Recommendation: multi-company</field>
             <field name="model_id" ref="model_frepple_recommendation"/>
-            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="operation">crud</field>
+            <field name="domain">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
         </record>
     </data>
 </odoo>

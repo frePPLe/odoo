@@ -16,7 +16,7 @@ module on an actual production environment.
     "author": "frePPLe",
     "license": "Other OSI approved licence",
     "category": "Uncategorized",
-    "version": "19.0.0.0",
+    "version": "20.0.0.0",
     "depends": ["base", "web"],
     "data": [],
     "demo": [],

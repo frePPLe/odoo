@@ -17,7 +17,7 @@
         <field name="model">mrp.bom</field>
         <field name="inherit_id" ref="mrp.mrp_bom_tree_view" />
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='product_uom_id']" position="after">
+            <xpath expr="//field[@name='uom_id']" position="after">
                 <field name="product_qty_multiple" optional="hide"/>
                 <field name="scrap_rate" string="Scrap Rate" widget="percentage" optional="hide"/>
             </xpath>

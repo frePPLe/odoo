@@ -1,20 +1,21 @@
 /** @odoo-module **/
 import { ListController } from "@web/views/list/list_controller";
 import { registry } from "@web/core/registry";
-import { Component, useState, onWillStart, onWillDestroy } from "@odoo/owl";
+import { Component, proxy, t, useProps, onWillStart, onWillDestroy } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { markup } from "@odoo/owl";
 import { FreppleLaunchDialog } from "./frepple_launch_dialog";
 
 export class FreppleRecommendationBanner extends Component {
   static template = "frepple.RecommendationBanner";
+  props = useProps({ list: t.object().optional() });
 
   setup() {
     this.orm = useService("orm");
     this.notification = useService("notification");
     this.dialog = useService("dialog");
 
-    this.state = useState({
+    this.state = proxy({
       message: "Loading...",
       isRunning: false, // track if a job is running
       lastUpdate: null,

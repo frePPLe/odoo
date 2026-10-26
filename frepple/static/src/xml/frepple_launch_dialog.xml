@@ -3,7 +3,7 @@
     <t t-name="frepple.LaunchDialog">
         <Dialog title="'Generate Recommendations'" size="'md'">
             <div class="p-3">
-                <t t-if="isAnonymousServer">
+                <t t-if="this.isAnonymousServer">
                     <div class="alert alert-info mb-3" role="alert">
                         <i class="fa fa-info-circle me-1"/>
                         Your Odoo data will be sent to the Advanced Planning and Scheduling Service to generate a plan.
@@ -13,8 +13,8 @@
                 <h6 class="mb-3">Planning options</h6>
                 <div class="form-check mb-2">
                     <input type="checkbox" class="form-check-input" id="frepple_capacity"
-                           t-att-checked="state.capacity"
-                           t-on-change="onCapacityChange"/>
+                           t-att-checked="this.state.capacity"
+                           t-on-change="this.onCapacityChange"/>
                     <label class="form-check-label" for="frepple_capacity"
                         data-tooltip="Do not exceed capacities">
                         Respect work center capacities
@@ -22,8 +22,8 @@
                 </div>
                 <div class="form-check mb-2">
                     <input type="checkbox" class="form-check-input" id="frepple_mfg_lt"
-                           t-att-checked="state.mfgLeadTime"
-                           t-on-change="onMfgLeadTimeChange"/>
+                           t-att-checked="this.state.mfgLeadTime"
+                           t-on-change="this.onMfgLeadTimeChange"/>
                     <label class="form-check-label" for="frepple_mfg_lt"
                            data-tooltip="Do not start manufacturing orders in the past">
                         Respect manufacturing lead times
@@ -31,25 +31,25 @@
                 </div>
                 <div class="form-check mb-2">
                     <input type="checkbox" class="form-check-input" id="frepple_po_lt"
-                           t-att-checked="state.poLeadTime"
-                           t-on-change="onPoLeadTimeChange"/>
+                           t-att-checked="this.state.poLeadTime"
+                           t-on-change="this.onPoLeadTimeChange"/>
                     <label class="form-check-label" for="frepple_po_lt"
                         data-tooltip="Do not purchase in the past">
                         Respect purchasing lead times
                     </label>
                 </div>
 
-                <t t-if="props.companies.length > 1">
+                <t t-if="this.props.companies.length > 1">
                     <hr/>
                     <div class="mb-2 d-flex align-items-center gap-2">
                         <label class="form-label fw-bold mb-0" for="frepple_company"
                           data-tooltip="Recommendations are generated for a single company at a time">
                           Select a company:</label>
                         <select class="form-select w-auto" id="frepple_company"
-                                t-on-change="onCompanyChange">
-                            <t t-foreach="props.companies" t-as="company" t-key="company.id">
+                                t-on-change="this.onCompanyChange">
+                            <t t-foreach="this.props.companies" t-as="company" t-key="company.id">
                                 <option t-att-value="company.id"
-                                        t-att-selected="company.id === state.companyId">
+                                        t-att-selected="company.id === this.state.companyId">
                                     <t t-out="company.name"/>
                                 </option>
                             </t>
@@ -58,10 +58,10 @@
                 </t>
             </div>
             <t t-set-slot="footer">
-                <button class="btn btn-primary" t-on-click="onConfirm">
+                <button class="btn btn-primary" t-on-click="this.onConfirm">
                     <i class="fa fa-bolt me-1"/>Generate
                 </button>
-                <button class="btn btn-secondary" t-on-click="onCancel">Cancel</button>
+                <button class="btn btn-secondary" t-on-click="this.onCancel">Cancel</button>
             </t>
         </Dialog>
     </t>

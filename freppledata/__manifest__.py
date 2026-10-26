@@ -6,11 +6,12 @@
     "author": "frePPLe",
     "license": "Other OSI approved licence",
     "category": "Uncategorized",
-    "version": "19.0.0.0",
+    "version": "20.0.0.0",
     "depends": ["mrp_subcontracting", "sale_stock", "purchase_requisition"],
     "data": [
         "data/config.xml",  # First to assure the config is correct for the rest of the data
         "data/res.partner.csv",
+        "data/stock.route.csv",
         "data/product.template.csv",
         "data/stock.onhand.xml",
         "data/mrp.workcenter.csv",

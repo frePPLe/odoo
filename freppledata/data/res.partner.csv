@@ -1,2 +1,2 @@
-id,name,company_type,supplier_rank
-res_partner_subcontractor_chair,Chair Subcontractor,company,1
+id,name,supplier_rank
+res_partner_subcontractor_chair,Chair Subcontractor,1

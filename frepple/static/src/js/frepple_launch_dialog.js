@@ -1,24 +1,24 @@
 /** @odoo-module **/
-import { Component, useState, onWillStart } from "@odoo/owl";
+import { Component, proxy, t, useProps, onWillStart } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { useService } from "@web/core/utils/hooks";
 
 export class FreppleLaunchDialog extends Component {
   static template = "frepple.LaunchDialog";
   static components = { Dialog };
-  static props = {
-    companies: { type: Array },
-    defaultCompanyId: { type: Number },
-    close: { type: Function },
-    onConfirm: { type: Function },
-  };
+  props = useProps({
+    companies: t.array(t.object()),
+    defaultCompanyId: t.number(),
+    close: t.function(),
+    onConfirm: t.function(),
+  });
 
   setup() {
     this.orm = useService("orm");
     const initialCompanyId = this.props.companies.length === 1
       ? this.props.companies[0].id
       : this.props.defaultCompanyId;
-    this.state = useState({
+    this.state = proxy({
       capacity: true,
       mfgLeadTime: true,
       poLeadTime: true,

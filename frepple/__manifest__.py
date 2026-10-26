@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "frepple",
-    "version": "19.0.0.0",
+    "version": "20.0.0.0",
     "category": "Manufacturing",
     "summary": "Advanced planning and scheduling",
     "author": "frePPLe",
@@ -10,6 +10,7 @@
     "description": "Connector to frePPLe - finite capacity planning and scheduling",
     "depends": [
         "base",
+        "stock",
         "product",
         "purchase",
         "sale",
@@ -20,7 +21,7 @@
     ],
     "data": [
         "security/frepple_security.xml",
-        "security/ir.model.access.csv",
+        "security/ir.access.csv",
         "views/frepple_recommendation.xml",
         "views/frepple_data.xml",
         "views/res_config_settings_views.xml",

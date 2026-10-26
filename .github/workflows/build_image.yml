@@ -3,20 +3,20 @@ name: Build and Push Odoo + frePPLe Docker Image to GHCR
 on:
   push:
     branches:
-      - "19.0"
+      - "20.0"
   schedule:
       - cron: "0 0 * * 0"
 
 jobs:
   build:
-    if: github.repository == 'frePPLe/odoo' && (github.ref == 'refs/heads/19.0' || github.event_name == 'schedule')
+    if: github.repository == 'frePPLe/odoo' && (github.ref == 'refs/heads/20.0' || github.event_name == 'schedule')
     runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v6
       with:
-        ref: "19.0"
+        ref: "20.0"
 
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v4
@@ -28,9 +28,9 @@ jobs:
     - name: Build Docker Image
       run: |
         IMAGE_BASE=ghcr.io/frepple/frepple-enterprise-dev/odoo_frepple
-        docker build --build-arg PROXYMODE=true -t $IMAGE_BASE:19.0 .
+        docker build --build-arg PROXYMODE=true -t $IMAGE_BASE:20.0 .
 
     - name: Push Docker Image
       run: |
         IMAGE_BASE=ghcr.io/frepple/frepple-enterprise-dev/odoo_frepple
-        docker push $IMAGE_BASE:19.0
+        docker push $IMAGE_BASE:20.0

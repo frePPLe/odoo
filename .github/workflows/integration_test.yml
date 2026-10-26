@@ -1,9 +1,9 @@
-name: Trigger test odoo 19
+name: Trigger test odoo 20
 
 on:
   push:
     branches:
-      - "19.0-dev"
+      - "20.0-dev"
   workflow_dispatch:
 
 jobs:
@@ -16,5 +16,5 @@ jobs:
           token: ${{ secrets.COMMUNITY_GITHUB_TOKEN }}
           repo: frepple
           owner: frePPLe
-          event_type: odoo_connector_19
+          event_type: odoo_connector_20
 

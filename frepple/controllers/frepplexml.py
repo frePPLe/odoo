@@ -43,6 +43,9 @@ from werkzeug.exceptions import MethodNotAllowed, InternalServerError
 from werkzeug.wrappers import Response
 
 from odoo import http
+from odoo.http.router import db_list
+from odoo.http.session import authenticate as authenticate_session
+from odoo.http.stream import Stream
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +126,8 @@ class XMLController(odoo.http.Controller):
                 req.update_env(user=uid)
             else:
                 # Authenticate with a password
-                uid = req.session.authenticate(
+                uid = authenticate_session(
+                    req.session,
                     req.env,
                     {
                         "login": self.user,
@@ -150,13 +154,14 @@ class XMLController(odoo.http.Controller):
                     )
                 # Authenticate with an API key
                 uid = req.env["res.users.apikeys"]._check_credentials(
-                    scope="rpc", key=password
+                    scope="rpc", key=decoded["password"]
                 )
                 if uid:
                     req.update_env(user=uid)
                 else:
                     # Authenticate with a password
-                    uid = req.session.authenticate(
+                    uid = authenticate_session(
+                        req.session,
                         req.env,
                         {
                             "login": decoded["user"],
@@ -248,7 +253,7 @@ class XMLController(odoo.http.Controller):
         language = kwargs.get("language", req.httprequest.form.get("language", None))
         database = kwargs.get("database", req.httprequest.form.get("database", None))
         if not database:
-            all_dbs = odoo.http.db_list(force=True)
+            all_dbs = db_list(force=True)
             if len(all_dbs) == 1:
                 database = all_dbs[0]
             else:
@@ -359,7 +364,7 @@ class XMLController(odoo.http.Controller):
                         tmpfile.write(i)
                     filename = tmpfile.name
 
-                res = http.Stream(
+                res = Stream(
                     type="path",
                     path=filename,
                     download_name="odoo_data_for_frepple",
@@ -444,7 +449,7 @@ class XMLController(odoo.http.Controller):
                 job = None
                 auth = base64.b64decode(token).decode("utf-8")
                 self.user, password = auth.split(":", 1)
-                database = odoo.http.db_list(force=True)[0]  # Not ok in multidb setups
+                database = db_list(force=True)[0]  # Not ok in multidb setups
                 req.session.db = database
                 if not self.user or not password or not database:
                     raise Exception("Missing user or password")
@@ -456,7 +461,8 @@ class XMLController(odoo.http.Controller):
                     req.update_env(user=uid)
                 else:
                     # Authenticate with a password
-                    uid = req.session.authenticate(
+                    uid = authenticate_session(
+                        req.session,
                         req.env,
                         {
                             "login": self.user,

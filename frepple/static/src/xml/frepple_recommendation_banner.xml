@@ -1,30 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="frepple.RecommendationBanner">
-        <div t-attf-class="alert #{state.failed ? 'alert-danger' : 'alert-primary'} d-flex align-items-center justify-content-between p-2 mx-3 mt-2 mb-0">
+        <div t-attf-class="alert #{this.state.failed ? 'alert-danger' : 'alert-primary'} d-flex align-items-center justify-content-between p-2 mx-3 mt-2 mb-0">
             <div class="d-flex align-items-center">
-                <t t-if="state.isRunning">
+                <t t-if="this.state.isRunning">
                     <i class="fa fa-refresh fa-spin me-2 text-primary"/>
                     <strong>Refresh in progress:</strong>
                 </t>
-                <t t-elif="state.failed">
+                <t t-elif="this.state.failed">
                     <i class="fa fa-exclamation-triangle me-2 text-danger" />
                 </t>
                 <t t-else="">
                     <i class="fa fa-info-circle me-2 text-primary"/>
                 </t>
 
-                <span class="ms-1"><t t-out="state.message"/></span>
+                <span class="ms-1"><t t-out="this.state.message"/></span>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <button
-                    t-on-click="onButtonClick"
-                    t-att-disabled="state.settingsMissing"
-                    t-attf-class="btn btn-sm {{ state.settingsMissing ? 'btn-secondary' : (state.isRunning ? 'btn-danger' : 'btn-primary') }}">
+                    t-on-click="this.onButtonClick"
+                    t-att-disabled="this.state.settingsMissing"
+                    t-attf-class="btn btn-sm {{ this.state.settingsMissing ? 'btn-secondary' : (this.state.isRunning ? 'btn-danger' : 'btn-primary') }}">
 
-                    <i t-attf-class="fa me-1 #{state.isRunning ? 'fa-times' : 'fa-bolt'}"/>
+                    <i t-attf-class="fa me-1 #{this.state.isRunning ? 'fa-times' : 'fa-bolt'}"/>
 
-                    <t t-if="state.isRunning">
+                    <t t-if="this.state.isRunning">
                         Cancel job
                     </t>
                     <t t-else="">
@@ -37,7 +37,7 @@
 
     <t t-name="frepple.ListView" t-inherit="web.ListView" t-inherit-mode="primary">
         <xpath expr="//Layout" position="before">
-            <FreppleRecommendationBanner list="model.root"/>
+            <FreppleRecommendationBanner list="this.model.root"/>
         </xpath>
     </t>
 </templates>

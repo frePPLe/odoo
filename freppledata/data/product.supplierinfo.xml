@@ -24,7 +24,7 @@
             <field name="min_qty">6</field>
             <field name="price">18</field>
             <!-- specify the unit of measure for the supplier -->
-            <field name="product_uom_id" ref="uom.product_uom_pack_6" />
+            <field name="uom_id" ref="uom.product_uom_pack_6" />
             <field name="currency_id" ref="base.USD" />
         </record>
         <record id="product_supplierinfo_153" model="product.supplierinfo">

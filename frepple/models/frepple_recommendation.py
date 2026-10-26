@@ -169,7 +169,7 @@ class FreppleRecommendation(models.Model):
                                 "order_id": po.id,
                                 "product_id": product.id,
                                 "product_qty": rec.quantity,
-                                "product_uom_id": product.uom_id.id,
+                                "uom_id": product.uom_id.id,
                             }
                         )
                     )
@@ -199,7 +199,7 @@ class FreppleRecommendation(models.Model):
                     "date_start": rec.startdate,
                     "date_finished": rec.enddate,
                     "product_id": rec.product_id.id,
-                    "product_uom_id": rec.product_id.uom_id.id,
+                    "uom_id": rec.product_id.uom_id.id,
                     # "picking_type_id": picking.id,
                     "qty_producing": 0.00,
                     "origin": "frePPLe",

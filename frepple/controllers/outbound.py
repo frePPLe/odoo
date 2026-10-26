@@ -447,7 +447,7 @@ class exporter(object):
                     "uom.uom",
                     # We also need to load INactive UOMs, because there still might be records
                     # using the inactive UOM. Questionable practice, but can happen...
-                    search=["|", ("active", "=", 1), ("active", "=", 0)],
+                    search=["|", ("active", "=", True), ("active", "=", False)],
                     object=True,
                 )
             }
@@ -463,7 +463,7 @@ class exporter(object):
             for i in self.generator.getData(
                 "stock.picking.type",
                 # We also need to load INactive types
-                search=["|", ("active", "=", 1), ("active", "=", 0)],
+                search=["|", ("active", "=", True), ("active", "=", False)],
                 fields=[
                     "name",
                     "sequence_code",
@@ -543,7 +543,6 @@ class exporter(object):
         """
 
         calendars = {}
-        cal_tz = {}
         cal_ids = set()
         try:
             # Read the timezone
@@ -551,11 +550,9 @@ class exporter(object):
                 "resource.calendar",
                 fields=[
                     "name",
-                    "tz",
                 ],
             ):
                 cal_ids.add(i["id"])
-                cal_tz["%s %s" % (i["name"], i["id"])] = i["tz"]
 
             # Read the resource calendar association
             calendar_resource = {}
@@ -576,7 +573,7 @@ class exporter(object):
 
             for i in self.generator.getData(
                 "resource.calendar.leaves",
-                search=[("resource_id", "!=", False), ("time_type", "=", "leave")],
+                search=[("resource_id", "!=", False)],
                 fields=[
                     "resource_id",
                 ],
@@ -588,14 +585,11 @@ class exporter(object):
             # Read the attendance for all calendars
             for i in self.generator.getData(
                 "resource.calendar.attendance",
-                search=[("display_type", "=", False)],
                 fields=[
                     "dayofweek",
                     "hour_from",
                     "hour_to",
                     "calendar_id",
-                    "two_weeks_calendar",
-                    "day_period",
                 ],
             ):
                 if i["calendar_id"] and i["calendar_id"][0] in cal_ids:
@@ -603,9 +597,7 @@ class exporter(object):
 
                     if calendar_name not in calendars:
                         calendars[calendar_name] = []
-                    i["attendance"] = (
-                        True if i["day_period"] in ("morning", "afternoon") else False
-                    )
+                    i["attendance"] = True
                     calendars[calendar_name].append(i)
 
                 if calendar_resource.get(i["calendar_id"][0]):
@@ -620,15 +612,7 @@ class exporter(object):
                                     "calendar for %s"
                                     % (self.resources_with_specific_calendars[res],)
                                 ] = []
-                                cal_tz[
-                                    "calendar for %s"
-                                    % (self.resources_with_specific_calendars[res],)
-                                ] = cal_tz[calendar_name]
-                            i["attendance"] = (
-                                True
-                                if i["day_period"] in ("morning", "afternoon")
-                                else False
-                            )
+                            i["attendance"] = True
                             calendars[
                                 "calendar for %s"
                                 % (self.resources_with_specific_calendars[res],)
@@ -637,7 +621,6 @@ class exporter(object):
             # Read the leaves for all calendars
             for i in self.generator.getData(
                 "resource.calendar.leaves",
-                search=[("time_type", "=", "leave")],
                 fields=[
                     "date_from",
                     "date_to",
@@ -667,13 +650,6 @@ class exporter(object):
                                         "calendar for %s"
                                         % (self.resources_with_specific_calendars[res],)
                                     ] = []
-                                    cal_tz[
-                                        "calendar for %s"
-                                        % (self.resources_with_specific_calendars[res],)
-                                    ] = cal_tz[
-                                        "%s %s"
-                                        % (i["calendar_id"][1], i["calendar_id"][0])
-                                    ]
                                 i["attendance"] = False
                                 calendars[
                                     "calendar for %s"
@@ -687,100 +663,53 @@ class exporter(object):
                 try:
                     priority_attendance = 1000
                     priority_leave = 10
-                    if cal_tz[i] != self.timezone:
-                        logger.warning(
-                            "timezone is different on workcenter %s and connector user. Working hours will not be synced correctly to frepple."
-                            % i
-                        )
                     buckets = []
                     for j in calendars[i]:
-                        if j.get("two_weeks_calendar", False) == False:
-                            # ONE-WEEK CALENDAR
-                            buckets.append(
-                                {
-                                    "start": (
-                                        j["date_from"].strftime("%Y-%m-%dT00:00:00")
-                                        if j.get("date_from")
-                                        else "2020-01-01T00:00:00"
-                                    ),
-                                    "end": (
-                                        j["date_to"].strftime("%Y-%m-%dT00:00:00")
-                                        if j.get("date_to")
-                                        else "2030-12-31T00:00:00"
-                                    ),
-                                    "value": 1 if j["attendance"] else 0,
-                                    "days": (
-                                        (2 ** ((int(j["dayofweek"]) + 1) % 7))
-                                        if "dayofweek" in j
-                                        else (2**7) - 1
-                                    ),
-                                    "priority": (
-                                        priority_attendance
-                                        if j["attendance"]
-                                        else priority_leave
-                                    ),
-                                    "starttime": (
-                                        j["hour_from"] * 3600 if "hour_from" in j else 0
-                                    ),
-                                    "endtime": (
-                                        j["hour_to"] * 3600
-                                        if "hour_to" in j
-                                        else 24 * 3600
-                                    ),
-                                }
-                            )
-                            if j["attendance"]:
-                                priority_attendance += 1
-                            else:
-                                priority_leave += 1
-                        else:
-                            # TWO-WEEKS CALENDAR
-                            start = j.get("date_from") or datetime(2020, 1, 1)
-                            end = j.get("date_to") or datetime(2030, 12, 31)
 
-                            t = start
-                            while t < end:
-                                if int(t.isocalendar()[1] % 2) == int(
-                                    j["two_weeks_calendar"]
-                                ):
-                                    buckets.append(
-                                        {
-                                            "start": self.formatDateTime(t, cal_tz[i]),
-                                            "end": self.formatDateTime(
-                                                min(
-                                                    t + timedelta(7 - t.weekday()), end
-                                                ),
-                                                cal_tz[i],
-                                            ),
-                                            "value": 1,
-                                            "days": (
-                                                (2 ** ((int(j["dayofweek"]) + 1) % 7))
-                                                if "dayofweek" in j
-                                                else (2**7) - 1
-                                            ),
-                                            "priority": priority_attendance,
-                                            "starttime": (
-                                                j["hour_from"] * 3600
-                                                if "hour_from" in j
-                                                else 0
-                                            ),
-                                            "endtime": (
-                                                j["hour_to"] * 3600
-                                                if "hour_to" in j
-                                                else 24 * 2600
-                                            ),
-                                        }
-                                    )
-                                    priority_attendance += 1
-                                dow = t.weekday()
-                                t += timedelta(7 - dow)
-                    yield json.dumps(
-                        {
-                            "name": i,
-                            "default": 0,
-                            "buckets": buckets,
-                        }
-                    ) + ",\n"
+                        buckets.append(
+                            {
+                                "start": (
+                                    j["date_from"].strftime("%Y-%m-%dT00:00:00")
+                                    if j.get("date_from")
+                                    else "2020-01-01T00:00:00"
+                                ),
+                                "end": (
+                                    j["date_to"].strftime("%Y-%m-%dT00:00:00")
+                                    if j.get("date_to")
+                                    else "2030-12-31T00:00:00"
+                                ),
+                                "value": 1 if j["attendance"] else 0,
+                                "days": (
+                                    (2 ** ((int(j["dayofweek"]) + 1) % 7))
+                                    if "dayofweek" in j
+                                    else (2**7) - 1
+                                ),
+                                "priority": (
+                                    priority_attendance
+                                    if j["attendance"]
+                                    else priority_leave
+                                ),
+                                "starttime": (
+                                    j["hour_from"] * 3600 if "hour_from" in j else 0
+                                ),
+                                "endtime": (
+                                    j["hour_to"] * 3600 if "hour_to" in j else 24 * 3600
+                                )
+                                or 86400,
+                            }
+                        )
+                        if j["attendance"]:
+                            priority_attendance += 1
+                        else:
+                            priority_leave += 1
+
+                        yield json.dumps(
+                            {
+                                "name": i,
+                                "default": 0,
+                                "buckets": buckets,
+                            }
+                        ) + ",\n"
                 except Exception as e:
                     yield from self.flagException(f"exporting calendar '{i}'", e)
         except Exception as e:
@@ -1216,7 +1145,7 @@ class exporter(object):
                 "product_tmpl_id",
                 "product_id",
                 "partner_id",
-                "product_uom_id",
+                "uom_id",
                 "delay",
                 "min_qty",
                 "date_end",
@@ -1401,7 +1330,7 @@ class exporter(object):
                             i["id"], itemsuppliers_tmpl.get(tmpl["id"], [])
                         ):
                             purchase_uom_quantity = self.convert_qty_uom(
-                                1.0, sup["product_uom_id"], tmpl["id"]
+                                1.0, sup["uom_id"], tmpl["id"]
                             )
                             price = max(0, sup["price"]) / purchase_uom_quantity
                             min_qty = (sup["min_qty"] or 0) * purchase_uom_quantity
@@ -1526,7 +1455,6 @@ class exporter(object):
                                     itemsupplier.update(
                                         {"location": {"name": loc}} if loc else {}
                                     )
-                                    logger.info(f"itemsupplier={itemsupplier}")
 
                                     if v["date_end"]:
                                         itemsupplier["effective_end"] = (
@@ -1596,7 +1524,7 @@ class exporter(object):
                 "mrp.bom",
                 fields=[
                     "product_qty",
-                    "product_uom_id",
+                    "uom_id",
                     "product_tmpl_id",
                     "product_id",
                     "type",
@@ -1619,7 +1547,7 @@ class exporter(object):
                     if not product_template:
                         continue
                     uom_factor = self.convert_qty_uom(
-                        1.0, i["product_uom_id"], i["product_tmpl_id"][0]
+                        1.0, i["uom_id"], i["product_tmpl_id"][0]
                     )
 
                     # Loop over all subcontractors
@@ -1726,7 +1654,7 @@ class exporter(object):
                                 if i.get("product_qty_multiple", 0) > 0:
                                     multipleQty = self.convert_qty_uom(
                                         i["product_qty_multiple"],
-                                        i["product_uom_id"],
+                                        i["uom_id"],
                                         i["product_tmpl_id"][0],
                                     )
                                     if multipleQty > 0:
@@ -1735,7 +1663,7 @@ class exporter(object):
                                 # Handle produced quantity of a bom
                                 producedQty = self.convert_qty_uom(
                                     i["product_qty"],
-                                    i["product_uom_id"],
+                                    i["uom_id"],
                                     i["product_tmpl_id"][0],
                                 )
                                 if not producedQty:
@@ -1765,7 +1693,7 @@ class exporter(object):
                                     ids=i["bom_line_ids"],
                                     fields=[
                                         "product_qty",
-                                        "product_uom_id",
+                                        "uom_id",
                                         "product_id",
                                         "operation_id",
                                         "bom_product_template_attribute_value_ids",
@@ -1796,7 +1724,7 @@ class exporter(object):
                                     qty = sum(
                                         self.convert_qty_uom(
                                             k["product_qty"],
-                                            k["product_uom_id"],
+                                            k["uom_id"],
                                             self.product_product[k["product_id"][0]][
                                                 "template"
                                             ],
@@ -1939,7 +1867,7 @@ class exporter(object):
                                 if i.get("product_qty_multiple", 0) > 0:
                                     multipleQty = self.convert_qty_uom(
                                         i["product_qty_multiple"],
-                                        i["product_uom_id"],
+                                        i["uom_id"],
                                         i["product_tmpl_id"][0],
                                     )
                                     if multipleQty > 0:
@@ -1964,7 +1892,7 @@ class exporter(object):
                                     ids=i["bom_line_ids"],
                                     fields=[
                                         "product_qty",
-                                        "product_uom_id",
+                                        "uom_id",
                                         "product_id",
                                         "operation_id",
                                         "bom_product_template_attribute_value_ids",
@@ -1990,7 +1918,7 @@ class exporter(object):
                                         continue
                                     qty = self.convert_qty_uom(
                                         j["product_qty"],
-                                        j["product_uom_id"],
+                                        j["uom_id"],
                                         self.product_product[j["product_id"][0]][
                                             "template"
                                         ],
@@ -2240,7 +2168,7 @@ class exporter(object):
                         "quantity",
                         "procure_method",
                         "product_uom_qty",
-                        "product_uom",
+                        "uom_id",
                         "state",
                         "move_line_ids",
                         "picking_type_id",
@@ -2261,7 +2189,7 @@ class exporter(object):
                     if (l.state == "done" and not l.move_id.move_dest_ids) or (
                         l.state in ("assigned", "partially_available")
                     ):
-                        reserved_quantity += l.product_uom_id._compute_quantity(
+                        reserved_quantity += l.uom_id._compute_quantity(
                             l.quantity, l.product_id.uom_id
                         )
                 return reserved_quantity
@@ -2290,7 +2218,6 @@ class exporter(object):
                         "product_id",
                         "product_uom_qty",
                         "product_uom_id",
-                        "commitment_date",
                         "order_id",
                         "move_ids",
                     ],
@@ -2339,9 +2266,7 @@ class exporter(object):
                             # Not interested in this sales order...
                             continue
                         due = self.formatDateTime(
-                            i.get("commitment_date", False)
-                            or j.get("commitment_date", False)
-                            or j["date_order"]
+                            j.get("commitment_date", False) or j["date_order"]
                         )
                         priority = (
                             1  # We give all customer orders the same default priority
@@ -2387,7 +2312,7 @@ class exporter(object):
                                             continue
                                         qty = self.convert_qty_uom(
                                             sm["product_uom_qty"],
-                                            sm["product_uom"],
+                                            sm["uom_id"],
                                             sm_product["template"],
                                         )
                                         reserved_quantity = getReservedAndDoneQuantity(
@@ -2398,7 +2323,6 @@ class exporter(object):
                                             continue
                                         due = self.formatDateTime(
                                             sm["date"]
-                                            or i.get("commitment_date", False)
                                             or j.get("commitment_date", False)
                                             or j["date_order"]
                                         )
@@ -2504,7 +2428,6 @@ class exporter(object):
                     "product_id",
                     "product_uom_qty",
                     "product_uom_id",
-                    "commitment_date",
                     "order_id",
                     "move_ids",
                 ],
@@ -2553,9 +2476,7 @@ class exporter(object):
                         # Not interested in this sales order...
                         continue
                     due = self.formatDateTime(
-                        i.get("commitment_date", False)
-                        or j.get("commitment_date", False)
-                        or j["date_order"]
+                        j.get("commitment_date", False) or j["date_order"]
                     )
                     priority = (
                         1  # We give all customer orders the same default priority
@@ -2611,7 +2532,7 @@ class exporter(object):
                                         continue
                                     qty = self.convert_qty_uom(
                                         sm["product_uom_qty"],
-                                        sm["product_uom"],
+                                        sm["uom_id"],
                                         sm_product["template"],
                                     )
                                     reserved_quantity = getReservedAndDoneQuantity(sm)
@@ -2623,7 +2544,6 @@ class exporter(object):
                                         continue
                                     due = self.formatDateTime(
                                         sm["date"]
-                                        or i.get("commitment_date", False)
                                         or j.get("commitment_date", False)
                                         or j["date_order"]
                                     )
@@ -2819,7 +2739,7 @@ class exporter(object):
                 return 0
             else:
                 # Remaining open quantity
-                return sm.product_uom._compute_quantity(sm.product_uom_qty, target_uom)
+                return sm.uom_id._compute_quantity(sm.product_uom_qty, target_uom)
 
         try:
             po_line = {
@@ -2962,7 +2882,7 @@ class exporter(object):
                             elif mv.state == "done":
                                 continue
                             else:
-                                qty = mv.product_uom._compute_quantity(
+                                qty = mv.uom_id._compute_quantity(
                                     mv.product_uom_qty, mv.product_id.uom_id
                                 )
                             if qty <= 0:
@@ -3139,7 +3059,7 @@ class exporter(object):
                             end = self.formatDateTime(end)
                             qty = self.convert_qty_uom(
                                 i.product_qty - i.qty_received,
-                                i.product_uom_id.id,
+                                i.uom_id.id,
                                 self.product_product[i.product_id.id]["template"],
                             )
                             supplier = self.map_suppliers.get(j.partner_id.id)
@@ -3349,14 +3269,14 @@ class exporter(object):
                         # the production intent.
                         qty = self.convert_qty_uom(
                             i.product_qty,
-                            i.product_uom_id.id,
+                            i.uom_id.id,
                             self.product_product[i.product_id.id]["template"],
                         )
                     else:
                         # No serialization on the product
                         qty = self.convert_qty_uom(
                             i.qty_producing if i.qty_producing else i.product_qty,
-                            i.product_uom_id.id,
+                            i.uom_id.id,
                             self.product_product[i.product_id.id]["template"],
                         )
                     if not qty:
@@ -3401,12 +3321,6 @@ class exporter(object):
                     if batch:
                         operationplan["batch"] = batch
 
-                    # Collect move info
-                    if i.move_raw_ids:
-                        mv_list = i.move_raw_ids
-                    else:
-                        mv_list = []
-
                     if not self.manage_work_orders or not getattr(
                         i, "workorder_ids", None
                     ):
@@ -3432,17 +3346,17 @@ class exporter(object):
                             if not consumed_item or mv.state in ("done", "cancelled"):
                                 continue
                             default_uom = mv.product_id.uom_id
-                            qty_flow = mv.product_uom._compute_quantity(
+                            qty_flow = mv.uom_id._compute_quantity(
                                 mv.product_uom_qty - mv.quantity, default_uom
                             )
                             for l in mv.move_line_ids:
                                 if l.state == "done":
-                                    qty_flow -= l.product_uom_id._compute_quantity(
+                                    qty_flow -= l.uom_id._compute_quantity(
                                         l.quantity, default_uom
                                     )
                             for l in mv.move_line_ids | mv.move_orig_ids.move_line_ids:
                                 if l.state == "assigned" and l.move_id.picking_id:
-                                    qty_flow -= l.product_uom_id._compute_quantity(
+                                    qty_flow -= l.uom_id._compute_quantity(
                                         l.quantity, default_uom
                                     )
                             if qty_flow > 0:
@@ -3530,7 +3444,7 @@ class exporter(object):
                             i.operation_id.id for i in i.workorder_ids if i.operation_id
                         }
                         for wo in i.workorder_ids:
-                            suboperation = wo.display_name
+                            suboperation = f"{i.name} - {wo.name}"
 
                             # Get remaining duration of the WO
                             time_left = wo.duration_expected - wo.duration_unit
@@ -3579,19 +3493,19 @@ class exporter(object):
                                 if not material or mv.state in ("done", "cancelled"):
                                     continue
                                 default_uom = mv.product_id.uom_id
-                                qty_flow = mv.product_uom._compute_quantity(
+                                qty_flow = mv.uom_id._compute_quantity(
                                     mv.product_uom_qty - mv.quantity, default_uom
                                 )
                                 for l in mv.move_line_ids:
                                     if l.state == "done":
-                                        qty_flow -= l.product_uom_id._compute_quantity(
+                                        qty_flow -= l.uom_id._compute_quantity(
                                             l.quantity, default_uom
                                         )
                                 for l in (
                                     mv.move_line_ids | mv.move_orig_ids.move_line_ids
                                 ):
                                     if l.state == "assigned" and l.move_id.picking_id:
-                                        qty_flow -= l.product_uom_id._compute_quantity(
+                                        qty_flow -= l.uom_id._compute_quantity(
                                             l.quantity, default_uom
                                         )
                                 if qty_flow > 0:
@@ -3693,7 +3607,7 @@ class exporter(object):
                         idx = 0
                         for wo in reversed(i.workorder_ids):
                             idx += 1.0
-                            suboperation = wo.display_name
+                            suboperation = f"{i.name} - {wo.name}"
 
                             # In the "approved" status, frepple can still reschedule the MO in function of material and capacity
                             # In the "confirmed" status, frepple sees the MO as frozen and unchangeable
@@ -3821,7 +3735,7 @@ class exporter(object):
                         or origin_wh == destination_wh
                     ):
                         continue
-                    qty = arr.product_uom._compute_quantity(
+                    qty = arr.uom_id._compute_quantity(
                         arr.product_uom_qty, arr.product_id.uom_id
                     )
                     # We want to look in the same procurement group for the reserved quantity in the origin warehouse.
@@ -3906,7 +3820,7 @@ class exporter(object):
                     "product_id",
                     "product_min_qty",
                     "product_max_qty",
-                    "product_uom",
+                    "uom_id",
                 ],
             ):
                 item = self.product_product.get(
@@ -3923,7 +3837,7 @@ class exporter(object):
                     continue
                 uom_factor = self.convert_qty_uom(
                     1.0,
-                    i["product_uom"][0],
+                    i["uom_id"][0],
                     item["template"],
                 )
                 reorder = (i["product_max_qty"] or 0) - (
@@ -4236,9 +4150,7 @@ class exporter(object):
                 if not item or not location:
                     continue
                 batch = self.getBatch(mv.production_id)
-                qty = mv.product_uom._compute_quantity(
-                    mv.quantity, mv.product_id.uom_id
-                )
+                qty = mv.uom_id._compute_quantity(mv.quantity, mv.product_id.uom_id)
                 if qty > 0:
                     if batch:
                         inventory_mto[(item["name"], location, batch)] = (

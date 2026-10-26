@@ -320,7 +320,7 @@ class FreppleJob(models.Model):
                     "email": self.env.user.email,
                     "odoo_url": self.env["ir.config_parameter"]
                     .sudo()
-                    .get_param("web.base.url"),
+                    .get_str("web.base.url"),
                     "company": company.name,
                     "version": release.version,
                     "submitted": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

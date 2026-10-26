@@ -4,6 +4,7 @@ import logging
 
 from odoo import http
 from odoo.http import request
+from odoo.http.session import authenticate as authenticate_session
 import odoo.addons.web.controllers.home as main
 
 logger = logging.getLogger(__name__)
@@ -19,13 +20,16 @@ class AutoLoginHome(main.Home):
         try:
             # Force a login
             main.ensure_db()
-            uid = request.session.authenticate(
+            auth_info = authenticate_session(
+                request.session,
                 request.env,
                 {"login": ADMIN_USERID, "password": ADMIN_PASSWORD, "type": "password"},
             )
             request.params["login_success"] = True
             request.params["password"] = ADMIN_PASSWORD
-            return request.redirect(self._login_redirect(uid, redirect=redirect))
+            return request.redirect(
+                self._login_redirect(auth_info["uid"], redirect=redirect)
+            )
         except Exception:
             # Autologin failed
             logger.warning("Autologin failed")

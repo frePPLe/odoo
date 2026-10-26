@@ -15,5 +15,3 @@ Check out:
 
 - high level overview: https://frepple.com/odoo-integration/
 - technical documentation: https://frepple.com/docs/current/erp-integration/odoo-connector/
-
-

@@ -324,7 +324,7 @@ class importer(object):
                                     {
                                         "product_id": int(item_id),
                                         "product_qty": quantity,
-                                        "product_uom_id": int(uom_id),
+                                        "uom_id": int(uom_id),
                                         "date_planned": date_planned,
                                         "name": elem.get("item"),
                                     }
@@ -443,7 +443,7 @@ class importer(object):
                                     "order_id": supplier_reference[supplier_id]["id"],
                                     "product_id": int(item_id),
                                     "product_qty": quantity,
-                                    "product_uom_id": int(uom_id),
+                                    "uom_id": int(uom_id),
                                 }
                             )
                             po = po_line.order_id
@@ -714,7 +714,7 @@ class importer(object):
                                     "date_finished": elem.get("end"),
                                     "product_id": int(item_id),
                                     "company_id": self.company.id,
-                                    "product_uom_id": int(uom_id),
+                                    "uom_id": int(uom_id),
                                     "picking_type_id": picking.id,
                                     "bom_id": bom_id,
                                     "qty_producing": 0.00,

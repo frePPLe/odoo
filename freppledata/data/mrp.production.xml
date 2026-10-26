@@ -4,23 +4,10 @@
     <data noupdate="1">
         <record id="freppledata.mo1" model="mrp.production">
             <field name="product_id" ref="product_product.varnished_chair" />
-            <field name="product_uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_id" ref="uom.product_uom_unit" />
             <field name="product_qty">9</field>
             <field name="qty_producing">8</field>
             <field name="bom_id" ref="mrp_bom.varnished_chair" />
-        </record>
-
-        <record id="freppledata.wo1" model="mrp.workorder">
-            <field name="production_id" ref="freppledata.mo1" />
-            <field name="product_id" ref="product_product.varnished_chair" />
-            <field name="operation_id" ref="mrp_routing_workcenter_varnished_chair_chair" />
-            <field name="name">varnishing chair</field>
-            <field name="state">ready</field>
-            <field name="product_uom_id" ref="uom.product_uom_unit" />
-            <field name="duration_expected">135</field>
-            <field name="workcenter_id" ref="mrp_workcenter_polishing_workstation" />
-            <field name="date_start"
-                eval="(datetime.now() + relativedelta(days=5)).strftime('%Y-%m-%d %H:%M:%S')" />
         </record>
 
         <record id="freppledata.wo3" model="mrp.workorder">
@@ -28,7 +15,7 @@
             <field name="product_id" ref="product_product.varnished_chair" />
             <field name="name">special decoration</field>
             <field name="state">ready</field>
-            <field name="product_uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_id" ref="uom.product_uom_unit" />
             <field name="duration_expected">60</field>
             <field name="workcenter_id" ref="mrp_workcenter_polishing_workstation" />
             <field name="date_start"
@@ -49,7 +36,7 @@
         <!-- Second MO with deviating component consumption. -->
         <record id="freppledata.mo2" model="mrp.production">
             <field name="product_id" ref="product_product.varnished_chair" />
-            <field name="product_uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_id" ref="uom.product_uom_unit" />
             <field name="product_qty">9</field>
             <field name="bom_id" ref="mrp_bom.varnished_chair" />
         </record>

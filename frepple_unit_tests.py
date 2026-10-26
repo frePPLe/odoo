@@ -58,7 +58,7 @@ from freppledb.input.models import (
 @skipUnless("freppledb.odoo" in settings.INSTALLED_APPS, "App not activated")
 class OdooTest(TransactionTestCase):
 
-    odooversion = 19
+    odooversion = 20
 
     def setUp(self):
         os.environ["FREPPLE_TEST"] = "YES"
@@ -550,8 +550,8 @@ class OdooTest(TransactionTestCase):
             Buffer.objects.all()
             .filter(item_id="[E-COM11] Cabinet with Doors", location_id="WH")
             .aggregate(total_onhand=Sum("onhand"))["total_onhand"],
-            138,
-            "expected inventory of 138 for E-COM11",
+            136,
+            "expected inventory of 136 for E-COM11",
         )
 
         # Check reordering rules are aggregated correctlyby warehouse
