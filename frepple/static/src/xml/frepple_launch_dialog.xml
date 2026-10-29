@@ -7,7 +7,7 @@
                     <div class="alert alert-info mb-3" role="alert">
                         <i class="fa fa-info-circle me-1"/>
                         Your Odoo data will be sent to the Advanced Planning and Scheduling Service to generate a plan.
-                        <a href="https://frepple.com/docs/current/erp-integration/odoo-connector/odoo-connectors-with-aps/using-the-connectors-with-the-aps-service.html" target="_blank">More details</a>
+                        <a href="https://frepple.com/docs/current/odoo-connector/using-the-connectors-with-the-aps-service.html" target="_blank">More details</a>
                     </div>
                 </t>
                 <h6 class="mb-3">Planning options</h6>
