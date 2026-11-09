@@ -527,7 +527,7 @@ class exporter(object):
 
         resource.calendar.name -> calendar.name (default value is 0)
         resource.calendar.attendance.date_from -> calendar bucket start date (or 2020-01-01 if unspecified)
-        resource.calendar.attendance.date_to -> calendar bucket end date (or 2030-12-31 if unspecified)
+        resource.calendar.attendance.date_to -> calendar bucket end date (or 2100-12-31 if unspecified)
         resource.calendar.attendance.hour_from -> calendar bucket start time
         resource.calendar.attendance.hour_to -> calendar bucket end time
         resource.calendar.attendance.dayofweek -> calendar bucket day
@@ -676,7 +676,7 @@ class exporter(object):
                                 "end": (
                                     j["date_to"].strftime("%Y-%m-%dT00:00:00")
                                     if j.get("date_to")
-                                    else "2030-12-31T00:00:00"
+                                    else "2100-12-31T00:00:00"
                                 ),
                                 "value": 1 if j["attendance"] else 0,
                                 "days": (
@@ -3893,7 +3893,7 @@ class exporter(object):
                                             "start": self.currentdate.strftime(
                                                 "%Y-%m-%dT%H:%M:%S"
                                             ),
-                                            "end": "2030-12-31T00:00:00",
+                                            "end": "2100-12-31T00:00:00",
                                             "value": ss,
                                             "days": "127",
                                             "priority": "998",
@@ -3913,7 +3913,7 @@ class exporter(object):
                                             "start": self.currentdate.strftime(
                                                 "%Y-%m-%dT%H:%M:%S"
                                             ),
-                                            "end": "2030-12-31T00:00:00",
+                                            "end": "2100-12-31T00:00:00",
                                             "value": roq,
                                             "days": "127",
                                             "priority": "998",
