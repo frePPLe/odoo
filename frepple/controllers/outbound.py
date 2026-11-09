@@ -1526,7 +1526,6 @@ class exporter(object):
                                     itemsupplier.update(
                                         {"location": {"name": loc}} if loc else {}
                                     )
-                                    logger.info(f"itemsupplier={itemsupplier}")
 
                                     if v["date_end"]:
                                         itemsupplier["effective_end"] = (
@@ -3794,14 +3793,103 @@ class exporter(object):
             arrivals = self.generator.getData(
                 "stock.move",
                 search=[
-                    ("location_id.usage", "=", "transit"),
-                    ("location_dest_id.usage", "=", "internal"),
+                    "&",
                     ("state", "not in", ("done", "cancel")),
+                    "|",
+                    # case 1
+                    # multi-step is enabled, we have a transit location
+                    "&",
+                    ("location_id.usage", "=", "transit"),
+                    (
+                        "location_dest_id.usage",
+                        "=",
+                        "internal",
+                    ),
+                    "&",
+                    "&",
+                    (
+                        "location_id.usage",
+                        "=",
+                        "internal",
+                    ),
+                    # case 2: multi-step is disabled, we have to look for
+                    # for the warehouse at source and destination
+                    # for this case 2:
+                    # we need a python check further down to ensure
+                    # that the 2 warehouses are different
+                    (
+                        "location_dest_id.usage",
+                        "=",
+                        "internal",
+                    ),
+                    "&",
+                    (
+                        "location_id.warehouse_id",
+                        "!=",
+                        False,
+                    ),
+                    (
+                        "location_dest_id.warehouse_id",
+                        "!=",
+                        False,
+                    ),
                 ],
                 object=True,
             )
             for arr in arrivals:
                 try:
+                    # case 2: make sure the source and destination warehouses are different
+                    if (
+                        arr.location_id.usage == "internal"
+                        and arr.location_id.warehouse_id
+                        == arr.location_dest_id.warehouse_id
+                    ):
+                        continue
+
+                    # case 2: create the distribution order:
+                    if arr.location_id.usage == "internal":
+                        origin_wh = self.warehouses.get(arr.location_id.warehouse_id.id)
+                        destination_wh = self.warehouses.get(
+                            arr.location_dest_id.warehouse_id.id
+                        )
+                        product = self.product_product.get(arr.product_id.id)
+                        if not product or not origin_wh or not destination_wh:
+                            continue
+                        qty_reserved_at_origin = (
+                            arr.quantity
+                            if arr.state
+                            in [
+                                "assigned",
+                                "partially_available",
+                            ]  # if it is assigned, then there is some reservation
+                            else 0
+                        )
+                        qty = arr.product_uom._compute_quantity(
+                            arr.product_uom_qty, arr.product_id.uom_id
+                        )
+                        shipping_date = arr.date.strftime("%Y-%m-%d %H:%M:%S")
+                        receipt_date = arr.date_deadline.strftime("%Y-%m-%d %H:%M:%S")
+
+                        yield json.dumps(
+                            {
+                                "ordertype": "DO",
+                                "reference": f"{arr.picking_id.name} {arr.id}",
+                                "start": shipping_date,
+                                "end": receipt_date,
+                                "quantity": qty,
+                                "status": "confirmed",
+                                "item": {"name": product["name"]},
+                                "location": {"name": destination_wh},
+                            }
+                            | (
+                                {"origin": {"name": origin_wh}}
+                                if not qty_reserved_at_origin
+                                else {}
+                            )
+                        ) + ",\n"
+                        continue
+
+                    # case 1: interwarehouse transfer with a transit move
                     deps = arr.move_orig_ids.filtered(
                         lambda m: m.location_id.usage == "internal"
                         and m.location_dest_id.usage == "transit"
