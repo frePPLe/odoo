@@ -1609,8 +1609,37 @@ class exporter(object):
                 ],
             ):
                 try:
-                    # Determine the location
-                    location = self.mfg_location
+                    # Determine the locations where this BOM will be produced
+                    bom = self.generator.getData("mrp.bom", ids=[i["id"]], object=True)[
+                        0
+                    ]
+                    product = (
+                        bom.product_id or bom.product_tmpl_id.product_variant_ids[:1]
+                    )
+                    routes = product.route_ids | product.categ_id.total_route_ids
+
+                    rules = self.generator.getData(
+                        "stock.rule",
+                        search=[
+                            ("action", "=", "manufacture"),
+                            ("route_id", "in", routes.ids),
+                        ],
+                        object=True,
+                    )
+
+                    if bom.picking_type_id:
+                        rules = rules.filtered(
+                            lambda r: r.picking_type_id == bom.picking_type_id
+                        )
+
+                    warehouses_obj = rules.mapped(
+                        lambda r: r.warehouse_id or r.picking_type_id.warehouse_id
+                    )
+
+                    warehouses = [self.warehouses[w.id] for w in warehouses_obj]
+
+                    if not warehouses:
+                        continue
 
                     product_template = self.product_templates.get(
                         i["product_tmpl_id"][0], None
@@ -1642,513 +1671,114 @@ class exporter(object):
                             logger.warning("Skipping %s" % i["product_tmpl_id"][0])
                             continue
 
-                        for subcontractor in subcontractors:
-                            # Build operation. The operation can either be a summary operation or a detailed
-                            # routing.
-                            operation = "%s %d @ %s%s %d" % (
-                                product_buf["code"] or product_buf["name"],
-                                product_id,
-                                subcontractor.get("name", location),
-                                (
-                                    (" from %s" % subcontractor["date_start"])
-                                    if subcontractor.get("date_start", None)
-                                    else ""
-                                ),
-                                i["id"],
-                            )
-                            if (
-                                not self.manage_work_orders
-                                or subcontractor
-                                or not mrp_routing_workcenters.get(i["id"], [])
-                            ):
-                                #
-                                # CASE 1: A single operation used for the BOM
-                                # All routing steps are collapsed in a single operation.
-                                #
-                                if subcontractor:
-                                    operation_json = {
-                                        "name": operation,
-                                        "size_multiple": "1",
-                                        "category": "subcontractor",
-                                        "subcategory": subcontractor["name"],
-                                        "duration": subcontractor.get("delay", 0)
-                                        * 86400,
-                                        "posttime": self.po_lead * 86400,
-                                        "type": "operation_fixed_time",
-                                        "priority": subcontractor.get("priority", 1)
-                                        + 50,
-                                        "size_minimum": subcontractor.get(
-                                            "size_minimum", 0
-                                        ),
-                                        "item": {"name": product_buf["name"]},
-                                        "location": {"name": location},
-                                    }
-                                    if i["code"]:
-                                        operation_json["description"] = i["code"]
-                                    if subcontractor.get("date_start", None):
-                                        operation_json["effective_start"] = (
-                                            "%sT00:00:00"
-                                            % subcontractor["date_start"].strftime(
-                                                "%Y-%m-%d"
-                                            )
-                                        )
-                                    if subcontractor.get("date_end", None):
-                                        operation_json["effective_end"] = (
-                                            "%sT00:00:00"
-                                            % subcontractor["date_end"].strftime(
-                                                "%Y-%m-%d"
-                                            )
-                                        )
-                                else:
-                                    duration = (i["produce_delay"] or 0) + (
-                                        i["days_to_prepare_mo"] or 0
-                                    )
-                                    operation_json = {
-                                        "name": operation,
-                                        "size_multiple": "1",
-                                        "duration": (
-                                            self.convert_float_time(duration)
-                                            if duration and duration > 0
-                                            else "P0D"
-                                        ),
-                                        "posttime": self.manufacturing_lead,
-                                        "priority": 100 + (i["sequence"] or 1),
-                                        "category": i["type"] or "",
-                                        "type": "operation_fixed_time",
-                                        "item": {"name": product_buf["name"]},
-                                        "location": {"name": location},
-                                    }
-                                    if i["code"]:
-                                        operation_json["description"] = i["code"]
-
-                                # Handle multiple quantity of a bom (frepple custom extra field)
-                                if i.get("product_qty_multiple", 0) > 0:
-                                    multipleQty = self.convert_qty_uom(
-                                        i["product_qty_multiple"],
-                                        i["product_uom_id"],
-                                        i["product_tmpl_id"][0],
-                                    )
-                                    if multipleQty > 0:
-                                        operation_json["size_multiple"] = multipleQty
-
-                                # Handle produced quantity of a bom
-                                producedQty = self.convert_qty_uom(
-                                    i["product_qty"],
-                                    i["product_uom_id"],
-                                    i["product_tmpl_id"][0],
+                        for location in warehouses:
+                            for subcontractor in subcontractors:
+                                # Build operation. The operation can either be a summary operation or a detailed
+                                # routing.
+                                operation = "%s %d @ %s%s %d" % (
+                                    product_buf["code"] or product_buf["name"],
+                                    product_id,
+                                    subcontractor.get("name", location),
+                                    (
+                                        (" from %s" % subcontractor["date_start"])
+                                        if subcontractor.get("date_start", None)
+                                        else ""
+                                    ),
+                                    i["id"],
                                 )
-                                if not producedQty:
-                                    producedQty = 1
-                                if producedQty != 1 and not subcontractor:
-                                    operation_json["size_minimum"] = producedQty
-
-                                operation_json["flows"] = []
-
-                                # We need a producing flow if there is a scrap rate
-                                if i["scrap_rate"] and 0.0 <= i["scrap_rate"] < 1.0:
-                                    operation_json["flows"].append(
-                                        {
-                                            "type": "flow_end",
-                                            "quantity": 1 - i["scrap_rate"],
-                                            "item": {"name": product_buf["name"]},
-                                        }
-                                    )
-
-                                # Build consuming flows.
-                                # If the same component is consumed multiple times in the same BOM
-                                # we sum up all quantities in a single flow. We assume all of them
-                                # have the same effectivity.
-                                fl = {}
-                                for j in self.generator.getData(
-                                    "mrp.bom.line",
-                                    ids=i["bom_line_ids"],
-                                    fields=[
-                                        "product_qty",
-                                        "product_uom_id",
-                                        "product_id",
-                                        "operation_id",
-                                        "bom_product_template_attribute_value_ids",
-                                    ],
+                                if (
+                                    not self.manage_work_orders
+                                    or subcontractor
+                                    or not mrp_routing_workcenters.get(i["id"], [])
                                 ):
-                                    # check if this BOM line applies to this variant
-                                    if len(
-                                        j["bom_product_template_attribute_value_ids"]
-                                    ) > 0 and not all(
-                                        elem
-                                        in j["bom_product_template_attribute_value_ids"]
-                                        for elem in product_buf[
-                                            "product_template_attribute_value_ids"
-                                        ]
-                                    ):
-                                        continue
-                                    product = self.product_product.get(
-                                        j["product_id"][0], None
-                                    )
-                                    if not product:
-                                        continue
-                                    if j["product_id"][0] in fl:
-                                        fl[j["product_id"][0]].append(j)
-                                    else:
-                                        fl[j["product_id"][0]] = [j]
-                                for j in fl:
-                                    product = self.product_product[j]
-                                    qty = sum(
-                                        self.convert_qty_uom(
-                                            k["product_qty"],
-                                            k["product_uom_id"],
-                                            self.product_product[k["product_id"][0]][
-                                                "template"
-                                            ],
-                                        )
-                                        for k in fl[j]
-                                    )
-                                    if qty > 0:
-                                        operation_json["flows"].append(
-                                            {
-                                                "type": "flow_start",
-                                                "quantity": -qty / producedQty,
-                                                "item": {"name": product["name"]},
-                                            }
-                                        )
-
-                                # Build byproduct flows
-                                if i.get("sub_products", None):
-                                    for j in self.generator.getData(
-                                        "mrp.subproduct",
-                                        ids=i["sub_products"],
-                                        fields=[
-                                            "product_id",
-                                            "product_qty",
-                                            "product_uom",
-                                            "subproduct_type",
-                                        ],
-                                    ):
-                                        product = self.product_product.get(
-                                            j["product_id"][0], None
-                                        )
-                                        if not product:
-                                            continue
-                                        operation_json["flows"].append(
-                                            {
-                                                "type": (
-                                                    "flow_fixed_end"
-                                                    if j["subproduct_type"] == "fixed"
-                                                    else "flow_end"
-                                                ),
-                                                "quantity": self.convert_qty_uom(
-                                                    j["product_qty"],
-                                                    j["product_uom"],
-                                                    j["product_id"][0],
-                                                )
-                                                / producedQty,
-                                                "item": {
-                                                    "item": {"name": product["name"]}
-                                                },
-                                            }
-                                        )
-
-                                # Create loads
-                                if i["id"] and not subcontractor:
-                                    exists = False
-                                    for j in mrp_routing_workcenters.get(i["id"], []):
-                                        if (
-                                            not j["workcenter_id"]
-                                            or j["workcenter_id"][0]
-                                            not in self.map_workcenters
-                                        ):
-                                            continue
-                                        if not exists:
-                                            exists = True
-                                            operation_json["operation"]["loads"] = []
-                                        load = {
-                                            "load": {"quantity": j["time_cycle"]},
-                                            "search": j["search_mode"],
-                                            "resource": {
-                                                "name": self.map_workcenters[
-                                                    j["workcenter_id"][0]
-                                                ]["name"]
-                                            },
-                                        }
-                                        if j["skill"]:
-                                            load["skill"] = {"name": j["skill"][1]}
-
-                                        operation_json["loads"].append(load)
-
-                                        # create a load for secondary workcenters
-                                        # prepare the secondary workcenter xml string upfront
-                                        for sw_id in j["secondary_workcenter"]:
-                                            secondary_workcenter = (
-                                                mrp_secondary_workcenter[sw_id]
-                                            )
-                                            load = (
-                                                {
-                                                    "quantity": (
-                                                        1
-                                                        if not secondary_workcenter[
-                                                            "duration"
-                                                        ]
-                                                        or j["time_cycle"] == 0
-                                                        else secondary_workcenter[
-                                                            "duration"
-                                                        ]
-                                                        / j["time_cycle"]
-                                                    ),
-                                                    "search": secondary_workcenter[
-                                                        "search_mode"
-                                                    ],
-                                                    "resource": {
-                                                        "name": self.map_workcenters[
-                                                            secondary_workcenter[
-                                                                "workcenter_id"
-                                                            ][0]
-                                                        ]["name"]
-                                                    },
-                                                },
-                                            )
-
-                                            if secondary_workcenter["skill"]:
-                                                load["skill"] = {
-                                                    "name": secondary_workcenter[
-                                                        "skill"
-                                                    ][1]
-                                                }
-
-                                            operation_json["loads"].append(load)
-
-                            else:
-                                #
-                                # CASE 2: A routing operation is created with a suboperation for each
-                                # routing step.
-                                #
-                                operation_json = {
-                                    "name": operation,
-                                    "size_multiple": 1,
-                                    "posttime": self.manufacturing_lead * 86400,
-                                    "priority": 100 + (i["sequence"] or 1),
-                                    "category": i["type"] or "",
-                                    "type": "operation_routing",
-                                    "item": {"name": product_buf["name"]},
-                                    "location": {"name": location},
-                                }
-
-                                if i["code"]:
-                                    operation_json["description"] = i["code"]
-
-                                # Handle multiple quantity of a bom (frepple custom extra field)
-                                if i.get("product_qty_multiple", 0) > 0:
-                                    multipleQty = self.convert_qty_uom(
-                                        i["product_qty_multiple"],
-                                        i["product_uom_id"],
-                                        i["product_tmpl_id"][0],
-                                    )
-                                    if multipleQty > 0:
-                                        operation_json["size_multiple"] = multipleQty
-
-                                # Handle produced quantity of a bom
-                                producedQty = (
-                                    i["product_qty"]
-                                    * getattr(i, "product_efficiency", 1.0)
-                                    * uom_factor
-                                )
-                                if not producedQty:
-                                    producedQty = 1
-                                if producedQty != 1:
-                                    operation_json["size_minimum"] = producedQty
-
-                                operation_json["suboperations"] = []
-
-                                fl = {}
-                                for j in self.generator.getData(
-                                    "mrp.bom.line",
-                                    ids=i["bom_line_ids"],
-                                    fields=[
-                                        "product_qty",
-                                        "product_uom_id",
-                                        "product_id",
-                                        "operation_id",
-                                        "bom_product_template_attribute_value_ids",
-                                    ],
-                                ):
-                                    # check if this BOM line applies to this variant
-                                    if len(
-                                        j["bom_product_template_attribute_value_ids"]
-                                    ) > 0 and not all(
-                                        elem
-                                        in product_buf[
-                                            "product_template_attribute_value_ids"
-                                        ]
-                                        for elem in j[
-                                            "bom_product_template_attribute_value_ids"
-                                        ]
-                                    ):
-                                        continue
-                                    product = self.product_product.get(
-                                        j["product_id"][0], None
-                                    )
-                                    if not product:
-                                        continue
-                                    qty = self.convert_qty_uom(
-                                        j["product_qty"],
-                                        j["product_uom_id"],
-                                        self.product_product[j["product_id"][0]][
-                                            "template"
-                                        ],
-                                    )
-                                    if (
-                                        j["product_id"][0],
-                                        (
-                                            j["operation_id"][0]
-                                            if j["operation_id"]
-                                            else None
-                                        ),
-                                    ) in fl:
-                                        # If the same component is consumed multiple times in the same BOM step
-                                        # we sum up all quantities in a single flow. We assume all of them
-                                        # have the same effectivity.
-                                        fl[
-                                            (
-                                                j["product_id"][0],
-                                                (
-                                                    j["operation_id"][0]
-                                                    if j["operation_id"]
-                                                    else None
-                                                ),
-                                            )
-                                        ]["qty"] += qty
-                                    else:
-                                        j["qty"] = qty
-                                        fl[
-                                            (
-                                                j["product_id"][0],
-                                                (
-                                                    j["operation_id"][0]
-                                                    if j["operation_id"]
-                                                    else None
-                                                ),
-                                            )
-                                        ] = j
-
-                                steplist = mrp_routing_workcenters[i["id"]]
-                                counter = 0
-                                for step in steplist:
-                                    counter = counter + 1
-                                    suboperation = step["name"]
-                                    workcenter_qty = max(
-                                        step["workcenter_quantity"] or 0, 1
-                                    )
-                                    name = "%s - %s - %s" % (
-                                        operation,
-                                        suboperation,
-                                        step["id"],
-                                    )
-                                    if (
-                                        not step["workcenter_id"]
-                                        or step["workcenter_id"][0]
-                                        not in self.map_workcenters
-                                    ):
-                                        continue
-
-                                    # prepare the secondary workcenter xml string upfront
-                                    secondary_workcenter_data = []
-                                    for sw_id in step["secondary_workcenter"]:
-                                        secondary_workcenter = mrp_secondary_workcenter[
-                                            sw_id
-                                        ]
-                                        if (
-                                            secondary_workcenter["workcenter_id"][0]
-                                            not in self.map_workcenters
-                                        ):
-                                            continue
-                                        load_json = {
-                                            "quantity": (
-                                                1
-                                                if not secondary_workcenter["duration"]
-                                                or step["time_cycle"] == 0
-                                                else secondary_workcenter["duration"]
-                                                / step["time_cycle"]
+                                    #
+                                    # CASE 1: A single operation used for the BOM
+                                    # All routing steps are collapsed in a single operation.
+                                    #
+                                    if subcontractor:
+                                        operation_json = {
+                                            "name": operation,
+                                            "size_multiple": "1",
+                                            "category": "subcontractor",
+                                            "subcategory": subcontractor["name"],
+                                            "duration": subcontractor.get("delay", 0)
+                                            * 86400,
+                                            "posttime": self.po_lead * 86400,
+                                            "type": "operation_fixed_time",
+                                            "priority": subcontractor.get("priority", 1)
+                                            + 50,
+                                            "size_minimum": subcontractor.get(
+                                                "size_minimum", 0
                                             ),
-                                            "search": secondary_workcenter[
-                                                "search_mode"
-                                            ],
-                                            "resource": {
-                                                "name": self.map_workcenters[
-                                                    secondary_workcenter[
-                                                        "workcenter_id"
-                                                    ][0]
-                                                ]["name"]
-                                            },
+                                            "item": {"name": product_buf["name"]},
+                                            "location": {"name": location},
                                         }
-                                        if secondary_workcenter["skill"]:
-                                            load_json["load"]["skill"] = {
-                                                "name": secondary_workcenter["skill"][1]
-                                            }
-                                        secondary_workcenter_data.append(load_json)
-
-                                    # Pick up the post operation time from the operation or the work center
-                                    post_operation_time = step.get(
-                                        "post_operation_time", None
-                                    )
-                                    if not post_operation_time:
-                                        post_operation_time = self.map_workcenters[
-                                            step["workcenter_id"][0]
-                                        ].get("post_operation_time", 0)
-
-                                    suboperation_json = {
-                                        "name": name,
-                                        "priority": counter * 10,
-                                        "duration_per": (
-                                            self.convert_float_time(
-                                                step["time_cycle"]
-                                                / workcenter_qty
-                                                / 1440.0
+                                        if i["code"]:
+                                            operation_json["description"] = i["code"]
+                                        if subcontractor.get("date_start", None):
+                                            operation_json["effective_start"] = (
+                                                "%sT00:00:00"
+                                                % subcontractor["date_start"].strftime(
+                                                    "%Y-%m-%d"
+                                                )
                                             )
-                                            if step["time_cycle"]
-                                            and step["time_cycle"] > 0
-                                            else "P0D"
-                                        ),
-                                        "category": i["type"] or "",
-                                        "posttime": (
-                                            self.convert_float_time(
-                                                post_operation_time, "hours"
+                                        if subcontractor.get("date_end", None):
+                                            operation_json["effective_end"] = (
+                                                "%sT00:00:00"
+                                                % subcontractor["date_end"].strftime(
+                                                    "%Y-%m-%d"
+                                                )
                                             )
-                                            if post_operation_time
-                                            and post_operation_time > 0
-                                            else "P0D"
-                                        ),
-                                        "type": "operation_time_per",
-                                        "location": {"name": location},
-                                        "loads": [
-                                            {
-                                                "quantity": workcenter_qty,
-                                                "search": step["search_mode"],
-                                                "resource": {
-                                                    "name": (
-                                                        self.map_workcenters[
-                                                            step["workcenter_id"][0]
-                                                        ]["name"]
-                                                    )
-                                                },
-                                            }
-                                        ]
-                                        + secondary_workcenter_data,
-                                    }
-                                    if step["skill"]:
-                                        suboperation_json["loads"][0]["skill"] = {
-                                            "name": step["skill"][1]
+                                    else:
+                                        duration = (i["produce_delay"] or 0) + (
+                                            i["days_to_prepare_mo"] or 0
+                                        )
+                                        operation_json = {
+                                            "name": operation,
+                                            "size_multiple": "1",
+                                            "duration": (
+                                                self.convert_float_time(duration)
+                                                if duration and duration > 0
+                                                else "P0D"
+                                            ),
+                                            "posttime": self.manufacturing_lead,
+                                            "priority": 100 + (i["sequence"] or 1),
+                                            "category": i["type"] or "",
+                                            "type": "operation_fixed_time",
+                                            "item": {"name": product_buf["name"]},
+                                            "location": {"name": location},
                                         }
-                                    if i["code"]:
-                                        suboperation_json["description"] = i["code"]
-                                    operation_json["suboperations"].append(
-                                        {"operation": suboperation_json}
-                                    )
-                                    suboperation_json["flows"] = []
+                                        if i["code"]:
+                                            operation_json["description"] = i["code"]
 
-                                    if (
-                                        step == steplist[-1]
-                                        and i["scrap_rate"]
-                                        and 0.0 <= i["scrap_rate"] < 1.0
-                                    ):
-                                        suboperation_json["flows"].append(
+                                    # Handle multiple quantity of a bom (frepple custom extra field)
+                                    if i.get("product_qty_multiple", 0) > 0:
+                                        multipleQty = self.convert_qty_uom(
+                                            i["product_qty_multiple"],
+                                            i["product_uom_id"],
+                                            i["product_tmpl_id"][0],
+                                        )
+                                        if multipleQty > 0:
+                                            operation_json["size_multiple"] = (
+                                                multipleQty
+                                            )
+
+                                    # Handle produced quantity of a bom
+                                    producedQty = self.convert_qty_uom(
+                                        i["product_qty"],
+                                        i["product_uom_id"],
+                                        i["product_tmpl_id"][0],
+                                    )
+                                    if not producedQty:
+                                        producedQty = 1
+                                    if producedQty != 1 and not subcontractor:
+                                        operation_json["size_minimum"] = producedQty
+
+                                    operation_json["flows"] = []
+
+                                    # We need a producing flow if there is a scrap rate
+                                    if i["scrap_rate"] and 0.0 <= i["scrap_rate"] < 1.0:
+                                        operation_json["flows"].append(
                                             {
                                                 "type": "flow_end",
                                                 "quantity": 1 - i["scrap_rate"],
@@ -2156,33 +1786,464 @@ class exporter(object):
                                             }
                                         )
 
-                                    for j in fl.values():
-                                        if j["qty"] > 0 and (
-                                            (
-                                                j["operation_id"]
-                                                and j["operation_id"][0] == step["id"]
-                                            )
-                                            or (
-                                                not j["operation_id"]
-                                                and step == steplist[0]
-                                            )
+                                    # Build consuming flows.
+                                    # If the same component is consumed multiple times in the same BOM
+                                    # we sum up all quantities in a single flow. We assume all of them
+                                    # have the same effectivity.
+                                    fl = {}
+                                    for j in self.generator.getData(
+                                        "mrp.bom.line",
+                                        ids=i["bom_line_ids"],
+                                        fields=[
+                                            "product_qty",
+                                            "product_uom_id",
+                                            "product_id",
+                                            "operation_id",
+                                            "bom_product_template_attribute_value_ids",
+                                        ],
+                                    ):
+                                        # check if this BOM line applies to this variant
+                                        if len(
+                                            j[
+                                                "bom_product_template_attribute_value_ids"
+                                            ]
+                                        ) > 0 and not all(
+                                            elem
+                                            in j[
+                                                "bom_product_template_attribute_value_ids"
+                                            ]
+                                            for elem in product_buf[
+                                                "product_template_attribute_value_ids"
+                                            ]
                                         ):
-                                            suboperation_json["flows"].append(
+                                            continue
+                                        product = self.product_product.get(
+                                            j["product_id"][0], None
+                                        )
+                                        if not product:
+                                            continue
+                                        if j["product_id"][0] in fl:
+                                            fl[j["product_id"][0]].append(j)
+                                        else:
+                                            fl[j["product_id"][0]] = [j]
+                                    for j in fl:
+                                        product = self.product_product[j]
+                                        qty = sum(
+                                            self.convert_qty_uom(
+                                                k["product_qty"],
+                                                k["product_uom_id"],
+                                                self.product_product[
+                                                    k["product_id"][0]
+                                                ]["template"],
+                                            )
+                                            for k in fl[j]
+                                        )
+                                        if qty > 0:
+                                            operation_json["flows"].append(
                                                 {
                                                     "type": "flow_start",
-                                                    "quantity": -j["qty"] / producedQty,
+                                                    "quantity": -qty / producedQty,
+                                                    "item": {"name": product["name"]},
+                                                }
+                                            )
+
+                                    # Build byproduct flows
+                                    if i.get("sub_products", None):
+                                        for j in self.generator.getData(
+                                            "mrp.subproduct",
+                                            ids=i["sub_products"],
+                                            fields=[
+                                                "product_id",
+                                                "product_qty",
+                                                "product_uom",
+                                                "subproduct_type",
+                                            ],
+                                        ):
+                                            product = self.product_product.get(
+                                                j["product_id"][0], None
+                                            )
+                                            if not product:
+                                                continue
+                                            operation_json["flows"].append(
+                                                {
+                                                    "type": (
+                                                        "flow_fixed_end"
+                                                        if j["subproduct_type"]
+                                                        == "fixed"
+                                                        else "flow_end"
+                                                    ),
+                                                    "quantity": self.convert_qty_uom(
+                                                        j["product_qty"],
+                                                        j["product_uom"],
+                                                        j["product_id"][0],
+                                                    )
+                                                    / producedQty,
                                                     "item": {
-                                                        "name": self.product_product[
-                                                            j["product_id"][0]
-                                                        ]["name"]
+                                                        "item": {
+                                                            "name": product["name"]
+                                                        }
                                                     },
                                                 }
                                             )
-                            if not operation_json.get("flows", True):
-                                del operation_json["flows"]
-                            if not operation_json.get("loads", True):
-                                del operation_json["loads"]
-                            yield json.dumps(operation_json) + ",\n"
+
+                                    # Create loads
+                                    if i["id"] and not subcontractor:
+                                        exists = False
+                                        for j in mrp_routing_workcenters.get(
+                                            i["id"], []
+                                        ):
+                                            if (
+                                                not j["workcenter_id"]
+                                                or j["workcenter_id"][0]
+                                                not in self.map_workcenters
+                                            ):
+                                                continue
+                                            if not exists:
+                                                exists = True
+                                                operation_json["operation"][
+                                                    "loads"
+                                                ] = []
+                                            load = {
+                                                "load": {"quantity": j["time_cycle"]},
+                                                "search": j["search_mode"],
+                                                "resource": {
+                                                    "name": self.map_workcenters[
+                                                        j["workcenter_id"][0]
+                                                    ]["name"]
+                                                },
+                                            }
+                                            if j["skill"]:
+                                                load["skill"] = {"name": j["skill"][1]}
+
+                                            operation_json["loads"].append(load)
+
+                                            # create a load for secondary workcenters
+                                            # prepare the secondary workcenter xml string upfront
+                                            for sw_id in j["secondary_workcenter"]:
+                                                secondary_workcenter = (
+                                                    mrp_secondary_workcenter[sw_id]
+                                                )
+                                                load = (
+                                                    {
+                                                        "quantity": (
+                                                            1
+                                                            if not secondary_workcenter[
+                                                                "duration"
+                                                            ]
+                                                            or j["time_cycle"] == 0
+                                                            else secondary_workcenter[
+                                                                "duration"
+                                                            ]
+                                                            / j["time_cycle"]
+                                                        ),
+                                                        "search": secondary_workcenter[
+                                                            "search_mode"
+                                                        ],
+                                                        "resource": {
+                                                            "name": self.map_workcenters[
+                                                                secondary_workcenter[
+                                                                    "workcenter_id"
+                                                                ][0]
+                                                            ][
+                                                                "name"
+                                                            ]
+                                                        },
+                                                    },
+                                                )
+
+                                                if secondary_workcenter["skill"]:
+                                                    load["skill"] = {
+                                                        "name": secondary_workcenter[
+                                                            "skill"
+                                                        ][1]
+                                                    }
+
+                                                operation_json["loads"].append(load)
+
+                                else:
+                                    #
+                                    # CASE 2: A routing operation is created with a suboperation for each
+                                    # routing step.
+                                    #
+                                    operation_json = {
+                                        "name": operation,
+                                        "size_multiple": 1,
+                                        "posttime": self.manufacturing_lead * 86400,
+                                        "priority": 100 + (i["sequence"] or 1),
+                                        "category": i["type"] or "",
+                                        "type": "operation_routing",
+                                        "item": {"name": product_buf["name"]},
+                                        "location": {"name": location},
+                                    }
+
+                                    if i["code"]:
+                                        operation_json["description"] = i["code"]
+
+                                    # Handle multiple quantity of a bom (frepple custom extra field)
+                                    if i.get("product_qty_multiple", 0) > 0:
+                                        multipleQty = self.convert_qty_uom(
+                                            i["product_qty_multiple"],
+                                            i["product_uom_id"],
+                                            i["product_tmpl_id"][0],
+                                        )
+                                        if multipleQty > 0:
+                                            operation_json["size_multiple"] = (
+                                                multipleQty
+                                            )
+
+                                    # Handle produced quantity of a bom
+                                    producedQty = (
+                                        i["product_qty"]
+                                        * getattr(i, "product_efficiency", 1.0)
+                                        * uom_factor
+                                    )
+                                    if not producedQty:
+                                        producedQty = 1
+                                    if producedQty != 1:
+                                        operation_json["size_minimum"] = producedQty
+
+                                    operation_json["suboperations"] = []
+
+                                    fl = {}
+                                    for j in self.generator.getData(
+                                        "mrp.bom.line",
+                                        ids=i["bom_line_ids"],
+                                        fields=[
+                                            "product_qty",
+                                            "product_uom_id",
+                                            "product_id",
+                                            "operation_id",
+                                            "bom_product_template_attribute_value_ids",
+                                        ],
+                                    ):
+                                        # check if this BOM line applies to this variant
+                                        if len(
+                                            j[
+                                                "bom_product_template_attribute_value_ids"
+                                            ]
+                                        ) > 0 and not all(
+                                            elem
+                                            in product_buf[
+                                                "product_template_attribute_value_ids"
+                                            ]
+                                            for elem in j[
+                                                "bom_product_template_attribute_value_ids"
+                                            ]
+                                        ):
+                                            continue
+                                        product = self.product_product.get(
+                                            j["product_id"][0], None
+                                        )
+                                        if not product:
+                                            continue
+                                        qty = self.convert_qty_uom(
+                                            j["product_qty"],
+                                            j["product_uom_id"],
+                                            self.product_product[j["product_id"][0]][
+                                                "template"
+                                            ],
+                                        )
+                                        if (
+                                            j["product_id"][0],
+                                            (
+                                                j["operation_id"][0]
+                                                if j["operation_id"]
+                                                else None
+                                            ),
+                                        ) in fl:
+                                            # If the same component is consumed multiple times in the same BOM step
+                                            # we sum up all quantities in a single flow. We assume all of them
+                                            # have the same effectivity.
+                                            fl[
+                                                (
+                                                    j["product_id"][0],
+                                                    (
+                                                        j["operation_id"][0]
+                                                        if j["operation_id"]
+                                                        else None
+                                                    ),
+                                                )
+                                            ]["qty"] += qty
+                                        else:
+                                            j["qty"] = qty
+                                            fl[
+                                                (
+                                                    j["product_id"][0],
+                                                    (
+                                                        j["operation_id"][0]
+                                                        if j["operation_id"]
+                                                        else None
+                                                    ),
+                                                )
+                                            ] = j
+
+                                    steplist = mrp_routing_workcenters[i["id"]]
+                                    counter = 0
+                                    for step in steplist:
+                                        counter = counter + 1
+                                        suboperation = step["name"]
+                                        workcenter_qty = max(
+                                            step["workcenter_quantity"] or 0, 1
+                                        )
+                                        name = "%s - %s - %s" % (
+                                            operation,
+                                            suboperation,
+                                            step["id"],
+                                        )
+                                        if (
+                                            not step["workcenter_id"]
+                                            or step["workcenter_id"][0]
+                                            not in self.map_workcenters
+                                        ):
+                                            continue
+
+                                        # prepare the secondary workcenter xml string upfront
+                                        secondary_workcenter_data = []
+                                        for sw_id in step["secondary_workcenter"]:
+                                            secondary_workcenter = (
+                                                mrp_secondary_workcenter[sw_id]
+                                            )
+                                            if (
+                                                secondary_workcenter["workcenter_id"][0]
+                                                not in self.map_workcenters
+                                            ):
+                                                continue
+                                            load_json = {
+                                                "quantity": (
+                                                    1
+                                                    if not secondary_workcenter[
+                                                        "duration"
+                                                    ]
+                                                    or step["time_cycle"] == 0
+                                                    else secondary_workcenter[
+                                                        "duration"
+                                                    ]
+                                                    / step["time_cycle"]
+                                                ),
+                                                "search": secondary_workcenter[
+                                                    "search_mode"
+                                                ],
+                                                "resource": {
+                                                    "name": self.map_workcenters[
+                                                        secondary_workcenter[
+                                                            "workcenter_id"
+                                                        ][0]
+                                                    ]["name"]
+                                                },
+                                            }
+                                            if secondary_workcenter["skill"]:
+                                                load_json["load"]["skill"] = {
+                                                    "name": secondary_workcenter[
+                                                        "skill"
+                                                    ][1]
+                                                }
+                                            secondary_workcenter_data.append(load_json)
+
+                                        # Pick up the post operation time from the operation or the work center
+                                        post_operation_time = step.get(
+                                            "post_operation_time", None
+                                        )
+                                        if not post_operation_time:
+                                            post_operation_time = self.map_workcenters[
+                                                step["workcenter_id"][0]
+                                            ].get("post_operation_time", 0)
+
+                                        suboperation_json = {
+                                            "name": name,
+                                            "priority": counter * 10,
+                                            "duration_per": (
+                                                self.convert_float_time(
+                                                    step["time_cycle"]
+                                                    / workcenter_qty
+                                                    / 1440.0
+                                                )
+                                                if step["time_cycle"]
+                                                and step["time_cycle"] > 0
+                                                else "P0D"
+                                            ),
+                                            "category": i["type"] or "",
+                                            "posttime": (
+                                                self.convert_float_time(
+                                                    post_operation_time, "hours"
+                                                )
+                                                if post_operation_time
+                                                and post_operation_time > 0
+                                                else "P0D"
+                                            ),
+                                            "type": "operation_time_per",
+                                            "location": {"name": location},
+                                            "loads": [
+                                                {
+                                                    "quantity": workcenter_qty,
+                                                    "search": step["search_mode"],
+                                                    "resource": {
+                                                        "name": (
+                                                            self.map_workcenters[
+                                                                step["workcenter_id"][0]
+                                                            ]["name"]
+                                                        )
+                                                    },
+                                                }
+                                            ]
+                                            + secondary_workcenter_data,
+                                        }
+                                        if step["skill"]:
+                                            suboperation_json["loads"][0]["skill"] = {
+                                                "name": step["skill"][1]
+                                            }
+                                        if i["code"]:
+                                            suboperation_json["description"] = i["code"]
+                                        operation_json["suboperations"].append(
+                                            {"operation": suboperation_json}
+                                        )
+                                        suboperation_json["flows"] = []
+
+                                        if (
+                                            step == steplist[-1]
+                                            and i["scrap_rate"]
+                                            and 0.0 <= i["scrap_rate"] < 1.0
+                                        ):
+                                            suboperation_json["flows"].append(
+                                                {
+                                                    "type": "flow_end",
+                                                    "quantity": 1 - i["scrap_rate"],
+                                                    "item": {
+                                                        "name": product_buf["name"]
+                                                    },
+                                                }
+                                            )
+
+                                        for j in fl.values():
+                                            if j["qty"] > 0 and (
+                                                (
+                                                    j["operation_id"]
+                                                    and j["operation_id"][0]
+                                                    == step["id"]
+                                                )
+                                                or (
+                                                    not j["operation_id"]
+                                                    and step == steplist[0]
+                                                )
+                                            ):
+                                                suboperation_json["flows"].append(
+                                                    {
+                                                        "type": "flow_start",
+                                                        "quantity": -j["qty"]
+                                                        / producedQty,
+                                                        "item": {
+                                                            "name": self.product_product[
+                                                                j["product_id"][0]
+                                                            ][
+                                                                "name"
+                                                            ]
+                                                        },
+                                                    }
+                                                )
+                                if not operation_json.get("flows", True):
+                                    del operation_json["flows"]
+                                if not operation_json.get("loads", True):
+                                    del operation_json["loads"]
+                                yield json.dumps(operation_json) + ",\n"
                 except Exception as e:
                     yield from self.flagException("exporting BOM %s" % (i["id"],), e)
         except Exception as e:
