@@ -1526,7 +1526,6 @@ class exporter(object):
                                     itemsupplier.update(
                                         {"location": {"name": loc}} if loc else {}
                                     )
-                                    logger.info(f"itemsupplier={itemsupplier}")
 
                                     if v["date_end"]:
                                         itemsupplier["effective_end"] = (
