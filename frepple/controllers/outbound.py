@@ -3413,12 +3413,6 @@ class exporter(object):
                     if batch:
                         operationplan["batch"] = batch
 
-                    # Collect move info
-                    if i.move_raw_ids:
-                        mv_list = i.move_raw_ids
-                    else:
-                        mv_list = []
-
                     if not self.manage_work_orders or not getattr(
                         i, "workorder_ids", None
                     ):
