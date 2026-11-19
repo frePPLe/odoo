@@ -1417,8 +1417,8 @@ class exporter(object):
                             not r["price"] or sup["price"] < r["price"]
                         ):
                             r["price"] = sup["price"]
-                        if sup["date_end"] and (
-                            not r["date_end"] or sup["date_end"] > r["date_end"]
+                        if r["date_end"] and (
+                            not sup["date_end"] or sup["date_end"] > r["date_end"]
                         ):
                             r["date_end"] = sup["date_end"]
                     else:
@@ -1675,7 +1675,7 @@ class exporter(object):
                         yield "<flows>\n"
 
                         # We need a producing flow if there is a scrap rate
-                        if i["scrap_rate"] and i["scrap_rate"] and 0.0 < i["scrap_rate"] < 1.0:
+                        if i["scrap_rate"] and 0.0 < i["scrap_rate"] < 1.0:
                             yield '<flow xsi:type="flow_end" quantity="%f"><item name=%s/></flow>\n' % (
                                 1 - i["scrap_rate"],
                                 quoteattr(product_buf["name"]),
