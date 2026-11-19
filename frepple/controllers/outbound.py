@@ -2858,8 +2858,6 @@ class exporter(object):
                     # This move isn't related to a PO
                     continue
 
-                logger.error(f"Processing stock move: {mv}")
-
                 i = receipt_moves[0].purchase_line_id
                 j = i.order_id
 
@@ -3100,6 +3098,7 @@ class exporter(object):
                     ("bid", "confirmed", "cancel"),
                 ),
                 ("order_id.state", "=", False),
+                # Note: do NOT filter on receipt_status. A PO can be fully received but still have pending stock moves.
             ],
             object=True,
         ):
