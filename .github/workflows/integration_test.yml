@@ -18,4 +18,8 @@ jobs:
           repo: frepple
           owner: frePPLe
           event_type: odoo_connector_20
+          message: |
+            {
+              "branch": "${{ github.ref_name }}"
+            }
 
