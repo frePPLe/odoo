@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "17.0-dev"
+      - "17.0"
 
 jobs:
   trigger:
