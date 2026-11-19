@@ -375,10 +375,6 @@ class OdooTest(TransactionTestCase):
             Item.objects.all().count(), 0, "we should start with an empty database"
         )
 
-        param = Parameter.objects.get_or_create(name="odoo.singlecompany")[0]
-        param.value = "true"
-        param.save()
-
         management.call_command(
             "runplan",
             plantype=1,
@@ -515,15 +511,17 @@ class OdooTest(TransactionTestCase):
 
         self.assertEqual(
             ManufacturingOrder.objects.all()
-            .filter(status="approved", quantity=8)
+            .filter(reference="WH/MO/00007", status="approved", quantity=9)
             .count(),
             1,
-            "difference in number of approved manufacturing orders",
+            "Incorrect quantity of manufacturing orders WH/MO/00007",
         )
         self.assertEqual(
-            WorkOrder.objects.all().filter(status="approved", quantity=8).count(),
+            OperationMaterial.objects.all()
+            .filter(operation__name__contains="WH/MO/00007", quantity=-2)
+            .count(),
             2,
-            "difference in number of approved work orders",
+            "Incorrect quantity of operation materials for WH/MO/00007",
         )
         self.assertEqual(
             OperationMaterial.objects.all()
