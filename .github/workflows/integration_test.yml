@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "19.0-dev"
+      - "19.0"
   workflow_dispatch:
 
 jobs:
@@ -11,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Trigger event on frepple repository
-        uses: mvasigh/dispatch-action@main
+        uses: actions/github-script@v8
         with:
           token: ${{ secrets.COMMUNITY_GITHUB_TOKEN }}
           repo: frepple
