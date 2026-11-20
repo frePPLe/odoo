@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- 1. The warehouse, with the resupply warehouse set at creation -->
+        <record id="warehouse_dc_central" model="stock.warehouse">
+        <field name="name">DC Central</field>
+        <field name="code">DCC</field>
+        <field name="manufacture_to_resupply">False</field>
+        <field name="resupply_wh_ids" eval="[(6, 0, [ref('stock.warehouse0')])]"/>
+        </record>
+
+        <!-- 2. Add the generated route to products -->
+        <function model="stock.route" name="write">
+        <value model="stock.route" search="[
+            ('supplied_wh_id', '=', ref('warehouse_dc_central')),
+            ('supplier_wh_id', '=', ref('stock.warehouse0'))]"/>
+        <value eval="{'product_ids': [
+            (4, ref('product_template.DIY_varnished_chair')),
+            (4, ref('product_template.varnish')),
+            (4, ref('product_template.custom_chair')),
+            (4, ref('product_template.varnished_chair')),
+            (4, ref('product_template.chair'))]}"/>
+        </function>
+
+        <function model="stock.rule" name="write">
+        <value model="stock.rule" search="[
+            ('route_id.supplied_wh_id', '=', ref('warehouse_dc_central')),
+            ('route_id.supplier_wh_id', '=', ref('stock.warehouse0')),
+            ('picking_type_id.warehouse_id', '=', ref('warehouse_dc_central')),
+            ('picking_type_id.code', '=', 'incoming'),
+            ('action', '=', 'pull')]"/>
+        <value eval="{'delay': 7}"/>
+        </function>
+    </data>
+</odoo>

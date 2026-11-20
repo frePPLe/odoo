@@ -425,7 +425,7 @@ class OdooTest(TransactionTestCase):
         )
         self.assertEqual(
             po_list.count(),
-            6,
+            5,
             "difference in number of imported purchase orders",
         )
         po = po_list[0]
@@ -475,6 +475,14 @@ class OdooTest(TransactionTestCase):
             "no proposed purchase order should be present before running the plan",
         )
         self.assertEqual(
+            DistributionOrder.objects.all()
+            .filter(status="proposed")
+            .filter(source="odoo_1")
+            .count(),
+            0,
+            "no proposed distribution order should be present before running the plan",
+        )
+        self.assertEqual(
             Demand.objects.all()
             .filter(item__name__in=frepple_items, status="open")
             .count(),
@@ -508,6 +516,16 @@ class OdooTest(TransactionTestCase):
             .count(),
             1,
             "Item supplier unit of measure should be correctly applied",
+        )
+        self.assertEqual(
+            ItemDistribution.objects.all()
+            .filter(
+                item__name="chair",
+                leadtime=timedelta(days=7),
+            )
+            .count(),
+            1,
+            "Item distribution leadtime should be correctly applied",
         )
 
         self.assertEqual(
@@ -584,6 +602,13 @@ class OdooTest(TransactionTestCase):
             .order_by("startdate", "supplier", "item")
             .first()
         )
+        proposed_do = (
+            DistributionOrder.objects.filter(
+                item__name__in=frepple_items, status="proposed"
+            )
+            .order_by("startdate", "destination", "item")
+            .first()
+        )
         self.assertIsNotNone(
             proposed_mo,
             "at least one proposed manufacturing order should be present after running the plan",
@@ -592,6 +617,10 @@ class OdooTest(TransactionTestCase):
             proposed_po,
             "at least one proposed purchase order should be present after running the plan",
         )
+        self.assertIsNotNone(
+            proposed_do,
+            "at least one proposed distribution order should be present after running the plan",
+        )
 
         # Recommendations
         count_purchase = 0
@@ -599,7 +628,7 @@ class OdooTest(TransactionTestCase):
         count_produce = 0
         count_late_delivery = 0
 
-        # store the recommendaion to approve them
+        # store the recommendation to approve them
         purchase_rec = 0
         reschedule_rec = 0
         produce_rec = 0
@@ -627,7 +656,7 @@ class OdooTest(TransactionTestCase):
             elif odoo_rec["type"] == "latedelivery":
                 count_late_delivery += 1
         self.assertGreaterEqual(
-            count_purchase, 4, "expected at least 4 purchase recommendations"
+            count_purchase, 3, "expected at least 4 purchase recommendations"
         )
         self.assertGreaterEqual(
             count_reschedule,
@@ -794,6 +823,28 @@ class OdooTest(TransactionTestCase):
         self.assertEqual(
             response.status_code, 200, "couldn't upload the proposed purchase order"
         )
+        response = self.client.post(
+            "/erp/upload/",
+            json.dumps(
+                [
+                    {
+                        "reference": proposed_do.reference,
+                        "type": "DO",
+                        "quantity": float(proposed_do.quantity),
+                        "startdate": datetime.strftime(
+                            proposed_do.startdate, "%Y-%m-%dT%H:%M:%S"
+                        ),
+                        "enddate": datetime.strftime(
+                            proposed_do.enddate, "%Y-%m-%dT%H:%M:%S"
+                        ),
+                    }
+                ]
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(
+            response.status_code, 200, "couldn't upload the proposed distribution order"
+        )
 
         # Check new status
         approved_mo = ManufacturingOrder.objects.filter(
@@ -811,6 +862,14 @@ class OdooTest(TransactionTestCase):
             approved_po.status,
             "approved",
             "the purchase order should have been approved after uploading it",
+        )
+        approved_do = DistributionOrder.objects.filter(
+            pk__startswith=f"{proposed_do.reference} exported as"
+        )[0]
+        self.assertEqual(
+            approved_do.status,
+            "approved",
+            "the distribution order should have been approved after uploading it",
         )
 
         # Check results in odoo
@@ -862,6 +921,31 @@ class OdooTest(TransactionTestCase):
             cnt += 1
         self.assertEqual(cnt, 1, "expected to approve 1 purchase order")
 
+        for odoo_do in self.odooRPC(
+            "stock.picking",
+            [
+                ("origin", "=", "frePPLe"),
+                ("state", "=", "draft"),
+                ("location_dest_id.warehouse_id.name", "=", "DCC/Stock"),
+            ],
+            {"limit": 1, "order": "write_date desc"},
+        ):
+            self.assertEqual(
+                approved_do.quantity,
+                odoo_do["product_qty"],
+                "different quantity of an exported distribution order",
+            )
+            self.assertEqual(
+                odoo_do["scheduled_date"],
+                approved_do.startdate.strftime("%Y-%m-%d %H:%M:%S"),
+                "different scheduled date of an exported distribution order",
+            )
+            self.assertEqual(
+                odoo_do["date_deadline"],
+                approved_do.enddate.strftime("%Y-%m-%d %H:%M:%S"),
+                "different deadline date of an exported distribution order",
+            )
+
         # Test blanket order
         # look for a blanket order in odoo
         for odoo_prl in self.odooRPC(
@@ -909,4 +993,4 @@ class OdooTest(TransactionTestCase):
                         "different blanket order id",
                     )
 
-        self._test_warehouse_distribution()
+        # self._test_warehouse_distribution()

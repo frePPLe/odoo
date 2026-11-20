@@ -11,6 +11,7 @@
             <field name="user_id" ref="base.user_demo"/>
             <field name="state">sale</field>
             <field name="team_id" ref="sales_team.team_sales_department"/>
+            <field name="warehouse_id" ref="warehouse_dc_central"/>
             <field name="date_order" eval="(DateTime.today() - relativedelta(weeks=1)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
 
@@ -24,6 +25,7 @@
 
         <record id="sale_order_1001" model="sale.order">
             <field name="state">sale</field>
+            <field name="warehouse_id" ref="warehouse_dc_central"/>
         </record>
         <function model="stock.move" name="write">
                 <value model="stock.move" search="[('picking_id.sale_id', '=', obj().env.ref('freppledata.sale_order_1001').id)]"/>
@@ -51,6 +53,7 @@
 
         <record id="sale_order_1002" model="sale.order">
             <field name="state">sale</field>
+            <field name="warehouse_id" ref="warehouse_dc_central"/>
         </record>
         <function model="stock.move" name="write">
                 <value model="stock.move" search="[('picking_id.sale_id', '=', obj().env.ref('freppledata.sale_order_1002').id)]"/>
@@ -78,6 +81,7 @@
 
         <record id="sale_order_1003" model="sale.order">
             <field name="state">sale</field>
+            <field name="warehouse_id" ref="warehouse_dc_central"/>
         </record>
         <function model="stock.move" name="write">
                 <value model="stock.move" search="[('picking_id.sale_id', '=', obj().env.ref('freppledata.sale_order_1003').id)]"/>
@@ -105,6 +109,7 @@
 
         <record id="sale_order_1004" model="sale.order">
             <field name="state">sale</field>
+            <field name="warehouse_id" ref="warehouse_dc_central"/>
         </record>
         <function model="stock.move" name="write">
                 <value model="stock.move" search="[('picking_id.sale_id', '=', obj().env.ref('freppledata.sale_order_1004').id)]"/>
@@ -132,6 +137,7 @@
 
         <record id="sale_order_1005" model="sale.order">
             <field name="state">sale</field>
+            <field name="warehouse_id" ref="warehouse_dc_central"/>
         </record>
         <function model="stock.move" name="write">
                 <value model="stock.move" search="[('picking_id.sale_id', '=', obj().env.ref('freppledata.sale_order_1005').id)]"/>
@@ -159,6 +165,7 @@
 
         <record id="sale_order_1006" model="sale.order">
             <field name="state">sale</field>
+            <field name="warehouse_id" ref="warehouse_dc_central"/>
         </record>
         <function model="stock.move" name="write">
                 <value model="stock.move" search="[('picking_id.sale_id', '=', obj().env.ref('freppledata.sale_order_1006').id)]"/>
@@ -186,6 +193,7 @@
 
         <record id="sale_order_1007" model="sale.order">
             <field name="state">sale</field>
+            <field name="warehouse_id" ref="warehouse_dc_central"/>
         </record>
         <function model="stock.move" name="write">
                 <value model="stock.move" search="[('picking_id.sale_id', '=', obj().env.ref('freppledata.sale_order_1007').id)]"/>
@@ -213,6 +221,7 @@
 
         <record id="sale_order_1008" model="sale.order">
             <field name="state">sale</field>
+            <field name="warehouse_id" ref="warehouse_dc_central"/>
         </record>
         <function model="stock.move" name="write">
                 <value model="stock.move" search="[('picking_id.sale_id', '=', obj().env.ref('freppledata.sale_order_1008').id)]"/>
@@ -240,6 +249,7 @@
 
         <record id="sale_order_1009" model="sale.order">
             <field name="state">sale</field>
+            <field name="warehouse_id" ref="warehouse_dc_central"/>
         </record>
         <function model="stock.move" name="write">
                 <value model="stock.move" search="[('picking_id.sale_id', '=', obj().env.ref('freppledata.sale_order_1009').id)]"/>
@@ -252,6 +262,7 @@
             <field name="partner_invoice_id" ref="base.res_partner_12"/>
             <field name="partner_shipping_id" ref="base.res_partner_12"/>
             <field name="user_id" ref="base.user_demo"/>
+            <field name="warehouse_id" ref="warehouse_dc_central"/>
             <field name="team_id" ref="sales_team.team_sales_department"/>
             <field name="date_order" eval="(DateTime.today() + relativedelta(weeks=1)).strftime('%Y-%m-%d %H:%M')"/>
         </record>
@@ -269,6 +280,7 @@
         <!-- demand history -->
 
             <record id="sale_order_1" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -296,6 +308,7 @@
             </function>
 
             <record id="sale_order_2" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -323,6 +336,7 @@
             </function>
 
             <record id="sale_order_3" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -350,6 +364,7 @@
             </function>
 
             <record id="sale_order_4" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -377,6 +392,7 @@
             </function>
 
             <record id="sale_order_5" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -404,6 +420,7 @@
             </function>
 
             <record id="sale_order_6" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -431,6 +448,7 @@
             </function>
 
             <record id="sale_order_7" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -458,6 +476,7 @@
             </function>
 
             <record id="sale_order_8" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -485,6 +504,7 @@
             </function>
 
             <record id="sale_order_9" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -512,6 +532,7 @@
             </function>
 
             <record id="sale_order_10" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -539,6 +560,7 @@
             </function>
 
             <record id="sale_order_11" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -566,6 +588,7 @@
             </function>
 
             <record id="sale_order_12" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -593,6 +616,7 @@
             </function>
 
             <record id="sale_order_13" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -620,6 +644,7 @@
             </function>
 
             <record id="sale_order_14" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -647,6 +672,7 @@
             </function>
 
             <record id="sale_order_15" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -674,6 +700,7 @@
             </function>
 
             <record id="sale_order_16" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -701,6 +728,7 @@
             </function>
 
             <record id="sale_order_17" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -728,6 +756,7 @@
             </function>
 
             <record id="sale_order_18" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -755,6 +784,7 @@
             </function>
 
             <record id="sale_order_19" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -782,6 +812,7 @@
             </function>
 
             <record id="sale_order_20" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -809,6 +840,7 @@
             </function>
 
             <record id="sale_order_21" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -836,6 +868,7 @@
             </function>
 
             <record id="sale_order_22" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -863,6 +896,7 @@
             </function>
 
             <record id="sale_order_23" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -890,6 +924,7 @@
             </function>
 
             <record id="sale_order_24" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -917,6 +952,7 @@
             </function>
 
             <record id="sale_order_25" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -944,6 +980,7 @@
             </function>
 
             <record id="sale_order_26" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -971,6 +1008,7 @@
             </function>
 
             <record id="sale_order_27" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -998,6 +1036,7 @@
             </function>
 
             <record id="sale_order_28" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1025,6 +1064,7 @@
             </function>
 
             <record id="sale_order_29" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1052,6 +1092,7 @@
             </function>
 
             <record id="sale_order_30" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1079,6 +1120,7 @@
             </function>
 
             <record id="sale_order_31" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1106,6 +1148,7 @@
             </function>
 
             <record id="sale_order_32" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1133,6 +1176,7 @@
             </function>
 
             <record id="sale_order_33" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1160,6 +1204,7 @@
             </function>
 
             <record id="sale_order_34" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1187,6 +1232,7 @@
             </function>
 
             <record id="sale_order_35" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1214,6 +1260,7 @@
             </function>
 
             <record id="sale_order_36" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1241,6 +1288,7 @@
             </function>
 
             <record id="sale_order_37" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1268,6 +1316,7 @@
             </function>
 
             <record id="sale_order_38" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1295,6 +1344,7 @@
             </function>
 
             <record id="sale_order_39" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1322,6 +1372,7 @@
             </function>
 
             <record id="sale_order_40" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1349,6 +1400,7 @@
             </function>
 
             <record id="sale_order_41" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1376,6 +1428,7 @@
             </function>
 
             <record id="sale_order_42" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1403,6 +1456,7 @@
             </function>
 
             <record id="sale_order_43" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1430,6 +1484,7 @@
             </function>
 
             <record id="sale_order_44" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1457,6 +1512,7 @@
             </function>
 
             <record id="sale_order_45" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1484,6 +1540,7 @@
             </function>
 
             <record id="sale_order_46" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1511,6 +1568,7 @@
             </function>
 
             <record id="sale_order_47" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1538,6 +1596,7 @@
             </function>
 
             <record id="sale_order_48" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1565,6 +1624,7 @@
             </function>
 
             <record id="sale_order_49" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1592,6 +1652,7 @@
             </function>
 
             <record id="sale_order_50" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1619,6 +1680,7 @@
             </function>
 
             <record id="sale_order_51" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1646,6 +1708,7 @@
             </function>
 
             <record id="sale_order_52" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1673,6 +1736,7 @@
             </function>
 
             <record id="sale_order_53" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1700,6 +1764,7 @@
             </function>
 
             <record id="sale_order_54" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1727,6 +1792,7 @@
             </function>
 
             <record id="sale_order_55" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1754,6 +1820,7 @@
             </function>
 
             <record id="sale_order_56" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1781,6 +1848,7 @@
             </function>
 
             <record id="sale_order_57" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1808,6 +1876,7 @@
             </function>
 
             <record id="sale_order_58" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1835,6 +1904,7 @@
             </function>
 
             <record id="sale_order_59" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1862,6 +1932,7 @@
             </function>
 
             <record id="sale_order_60" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1889,6 +1960,7 @@
             </function>
 
             <record id="sale_order_61" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1916,6 +1988,7 @@
             </function>
 
             <record id="sale_order_62" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -1943,6 +2016,7 @@
             </function>
 
             <record id="sale_order_63" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -1970,6 +2044,7 @@
             </function>
 
             <record id="sale_order_64" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -1997,6 +2072,7 @@
             </function>
 
             <record id="sale_order_65" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2024,6 +2100,7 @@
             </function>
 
             <record id="sale_order_66" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2051,6 +2128,7 @@
             </function>
 
             <record id="sale_order_67" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2078,6 +2156,7 @@
             </function>
 
             <record id="sale_order_68" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2105,6 +2184,7 @@
             </function>
 
             <record id="sale_order_69" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2132,6 +2212,7 @@
             </function>
 
             <record id="sale_order_70" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2159,6 +2240,7 @@
             </function>
 
             <record id="sale_order_71" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2186,6 +2268,7 @@
             </function>
 
             <record id="sale_order_72" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2213,6 +2296,7 @@
             </function>
 
             <record id="sale_order_73" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2240,6 +2324,7 @@
             </function>
 
             <record id="sale_order_74" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2267,6 +2352,7 @@
             </function>
 
             <record id="sale_order_75" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2294,6 +2380,7 @@
             </function>
 
             <record id="sale_order_76" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2321,6 +2408,7 @@
             </function>
 
             <record id="sale_order_77" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2348,6 +2436,7 @@
             </function>
 
             <record id="sale_order_78" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2375,6 +2464,7 @@
             </function>
 
             <record id="sale_order_79" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2402,6 +2492,7 @@
             </function>
 
             <record id="sale_order_80" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2429,6 +2520,7 @@
             </function>
 
             <record id="sale_order_81" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2456,6 +2548,7 @@
             </function>
 
             <record id="sale_order_82" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2483,6 +2576,7 @@
             </function>
 
             <record id="sale_order_83" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2510,6 +2604,7 @@
             </function>
 
             <record id="sale_order_84" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2537,6 +2632,7 @@
             </function>
 
             <record id="sale_order_85" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2564,6 +2660,7 @@
             </function>
 
             <record id="sale_order_86" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2591,6 +2688,7 @@
             </function>
 
             <record id="sale_order_87" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2618,6 +2716,7 @@
             </function>
 
             <record id="sale_order_88" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2645,6 +2744,7 @@
             </function>
 
             <record id="sale_order_89" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2672,6 +2772,7 @@
             </function>
 
             <record id="sale_order_90" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2699,6 +2800,7 @@
             </function>
 
             <record id="sale_order_91" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2726,6 +2828,7 @@
             </function>
 
             <record id="sale_order_92" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2753,6 +2856,7 @@
             </function>
 
             <record id="sale_order_93" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2780,6 +2884,7 @@
             </function>
 
             <record id="sale_order_94" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2807,6 +2912,7 @@
             </function>
 
             <record id="sale_order_95" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2834,6 +2940,7 @@
             </function>
 
             <record id="sale_order_96" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2861,6 +2968,7 @@
             </function>
 
             <record id="sale_order_97" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2888,6 +2996,7 @@
             </function>
 
             <record id="sale_order_98" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2915,6 +3024,7 @@
             </function>
 
             <record id="sale_order_99" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -2942,6 +3052,7 @@
             </function>
 
             <record id="sale_order_100" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -2969,6 +3080,7 @@
             </function>
 
             <record id="sale_order_101" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -2996,6 +3108,7 @@
             </function>
 
             <record id="sale_order_102" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3023,6 +3136,7 @@
             </function>
 
             <record id="sale_order_103" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3050,6 +3164,7 @@
             </function>
 
             <record id="sale_order_104" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3077,6 +3192,7 @@
             </function>
 
             <record id="sale_order_105" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3104,6 +3220,7 @@
             </function>
 
             <record id="sale_order_106" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3131,6 +3248,7 @@
             </function>
 
             <record id="sale_order_107" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3158,6 +3276,7 @@
             </function>
 
             <record id="sale_order_108" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3185,6 +3304,7 @@
             </function>
 
             <record id="sale_order_109" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3212,6 +3332,7 @@
             </function>
 
             <record id="sale_order_110" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3239,6 +3360,7 @@
             </function>
 
             <record id="sale_order_111" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3266,6 +3388,7 @@
             </function>
 
             <record id="sale_order_112" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3293,6 +3416,7 @@
             </function>
 
             <record id="sale_order_113" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3320,6 +3444,7 @@
             </function>
 
             <record id="sale_order_114" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3347,6 +3472,7 @@
             </function>
 
             <record id="sale_order_115" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3374,6 +3500,7 @@
             </function>
 
             <record id="sale_order_116" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3401,6 +3528,7 @@
             </function>
 
             <record id="sale_order_117" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3428,6 +3556,7 @@
             </function>
 
             <record id="sale_order_118" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3455,6 +3584,7 @@
             </function>
 
             <record id="sale_order_119" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3482,6 +3612,7 @@
             </function>
 
             <record id="sale_order_120" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3509,6 +3640,7 @@
             </function>
 
             <record id="sale_order_121" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3536,6 +3668,7 @@
             </function>
 
             <record id="sale_order_122" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3563,6 +3696,7 @@
             </function>
 
             <record id="sale_order_123" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3590,6 +3724,7 @@
             </function>
 
             <record id="sale_order_124" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3617,6 +3752,7 @@
             </function>
 
             <record id="sale_order_125" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3644,6 +3780,7 @@
             </function>
 
             <record id="sale_order_126" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3671,6 +3808,7 @@
             </function>
 
             <record id="sale_order_127" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3698,6 +3836,7 @@
             </function>
 
             <record id="sale_order_128" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3725,6 +3864,7 @@
             </function>
 
             <record id="sale_order_129" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3752,6 +3892,7 @@
             </function>
 
             <record id="sale_order_130" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3779,6 +3920,7 @@
             </function>
 
             <record id="sale_order_131" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3806,6 +3948,7 @@
             </function>
 
             <record id="sale_order_132" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3833,6 +3976,7 @@
             </function>
 
             <record id="sale_order_133" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3860,6 +4004,7 @@
             </function>
 
             <record id="sale_order_134" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3887,6 +4032,7 @@
             </function>
 
             <record id="sale_order_135" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3914,6 +4060,7 @@
             </function>
 
             <record id="sale_order_136" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -3941,6 +4088,7 @@
             </function>
 
             <record id="sale_order_137" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -3968,6 +4116,7 @@
             </function>
 
             <record id="sale_order_138" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -3995,6 +4144,7 @@
             </function>
 
             <record id="sale_order_139" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -4022,6 +4172,7 @@
             </function>
 
             <record id="sale_order_140" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -4049,6 +4200,7 @@
             </function>
 
             <record id="sale_order_141" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -4076,6 +4228,7 @@
             </function>
 
             <record id="sale_order_142" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -4103,6 +4256,7 @@
             </function>
 
             <record id="sale_order_143" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -4130,6 +4284,7 @@
             </function>
 
             <record id="sale_order_144" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -4157,6 +4312,7 @@
             </function>
 
             <record id="sale_order_145" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -4184,6 +4340,7 @@
             </function>
 
             <record id="sale_order_146" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -4211,6 +4368,7 @@
             </function>
 
             <record id="sale_order_147" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_1"/>
                 <field name="partner_invoice_id" ref="base.res_partner_1"/>
                 <field name="partner_shipping_id" ref="base.res_partner_1"/>
@@ -4238,6 +4396,7 @@
             </function>
 
             <record id="sale_order_148" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_2"/>
                 <field name="partner_invoice_id" ref="base.res_partner_2"/>
                 <field name="partner_shipping_id" ref="base.res_partner_2"/>
@@ -4265,6 +4424,7 @@
             </function>
 
             <record id="sale_order_149" model="sale.order">
+                <field name="warehouse_id" ref="warehouse_dc_central"/>
                 <field name="partner_id" ref="base.res_partner_3"/>
                 <field name="partner_invoice_id" ref="base.res_partner_3"/>
                 <field name="partner_shipping_id" ref="base.res_partner_3"/>
@@ -4290,8 +4450,5 @@
                 <value model="stock.move" search="[('picking_id.sale_id', '=', obj().env.ref('freppledata.sale_order_149').id)]"/>
                 <value eval="{'state': 'done'}"/>
             </function>
-
-
-
     </data>
 </odoo>

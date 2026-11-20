@@ -12,6 +12,8 @@
         "data/config.xml",  # First to assure the config is correct for the rest of the data
         "data/res.partner.csv",
         "data/product.template.csv",
+        "data/stock.warehouse.xml",
+        "data/stock.route.csv",  # Remove the possibility to buy at DC
         "data/stock.onhand.xml",
         "data/mrp.workcenter.csv",
         "data/mrp.bom.csv",
