@@ -1134,14 +1134,10 @@ class exporter(object):
                 i["id"]: i for i in self.generator.getData("stock.route", object=True)
             }
             for k, v in self.routes.items():
-                mto = False
-                for rule in v.rule_ids:
-                    if (
-                        rule.action == "pull"
-                        and rule.procure_method == "make_to_order"
-                        and rule.location_dest_id.usage == "internal"
-                    ):
-                        mto = True
+                mto = bool(v.rule_ids) and all(
+                    rule.action == "pull" and rule.procure_method == "make_to_order"
+                    for rule in v.rule_ids
+                )
                 if mto:
                     self.routes_mto.append(k)
 
@@ -2278,44 +2274,32 @@ class exporter(object):
         """
         try:
 
-            # Get all move ids
-            # We only read the open ones
-
+            # Index open stock moves by ID.
             stock_moves_dict = {
-                i["id"]: i
-                for i in self.generator.getData(
+                move.id: move
+                for move in self.generator.getData(
                     "stock.move",
                     search=[
                         (
                             "state",
                             "in",
                             ["waiting", "partially_available", "assigned", "confirmed"],
-                        )
+                        ),
                     ],
-                    fields=[
-                        "id",
-                        "move_orig_ids",
-                        "product_id",
-                        "date",
-                        "quantity",
-                        "procure_method",
-                        "product_uom_qty",
-                        "product_uom",
-                        "state",
-                        "move_line_ids",
-                        "picking_type_id",
-                    ],
+                    object=True,
                 )
             }
 
+            def getOpenMoves(move_ids):
+                return [
+                    stock_moves_dict[move_id]
+                    for move_id in move_ids
+                    if move_id in stock_moves_dict
+                ]
+
             def getReservedAndDoneQuantity(sm):
                 reserved_quantity = 0
-                for l in self.generator.getData(
-                    "stock.move.line",
-                    ids=sm["move_line_ids"],
-                    search=[("state", "not in", ("cancel",))],
-                    object=True,
-                ):
+                for l in sm.move_line_ids:
                     # Done state is only picked up at final move.
                     # Assigned state is also picked up on related moves.
                     if (l.state == "done" and not l.move_id.move_dest_ids) or (
@@ -2409,45 +2393,42 @@ class exporter(object):
 
                         # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
 
-                        # if no stock_move if that SO line is still open, we can consider the line closed
+                        open_moves = getOpenMoves(i["move_ids"])
+                        # Remove all the moves that are the origin move of another one
+                        # This ensures we keep the last move in the chain
+                        orig_moves = {o for m in open_moves for o in m.move_orig_ids}
+                        open_moves = [m for m in open_moves if m not in orig_moves]
                         state = j.get("state", "sale")
-                        if state == "sale" and not any(
-                            x in stock_moves_dict
-                            and stock_moves_dict[x] not in ("cancel", "done")
-                            for x in i["move_ids"]
-                        ):
+                        if state == "sale" and not open_moves:
                             state = "done"
                         if state == "sale":
-                            if i["move_ids"] and any(
-                                [mv_id in stock_moves_dict for mv_id in i["move_ids"]]
-                            ):
-                                for mv_id in i["move_ids"]:
+                            if open_moves:
+                                for sm in open_moves:
                                     sol_name = (
-                                        "%s %s" % (name, mv_id)
+                                        "%s %s" % (name, sm.id)
                                         if len(i["move_ids"]) > 1
                                         else name
                                     )
-                                    sm = stock_moves_dict.get(mv_id, None)
                                     if sm:
-                                        if sm["picking_type_id"]:
+                                        if sm.picking_type_id:
                                             t = self.operation_types.get(
-                                                sm["picking_type_id"][0], None
+                                                sm.picking_type_id.id, None
                                             )
                                             if t and t["code"] == "incoming":
                                                 # Exclude return receipts
                                                 continue
                                         sm_product = (
                                             self.product_product.get(
-                                                sm["product_id"][0], None
+                                                sm.product_id.id, None
                                             )
-                                            if sm["product_id"]
+                                            if sm.product_id
                                             else product
                                         )
                                         if not sm_product:
                                             continue
                                         qty = self.convert_qty_uom(
-                                            sm["product_uom_qty"],
-                                            sm["product_uom"],
+                                            sm.product_uom_qty,
+                                            sm.product_uom.id,
                                             sm_product["template"],
                                         )
                                         reserved_quantity = getReservedAndDoneQuantity(
@@ -2457,7 +2438,7 @@ class exporter(object):
                                         if qty - reserved_quantity > 0:
                                             continue
                                         due = self.formatDateTime(
-                                            sm["date"]
+                                            sm.date
                                             or i.get("commitment_date", False)
                                             or j.get("commitment_date", False)
                                             or j["date_order"]
@@ -2623,13 +2604,13 @@ class exporter(object):
 
                     # Possible sales order status are 'draft', 'sent', 'sale', 'done' and 'cancel'
 
-                    # if no stock_move if that SO line is still open, we can consider the line closed
+                    open_moves = getOpenMoves(i["move_ids"])
+                    # Remove all the moves that are the origin move of another one
+                    # This ensures we keep the last move in the chain
+                    orig_moves = {o for m in open_moves for o in m.move_orig_ids}
+                    open_moves = [m for m in open_moves if m not in orig_moves]
                     state = j.get("state", "sale")
-                    if state == "sale" and not any(
-                        x in stock_moves_dict
-                        and stock_moves_dict[x] not in ("cancel", "done")
-                        for x in i["move_ids"]
-                    ):
+                    if state == "sale" and not open_moves:
                         state = "done"
                         if self.delta < 999:
                             continue
@@ -2642,36 +2623,38 @@ class exporter(object):
                             product["template"],
                         )
                     elif state == "sale":
-                        if i["move_ids"] and any(
-                            [mv_id in stock_moves_dict for mv_id in i["move_ids"]]
-                        ):
-                            for mv_id in i["move_ids"]:
+                        if open_moves:
+                            origin_ids = {
+                                origin.id
+                                for move in open_moves
+                                for origin in move.move_orig_ids
+                            }
+                            for sm in open_moves:
+                                if sm.id in origin_ids:
+                                    continue
                                 sol_name = (
-                                    "%s %s" % (name, mv_id)
+                                    "%s %s" % (name, sm.id)
                                     if len(i["move_ids"]) > 1
                                     else name
                                 )
-                                sm = stock_moves_dict.get(mv_id, None)
                                 if sm:
-                                    if sm["picking_type_id"]:
+                                    if sm.picking_type_id:
                                         t = self.operation_types.get(
-                                            sm["picking_type_id"][0], None
+                                            sm.picking_type_id.id, None
                                         )
                                         if t and t["code"] == "incoming":
                                             # Exclude return receipts
                                             continue
                                     sm_product = (
-                                        self.product_product.get(
-                                            sm["product_id"][0], None
-                                        )
-                                        if sm["product_id"]
+                                        self.product_product.get(sm.product_id.id, None)
+                                        if sm.product_id
                                         else product
                                     )
                                     if not sm_product:
                                         continue
                                     qty = self.convert_qty_uom(
-                                        sm["product_uom_qty"],
-                                        sm["product_uom"],
+                                        sm.product_uom_qty,
+                                        sm.product_uom.id,
                                         sm_product["template"],
                                     )
                                     reserved_quantity = getReservedAndDoneQuantity(sm)
@@ -2682,7 +2665,7 @@ class exporter(object):
                                     ):
                                         continue
                                     due = self.formatDateTime(
-                                        sm["date"]
+                                        sm.date
                                         or i.get("commitment_date", False)
                                         or j.get("commitment_date", False)
                                         or j["date_order"]
@@ -4493,7 +4476,7 @@ class exporter(object):
 
             # Root of the item hierarchy, ie the root product category of odoo
             roots = [
-                "All items",  # We use the default 'All items' from Frepple to have one less level of hierarchy
+                # "All items",  # We use the default 'All items' from Frepple to have one less level of hierarchy
             ]
 
             # Collect the distributions. The key is what frepple makes unique as well,
