@@ -16,13 +16,18 @@ jobs:
     steps:
       - name: Trigger event on frepple repository
         uses: actions/github-script@v8
+        env:
+          BRANCH: ${{ github.ref_name }}
         with:
-          token: ${{ secrets.COMMUNITY_GITHUB_TOKEN }}
-          repo: frepple
-          owner: frePPLe
-          event_type: odoo_connector_18
-          message: |
-            {
-              "branch": "${{ github.ref_name }}"
-            }
-
+          github-token: ${{ secrets.COMMUNITY_GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: "frePPLe",
+              repo: "frepple",
+              event_type: "odoo_connector_18",
+              client_payload: {
+                message: {
+                  branch: process.env.BRANCH
+                }
+              }
+            });
