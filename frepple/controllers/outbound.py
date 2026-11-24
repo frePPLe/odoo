@@ -3918,9 +3918,10 @@ class exporter(object):
                                 "start": shipping_date,
                                 "end": receipt_date,
                                 "quantity": qty,
-                                "status": "confirmed",
+                                "status": "approved",
                                 "item": {"name": product["name"]},
                                 "location": {"name": destination_wh},
+                                "batch": arr.picking_id.origin,
                             }
                             | (
                                 {"origin": {"name": origin_wh}}
@@ -3991,9 +3992,10 @@ class exporter(object):
                             "start": shipping_date,
                             "end": receipt_date,
                             "quantity": qty,
-                            "status": "confirmed",
+                            "status": "approved",
                             "item": {"name": product["name"]},
                             "location": {"name": destination_wh},
+                            "batch": arr.picking_id.origin,
                         }
                         | (
                             {"origin": {"name": origin_wh}}
